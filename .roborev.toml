@@ -1,0 +1,58 @@
+# .roborev.toml
+
+# ---- Default agent ----
+agent = "codex"
+model = "gpt-6-sol"
+review_reasoning = "high"
+
+# ---- Review behavior ----
+review_min_severity = "medium"
+auto_close_passing_reviews = true
+
+review_guidelines = """
+Project artifacts:
+- design.md is the design and the source of truth. Items in its "Decisions"
+  section are settled; challenge them only with a genuinely new argument.
+- docs/plans/ holds the implementation plan, once it exists.
+- Everything else is implementation code.
+
+When a change touches design.md or the plan: read the whole document, not just
+the diff. Flag ambiguity, contradictions, missing requirements or non-goals,
+unhandled failure modes, infeasible choices, and scope creep. Ignore wording
+and formatting unless meaning changes.
+
+When a change touches code: check it against design.md and the plan and flag
+deviations. Flag acceptance criteria that have no tests.
+"""
+
+# ---- Reviewers and panels ----
+[review]
+# DESIGN/PLAN PHASE: every commit gets a design review.
+# When the first code commit lands: delete this line and uncomment the
+# [auto_design_review] block at the bottom of this file.
+hook_review_panel = "design"
+
+[review.subagents.design_codex]
+review_type = "design"
+agent = "codex"
+model = "gpt-6-sol"
+reasoning = "high"
+
+[review.subagents.design_claude]
+review_type = "design"
+agent = "claude-code"
+model = "opus"
+reasoning = "high"
+
+[review.panels.design]
+members = ["design_codex"]
+
+[review.panels.design_both]
+members = ["design_codex", "design_claude"]
+synthesis_agent = "codex"
+synthesis_model = "gpt-6-sol"
+
+# ---- CODING PHASE: uncomment when the first code commit lands ----
+# [auto_design_review]
+# hook_enabled = true
+# trigger_paths = ["design.md", "docs/design/**", "docs/plans/**"]
