@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
@@ -56,6 +57,30 @@ def test_event_log_uses_injected_clock_and_preserves_order(tmp_path):
     lines = out.read_text().splitlines()
     assert '"at": "2026-10-01T12:00:05.000000Z"' in lines[1]
     assert isoformat_utc(START) == "2026-10-01T12:00:00.000000Z"
+
+
+def test_event_payload_cannot_replace_log_fields(tmp_path):
+    clock = FakeClock(START)
+    log = EventLog(clock)
+    log.record("download", seq=99, at="source time", kind="spoofed")
+    out = tmp_path / "events.jsonl"
+    log.write_jsonl(out)
+
+    exported = json.loads(out.read_text())
+    assert (exported["seq"], exported["at"], exported["kind"]) == (
+        0, "2026-10-01T12:00:00.000000Z", "download",
+    )  # fmt: skip
+    assert exported["data"] == {"seq": 99, "at": "source time", "kind": "spoofed"}
+
+
+def test_event_payload_is_snapshotted_at_record_time():
+    log = EventLog(FakeClock(START))
+    headers = {"etag": '"v1"', "sizes": [1, 2]}
+    log.record("http.response", headers=headers)
+    headers["etag"] = '"v2"'
+    headers["sizes"].append(3)
+
+    assert log.events[0].data["headers"] == {"etag": '"v1"', "sizes": [1, 2]}
 
 
 def test_notifier_captures_alerts(notifier, events):

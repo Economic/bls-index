@@ -159,7 +159,7 @@ class S3ObjectStore:
             status, code = _client_error(exc)
             if status == 412 or code == "PreconditionFailed":
                 outcome = WriteOutcome.REJECTED
-            elif "IfMatch" in condition and status == 404:
+            elif "IfMatch" in condition and status == 404 and code == "NoSuchKey":
                 outcome = WriteOutcome.REJECTED  # If-Match against a missing key
             else:
                 outcome = WriteOutcome.UNKNOWN
@@ -176,18 +176,26 @@ class S3ObjectStore:
     # -- reads ---------------------------------------------------------------------
 
     def stat(self, key: str) -> ObjectInfo:
-        """Metadata lookup. Raises ``ObjectNotFound`` only on an explicit 404."""
+        """Metadata lookup. Raises ``ObjectNotFound`` only when a follow-up GET confirms
+        ``NoSuchKey``."""
         try:
             resp = self._client.head_object(Bucket=self.bucket, Key=self._key(key))
         except ClientError as exc:
             status, code = _client_error(exc)
-            # A HEAD 404 has no error body, so it cannot distinguish a missing key from a
-            # missing bucket. Count it as absence only once the bucket is confirmed.
-            if status == 404 and self._bucket_confirmed():
-                self._events.record("object.stat", key=key, result="absent", status=status)
-                raise ObjectNotFound(key) from exc
             self._events.record("object.stat", key=key, result="error", status=status)
-            raise ObjectStoreError(f"stat {key}: {status} {code}") from exc
+            if status != 404:
+                raise ObjectStoreError(f"stat {key}: {status} {code}") from exc
+            # A HEAD 404 has no error body: it may mean a missing bucket or be spurious.
+            # Only a GET that explicitly reports NoSuchKey confirms absence.
+            try:
+                self.read(key)
+            except ObjectNotFound:
+                raise
+            except ObjectStoreError as read_exc:
+                raise ObjectStoreError(f"stat {key}: HEAD 404, then {read_exc}") from exc
+            raise ObjectStoreError(
+                f"stat {key}: HEAD reported 404 but GET found the object"
+            ) from exc
         except BotoCoreError as exc:
             self._events.record("object.stat", key=key, result="error", status=None)
             raise ObjectStoreError(f"stat {key}: {exc!r}") from exc
@@ -216,13 +224,6 @@ class S3ObjectStore:
             raise ObjectStoreError(f"read {key}: received {len(body)} of {expected} bytes")
         self._events.record("object.get", key=key, result="found", etag=resp.get("ETag"))
         return StoredObject(key, resp.get("ETag", ""), body)
-
-    def _bucket_confirmed(self) -> bool:
-        try:
-            self._client.head_bucket(Bucket=self.bucket)
-        except (ClientError, BotoCoreError):
-            return False
-        return True
 
     def verify(self, key: str, sha256: str, size: int | None = None) -> ObjectInfo:
         """Read back ``key`` and require its SHA-256 (and size, if given) to match."""

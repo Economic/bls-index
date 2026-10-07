@@ -23,11 +23,11 @@ auto_close_passing_reviews = true
 # (`roborev review --dirty` still uses the live working tree.)
 isolate_reviews = true
 
-# Files never sent to reviewers (added to roborev's built-in exclusions).
-# Security reviews ignore this list by design.
+# Files left out of review diffs (added to roborev's built-in exclusions).
+# Reviewers can still open them in the review checkout. Security reviews ignore
+# this list by design. Evidence data stays in diffs so claims can be checked.
 exclude_patterns = [
   "uv.lock",
-  "docs/evidence/*.json",  # raw probe dumps; the .md summaries are still reviewed
 ]
 
 review_guidelines = """
@@ -57,7 +57,12 @@ deviations. Flag acceptance criteria that have no tests. In particular:
   test (e.g. test_harness_faults_and_order) does not exist or does not assert it.
 
 When a change touches docs/evidence/: check that stated numbers and claims match
-the recorded data and tests, and that open items are not reported as done.
+the recorded data (docs/evidence/*.json) and tests, and that open items are not
+reported as done.
+
+uv.lock is excluded from diffs. When a change touches dependencies, check the
+pins in pyproject.toml and open uv.lock in the checkout if resolved versions
+matter.
 """
 
 # ---- Reviewers (subagents) ----

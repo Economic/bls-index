@@ -25,7 +25,8 @@ class Event:
     data: Mapping[str, Any]
 
     def to_json(self) -> dict[str, Any]:
-        return {"seq": self.seq, "at": isoformat_utc(self.at), "kind": self.kind, **self.data}
+        # Payload stays nested so it can never replace the log's own fields.
+        return {"seq": self.seq, "at": isoformat_utc(self.at), "kind": self.kind, "data": self.data}
 
 
 class EventLog:
@@ -34,9 +35,12 @@ class EventLog:
         self._events: list[Event] = []
         self._lock = threading.Lock()
 
-    def record(self, kind: str, **data: Any) -> Event:
+    def record(self, kind: str, /, **data: Any) -> Event:
+        """Append an event. ``data`` is snapshotted as JSON-safe values, so later changes
+        to the caller's objects cannot alter the recorded event."""
+        snapshot = json.loads(json.dumps(data, sort_keys=True, default=str))
         with self._lock:
-            event = Event(len(self._events), require_utc(self._clock.now()), kind, dict(data))
+            event = Event(len(self._events), require_utc(self._clock.now()), kind, snapshot)
             self._events.append(event)
         return event
 

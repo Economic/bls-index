@@ -124,16 +124,32 @@ def test_missing_key_is_confirmed_absence(store):
     [(403, "AccessDenied"), (500, "InternalError"), (503, "SlowDown"), (404, "NoSuchBucket")],
 )
 def test_read_errors_are_never_absence(status, code, store, fault_proxy):
-    fault_proxy.add(FaultRule("GET", "latest.json", STATUS, status=status, code=code))
-    fault_proxy.add(FaultRule("HEAD", "latest.json", STATUS, status=status, code=code))
+    # Persistent faults: a denied or missing bucket fails every request.
+    fault_proxy.add(FaultRule("GET", "latest.json", STATUS, status=status, code=code, times=None))
+    fault_proxy.add(FaultRule("HEAD", "latest.json", STATUS, status=status, code=code, times=None))
 
-    # A bodiless HEAD 404 cannot carry NoSuchBucket; that case is tested separately
-    # against a genuinely missing bucket.
-    ops = (store.read,) if status == 404 else (store.read, store.stat)
-    for op in ops:
+    for op in (store.read, store.stat):
         with pytest.raises(ObjectStoreError) as info:
             op("latest.json")
         assert not isinstance(info.value, ObjectNotFound)
+
+
+def test_spurious_head_404_for_existing_key_is_not_absence(store, fault_proxy):
+    store.put_immutable("latest.json", b"{}", JSON)
+    fault_proxy.add(FaultRule("HEAD", "latest.json", STATUS, status=404, code="NoSuchKey"))
+
+    with pytest.raises(ObjectStoreError) as info:
+        store.stat("latest.json")
+    assert not isinstance(info.value, ObjectNotFound)
+
+
+def test_head_404_with_failing_confirmation_read_is_not_absence(store, fault_proxy):
+    fault_proxy.add(FaultRule("HEAD", "latest.json", STATUS, status=404, code="NoSuchKey"))
+    fault_proxy.add(FaultRule("GET", "latest.json", STATUS, status=503, code="SlowDown"))
+
+    with pytest.raises(ObjectStoreError) as info:
+        store.stat("latest.json")
+    assert not isinstance(info.value, ObjectNotFound)
 
 
 def test_missing_bucket_head_is_not_absence(fault_proxy, events):
@@ -187,6 +203,12 @@ def test_if_match_on_missing_key_is_rejected(store, backdoor, bucket):
     result = store.put_conditional("latest.json", b"{}", JSON, if_match='"deadbeef"')
     assert result.outcome is WriteOutcome.REJECTED
     assert stored(backdoor, bucket, "latest.json") is None
+
+
+def test_if_match_404_without_no_such_key_is_unknown(store, fault_proxy):
+    fault_proxy.add(FaultRule("PUT", "latest.json", STATUS, status=404, code="NoSuchBucket"))
+    result = store.put_conditional("latest.json", b"{}", JSON, if_match='"deadbeef"')
+    assert result.outcome is WriteOutcome.UNKNOWN
 
 
 def test_conditional_put_requires_exactly_one_condition(store):

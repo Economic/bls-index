@@ -11,6 +11,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 from collections import Counter
 from collections.abc import Sequence
 from pathlib import Path
@@ -69,8 +70,11 @@ def measure_parse(path: Path) -> dict[str, Any]:
         capture_output=True, text=True, check=False,
     )  # fmt: skip
     if proc.returncode != 0:
-        return {"ok": False, "error": proc.stderr[-500:]}
-    return json.loads(proc.stdout)
+        return {"ok": False, "returncode": proc.returncode, "error": proc.stderr[-500:]}
+    try:
+        return json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return {"ok": False, "error": f"unreadable parse probe output: {proc.stdout[-200:]!r}"}
 
 
 def lookup_coverage(program: str, series_columns: Sequence[str]) -> dict[str, Any]:
@@ -126,7 +130,10 @@ def run_probe(
     parse_check: bool = False,
     keep_files: bool = False,
 ) -> dict[str, Any]:
+    """Probe ``programs``. Downloads go to a new run directory created inside
+    ``workdir``; only that directory is ever deleted (unless ``keep_files``)."""
     started = clock.now()
+    run_dir = Path(tempfile.mkdtemp(prefix="probe-", dir=workdir))
     report: dict[str, Any] = {
         "probe_started_at": isoformat_utc(started),
         "base_url": source.config.base_url,
@@ -141,7 +148,7 @@ def run_probe(
         "runner": runner_info(workdir),
         "programs": {},
     }
-    results = source.fetch_programs(programs, workdir)
+    results = source.fetch_programs(programs, run_dir)
     for program, result in results.items():
         if isinstance(result, InputSetError):
             report["programs"][program] = {
@@ -153,13 +160,22 @@ def run_probe(
             continue
         report["programs"][program] = describe_input_set(result, parse_check=parse_check)
         if not keep_files:
-            shutil.rmtree(workdir / program, ignore_errors=True)
+            shutil.rmtree(run_dir / program, ignore_errors=True)
+    if keep_files:
+        report["kept_files_dir"] = str(run_dir)
+    else:
+        shutil.rmtree(run_dir, ignore_errors=True)
     finished = clock.now()
     ok = [p for p, r in report["programs"].items() if r["ok"]]
     report["summary"] = {
         "programs_requested": len(programs),
         "programs_ok": len(ok),
         "programs_failed": sorted(set(programs) - set(ok)),
+        "parse_check_failed": sorted(
+            p for p in ok
+            if "parse_check" in report["programs"][p]
+            and not report["programs"][p]["parse_check"].get("ok")
+        ),
         "series_rows": sum(report["programs"][p]["series_rows"] for p in ok),
         "downloaded_bytes_once": sum(
             f["bytes"] for p in ok for f in report["programs"][p]["files"]

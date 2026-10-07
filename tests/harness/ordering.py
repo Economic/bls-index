@@ -2,41 +2,41 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 from bls_index.events import Event
 
 
-def assert_readback_precedes_manifest(events: Iterable[Event], manifest_key: str) -> None:
-    """Every immutable object put before a committed manifest write must have a
-    successful read-back between its put and that write, and no failed read-back.
+def assert_readback_precedes_manifest(
+    events: Iterable[Event], manifest_key: str, referenced: Mapping[str, str]
+) -> None:
+    """Before the first dispatched write to ``manifest_key``, every object the manifest
+    references must have a successful read-back with the expected SHA-256.
+
+    ``referenced`` maps each object key the manifest will point to (new uploads and
+    reused last-good files alike) to its expected SHA-256. A read-back counts only if it
+    follows the key's most recent upload and nothing failed for that key afterwards.
+    Writes rejected by a failed precondition did not dispatch a change and are ignored;
+    ``unknown`` outcomes may have committed and count as writes.
 
     Raises AssertionError naming the first violation.
     """
-    pending: dict[str, int] = {}  # key -> seq of the put still awaiting verification
-    failed: dict[str, int] = {}
-    saw_manifest = False
+    if not referenced:
+        raise ValueError("a manifest must reference at least one object")
+    verified: dict[str, bool] = {}
     for e in events:
+        key = e.data.get("key")
         if e.kind == "object.put_immutable":
-            pending[e.data["key"]] = e.seq
-            failed.pop(e.data["key"], None)
-        elif e.kind == "object.readback":
-            key = e.data["key"]
-            if e.data["ok"]:
-                pending.pop(key, None)
-            else:
-                failed[key] = e.seq
-        elif e.kind == "object.put_conditional" and e.data["key"] == manifest_key:
+            verified[key] = False
+        elif e.kind == "object.readback" and key in referenced:
+            verified[key] = bool(e.data["ok"]) and e.data.get("actual_sha256") == referenced[key]
+        elif e.kind == "object.put_conditional" and key == manifest_key:
             if e.data["outcome"] == "rejected":
                 continue
-            saw_manifest = True
-            if pending:
+            missing = sorted(k for k in referenced if not verified.get(k))
+            if missing:
                 raise AssertionError(
-                    f"manifest write at seq {e.seq} precedes read-back of {sorted(pending)}"
+                    f"manifest write at seq {e.seq} precedes verified read-back of {missing}"
                 )
-            if failed:
-                raise AssertionError(
-                    f"manifest write at seq {e.seq} follows failed read-back of {sorted(failed)}"
-                )
-    if not saw_manifest:
-        raise AssertionError(f"no manifest write to {manifest_key!r} was recorded")
+            return
+    raise AssertionError(f"no manifest write to {manifest_key!r} was recorded")

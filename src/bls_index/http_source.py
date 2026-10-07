@@ -15,8 +15,9 @@ import shutil
 import time
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 
@@ -82,7 +83,7 @@ class FetchConfig:
 @dataclass(frozen=True)
 class DownloadRecord:
     url: str
-    path: Path
+    path: Path | None  # None once the local copy is deleted (identity rechecks)
     status: int
     bytes: int
     sha256: str
@@ -132,7 +133,7 @@ class InputSet:
 
     program: str
     files: tuple[DownloadRecord, ...]
-    rechecks: tuple[DownloadRecord, ...]
+    rechecks: tuple[DownloadRecord, ...]  # metadata only; their files are deleted
     attempts: int
 
 
@@ -202,7 +203,9 @@ class HttpSource:
                     or attempt >= self.config.max_request_attempts
                 ):
                     raise
-                delay = self._backoff(attempt, exc.retry_after)
+                delay = self._retry_delay(attempt, exc)
+                if delay is None:
+                    raise
                 self._events.record(
                     "http.retry", url=url, attempt=attempt, reason=exc.reason,
                     status=exc.status, delay=delay,
@@ -210,11 +213,23 @@ class HttpSource:
                 self._sleep(delay)
                 attempt += 1
 
-    def _backoff(self, attempt: int, retry_after: float | None) -> float:
-        delay = self.config.backoff_initial * 2 ** (attempt - 1)
+    def _retry_delay(self, attempt: int, exc: SourceError | None = None) -> float | None:
+        """Exponential backoff, never shorter than the server's Retry-After.
+
+        Returns None when Retry-After exceeds ``backoff_max``: the caller stops retrying
+        rather than retrying before the server asked it to.
+        """
+        delay = min(self.config.backoff_initial * 2 ** (attempt - 1), self.config.backoff_max)
+        retry_after = exc.retry_after if exc is not None else None
         if retry_after is not None:
+            if retry_after > self.config.backoff_max:
+                self._events.record(
+                    "http.retry_after_exceeds_limit", url=exc.url, retry_after=retry_after,
+                    backoff_max=self.config.backoff_max,
+                )  # fmt: skip
+                return None
             delay = max(delay, retry_after)
-        return min(delay, self.config.backoff_max)
+        return delay
 
     def _download_once(self, url: str, dest: Path, attempt: int) -> DownloadRecord:
         self._events.record("http.request", method="GET", url=url, attempt=attempt)
@@ -230,7 +245,9 @@ class HttpSource:
                     raise SourceError(
                         url, "http_status", f"HTTP {status}", status=status,
                         retryable=status in RETRYABLE_STATUS,
-                        retry_after=_parse_retry_after(resp.headers.get("retry-after")),
+                        retry_after=_parse_retry_after(
+                            resp.headers.get("retry-after"), self._clock.now()
+                        ),
                     )  # fmt: skip
                 encoding = headers.get("content-encoding", "identity").lower()
                 if encoding != "identity":
@@ -300,12 +317,14 @@ class HttpSource:
                     url=exc.url, reason=exc.reason, status=exc.status,
                 )  # fmt: skip
                 last_error, detail = exc, str(exc)
-                if not exc.retryable:
+                delay = self._retry_delay(attempt, exc) if exc.retryable else None
+                if delay is None:
                     raise InputSetError(program, attempt, "source_error", detail, exc) from exc
-                self._sleep(self._backoff(attempt, None))
+                self._sleep(delay)
                 continue
 
             shutil.rmtree(attempt_dir / "read-2", ignore_errors=True)
+            second = [replace(r, path=None) for r in second]
             changed = [a.url for a, b in zip(first, second, strict=True) if a.sha256 != b.sha256]
             if changed:
                 shutil.rmtree(attempt_dir, ignore_errors=True)
@@ -313,7 +332,7 @@ class HttpSource:
                     "input_set.changed", program=program, attempt=attempt, urls=changed
                 )
                 last_error, detail = None, f"changed during build: {', '.join(changed)}"
-                self._sleep(self._backoff(attempt, None))
+                self._sleep(self._retry_delay(attempt))
                 continue
 
             self._events.record(
@@ -346,10 +365,19 @@ class HttpSource:
             return dict(zip(programs, pool.map(one, programs), strict=True))
 
 
-def _parse_retry_after(value: str | None) -> float | None:
+def _parse_retry_after(value: str | None, now: datetime) -> float | None:
+    """Seconds to wait from a Retry-After header: delay-seconds or an HTTP-date."""
     if value is None:
         return None
+    value = value.strip()
     try:
         return max(0.0, float(value))
     except ValueError:
+        pass
+    try:
+        when = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
         return None
+    if when.tzinfo is None:  # RFC 9110 dates are GMT
+        when = when.replace(tzinfo=UTC)
+    return max(0.0, (when - now).total_seconds())

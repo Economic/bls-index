@@ -99,6 +99,45 @@ def test_transient_status_retries_with_backoff(http_server, make_source, sleeps,
     assert sleeps == [5.0, 2.0]  # Retry-After honored, then exponential backoff
 
 
+def test_retry_after_http_date_is_honored(http_server, make_source, sleeps, clock, tmp_path):
+    http_server.serve_tree(TWO_PROGRAM)
+    body = (TWO_PROGRAM / "ap" / "ap.series").read_bytes()
+    # The fake clock reads 2026-10-01 12:00:00 UTC; the server asks for 12:00:30.
+    http_server.script(
+        "ap/ap.series",
+        Reply(status=429, headers={"Retry-After": "Thu, 01 Oct 2026 12:00:30 GMT"}),
+        Reply(body=body),
+    )
+    result = make_source(backoff_max=60.0).fetch_input_set("ap", tmp_path)
+
+    assert result.files[0].request_attempts == 2
+    assert sleeps == [30.0]
+
+
+@pytest.mark.parametrize("retry_after", ["120", "Thu, 01 Oct 2026 12:05:00 GMT"])
+def test_retry_after_beyond_limit_stops_instead_of_retrying_early(
+    retry_after, http_server, make_source, sleeps, events, tmp_path
+):
+    http_server.serve_tree(TWO_PROGRAM)
+    http_server.script("ap/ap.series", Reply(status=503, headers={"Retry-After": retry_after}))
+    with pytest.raises(InputSetError) as info:
+        make_source(backoff_max=60.0).fetch_input_set("ap", tmp_path)
+
+    assert info.value.attempts == 1
+    assert len(http_server.requests_for("ap/ap.series")) == 1
+    assert sleeps == []
+    assert events.of_kind("http.retry_after_exceeds_limit")
+
+
+def test_recheck_records_carry_no_deleted_paths(http_server, make_source, tmp_path):
+    http_server.serve_tree(TWO_PROGRAM)
+    result = make_source().fetch_input_set("pr", tmp_path)
+
+    assert all(r.path is None for r in result.rechecks)
+    assert all(r.path is not None and r.path.exists() for r in result.files)
+    assert [r.sha256 for r in result.rechecks] == [r.sha256 for r in result.files]
+
+
 def test_request_retries_are_bounded(http_server, make_source, sleeps, tmp_path):
     http_server.serve_tree(TWO_PROGRAM)
     http_server.script("ap/ap.series", Reply(status=503))

@@ -37,12 +37,14 @@ def main(argv: list[str] | None = None) -> int:
                        help="comma-separated initial-scope programs, or 'initial' (default)")
     probe.add_argument("--out", type=Path, required=True, help="JSON report path")
     probe.add_argument("--events", type=Path, help="JSON Lines event log path")
-    probe.add_argument("--workdir", type=Path, help="temporary download directory")
+    probe.add_argument("--workdir", type=Path,
+                       help="parent directory for the probe's own run directory")
     probe.add_argument("--base-url", default=DEFAULT_BASE_URL)
     probe.add_argument("--max-concurrency", type=int, default=4)
     probe.add_argument("--parse-check", action="store_true",
                        help="measure polars parse time and peak RSS for each .series")
-    probe.add_argument("--keep-files", action="store_true")
+    probe.add_argument("--keep-files", action="store_true",
+                       help="keep downloads in a run directory under --workdir (required)")
 
     info = sub.add_parser("runner-info", help="print machine resources as JSON")
     info.add_argument("--workdir", type=Path, default=Path("."))
@@ -51,6 +53,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "runner-info":
         print(json.dumps(runner_info(args.workdir), indent=2))
         return 0
+
+    if args.keep_files and args.workdir is None:
+        parser.error("--keep-files requires --workdir")
 
     clock = SystemClock()
     events = EventLog(clock)
@@ -70,9 +75,11 @@ def main(argv: list[str] | None = None) -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2) + "\n")
     if args.events:
+        args.events.parent.mkdir(parents=True, exist_ok=True)
         events.write_jsonl(args.events)
-    print(json.dumps(report["summary"], indent=2))
-    return 0 if not report["summary"]["programs_failed"] else 1
+    summary = report["summary"]
+    print(json.dumps(summary, indent=2))
+    return 1 if summary["programs_failed"] or summary["parse_check_failed"] else 0
 
 
 if __name__ == "__main__":

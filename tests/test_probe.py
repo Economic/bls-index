@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from bls_index.probe import inspect_table, run_probe
+import subprocess
+
+from pathlib import Path
+
+from bls_index.probe import inspect_table, measure_parse, run_probe
 from tests.conftest import TWO_PROGRAM
 from tests.harness.http_source import Reply
 
@@ -33,8 +37,9 @@ def test_probe_reports_inventory_and_failures(http_server, make_source, clock, t
     assert bd == {"ok": False, "reason": "source_error", "attempts": 1,
                   "detail": bd["detail"]}  # fmt: skip
     assert report["summary"]["programs_failed"] == ["bd"]
+    assert report["summary"]["parse_check_failed"] == []
     assert report["summary"]["series_rows"] == 14
-    assert not (tmp_path / "ap").exists()  # raw inputs are temporary
+    assert list(tmp_path.iterdir()) == []  # raw inputs are temporary
 
 
 def test_probe_reports_schema_drift(http_server, make_source, clock, tmp_path):
@@ -47,3 +52,39 @@ def test_probe_reports_schema_drift(http_server, make_source, clock, tmp_path):
     assert layout["header_columns"] == ["series_id", "series_title"]
     assert layout["field_count_histogram"] == {"3": 1}
     assert layout["rows_with_header_width"] == 0
+
+
+def test_probe_never_deletes_files_it_did_not_create(http_server, make_source, clock, tmp_path):
+    (tmp_path / "ap").mkdir()
+    (tmp_path / "ap" / "notes.txt").write_text("unrelated")
+    http_server.serve_tree(TWO_PROGRAM)
+    run_probe(["ap"], make_source(), clock, tmp_path)
+
+    assert (tmp_path / "ap" / "notes.txt").read_text() == "unrelated"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["ap"]
+
+
+def test_probe_keep_files_reports_retained_directory(http_server, make_source, clock, tmp_path):
+    http_server.serve_tree(TWO_PROGRAM)
+    report = run_probe(["ap"], make_source(), clock, tmp_path, keep_files=True)
+
+    kept = list(Path(report["kept_files_dir"]).rglob("ap.series"))
+    assert len(kept) == 1 and kept[0].read_bytes() == (TWO_PROGRAM / "ap" / "ap.series").read_bytes()
+
+
+def test_parse_check_failure_is_reported(http_server, make_source, clock, tmp_path):
+    http_server.serve_tree(TWO_PROGRAM)
+    http_server.script(
+        "ap/ap.series", Reply(body=b"series_id\tseries_title\r\nAPU1\tTitle\textra\r\n")
+    )
+    report = run_probe(["ap"], make_source(), clock, tmp_path, parse_check=True)
+
+    assert report["programs"]["ap"]["parse_check"]["ok"] is False
+    assert report["summary"]["parse_check_failed"] == ["ap"]
+
+
+def test_killed_parse_subprocess_is_a_failure(monkeypatch, tmp_path):
+    killed = subprocess.CompletedProcess(args=[], returncode=-9, stdout="", stderr="Killed")
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: killed)
+    result = measure_parse(tmp_path / "oe.series")
+    assert result["ok"] is False and result["returncode"] == -9
