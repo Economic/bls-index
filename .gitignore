@@ -1,2 +1,11 @@
 # roborev snapshots
 /.roborev/
+
+# Python / uv
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Raw BLS downloads and local probe scratch never belong in Git
+/raw/
+/probe-work/
