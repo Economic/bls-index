@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 
 from pathlib import Path
@@ -88,3 +89,16 @@ def test_killed_parse_subprocess_is_a_failure(monkeypatch, tmp_path):
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: killed)
     result = measure_parse(tmp_path / "oe.series")
     assert result["ok"] is False and result["returncode"] == -9
+
+
+def test_probe_report_never_contains_the_contact_email(http_server, events, clock, tmp_path):
+    from bls_index.http_source import FetchConfig, HttpSource
+
+    http_server.serve_tree(TWO_PROGRAM)
+    ua = "bls-index test (+https://example.invalid/; ops@example.org)"
+    config = FetchConfig(user_agent=ua, base_url=http_server.base_url, min_request_interval=0.0)
+    with HttpSource(config, events, clock) as source:
+        report = run_probe(["pr"], source, clock, tmp_path)
+
+    assert report["user_agent"] == "bls-index test (+https://example.invalid/; <email>)"
+    assert "ops@example.org" not in json.dumps(report)

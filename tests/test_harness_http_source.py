@@ -6,7 +6,17 @@ import hashlib
 
 import pytest
 
-from bls_index.http_source import FetchConfig, InputSetError, RequestPacer, validate_user_agent
+import threading
+import time
+
+from bls_index.http_source import (
+    DEFAULT_BASE_URL,
+    FetchConfig,
+    InputSetError,
+    RequestPacer,
+    redact_user_agent,
+    validate_user_agent,
+)
 from bls_index.scope import input_files
 from tests.conftest import TEST_USER_AGENT, TWO_PROGRAM
 from tests.harness.http_source import Reply
@@ -357,9 +367,34 @@ def test_pacer_with_zero_interval_never_waits():
     assert t.slept == []
 
 
-def test_min_request_interval_must_not_be_negative():
+@pytest.mark.parametrize("interval", [-1.0, float("nan"), float("inf"), 0.0, 0.5])
+def test_bls_requires_at_least_one_second_between_requests(interval):
     with pytest.raises(ValueError):
-        FetchConfig(user_agent=TEST_USER_AGENT, min_request_interval=-1.0)
+        FetchConfig(user_agent=TEST_USER_AGENT, base_url=DEFAULT_BASE_URL,
+                    min_request_interval=interval)  # fmt: skip
+
+
+@pytest.mark.parametrize("host", ["127.0.0.1:8080", "localhost:9000"])
+def test_local_test_sources_may_use_shorter_intervals(host):
+    config = FetchConfig(user_agent=TEST_USER_AGENT, base_url=f"http://{host}/pub/",
+                         min_request_interval=0.0)  # fmt: skip
+    assert config.min_request_interval == 0.0
+
+
+def test_pacer_measures_from_actual_wake_time_when_a_sleeper_oversleeps():
+    t = FakeTime()
+    oversleep = [0.5]
+
+    def late_sleep(seconds: float) -> None:
+        t.sleep(seconds + (oversleep.pop() if oversleep else 0.0))
+
+    pacer = RequestPacer(1.0, monotonic=t.monotonic, sleep=late_sleep)
+    released = []
+    for _ in range(3):
+        pacer.wait()
+        released.append(t.now)
+    # The second caller woke 0.5 s late; the third is spaced from that actual time.
+    assert released == [100.0, 101.5, 102.5]
 
 
 def test_default_interval_is_one_second():
@@ -399,3 +434,40 @@ def test_retries_are_paced_too(http_server, make_source, events, tmp_path):
     assert min(arrival_gaps(http_server)) >= 0.07
     paced = [e.data["paced_seconds"] for e in events.of_kind("http.request")]
     assert paced[0] == 0.0 and all(p > 0 for p in paced[1:])
+
+
+def test_late_waking_worker_cannot_be_followed_immediately():
+    """Real threads: the first sleeper oversleeps; no two releases may bunch up."""
+    interval = 0.1
+    first = threading.Event()
+
+    def sleep(seconds: float) -> None:
+        extra = 0.0 if first.is_set() else 0.15
+        first.set()
+        time.sleep(seconds + extra)
+
+    pacer = RequestPacer(interval, sleep=sleep)
+    released: list[float] = []
+    lock = threading.Lock()
+
+    def worker() -> None:
+        for _ in range(3):
+            pacer.wait()
+            with lock:
+                released.append(time.monotonic())
+
+    threads = [threading.Thread(target=worker) for _ in range(4)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    times = sorted(released)
+    gaps = [b - a for a, b in zip(times, times[1:])]
+    assert len(times) == 12
+    assert min(gaps) >= interval - 0.02
+
+
+def test_redact_user_agent_masks_emails():
+    ua = "bls-index catalog builder (+https://www.epi.org/; someone@example.org)"
+    assert redact_user_agent(ua) == "bls-index catalog builder (+https://www.epi.org/; <email>)"

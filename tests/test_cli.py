@@ -62,3 +62,11 @@ def test_probe_exits_nonzero_on_failed_parse_check(http_server, tmp_path, monkey
     http_server.serve_tree(TWO_PROGRAM)
     http_server.script("ap/ap.series", Reply(body=b"series_id\tt\r\nAPU1\tT\tx\r\n"))
     assert run_cli(http_server, tmp_path, monkeypatch, "--programs", "ap", "--parse-check") == 1
+
+
+def test_probe_refuses_fast_requests_against_bls(tmp_path, monkeypatch):
+    monkeypatch.setenv("BLS_INDEX_USER_AGENT", TEST_USER_AGENT)
+    with pytest.raises(SystemExit) as info:
+        main(["probe", "--programs", "ap", "--min-request-interval", "0",
+              "--out", str(tmp_path / "r.json")])  # fmt: skip
+    assert info.value.code == 2

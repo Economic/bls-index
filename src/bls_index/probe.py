@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from bls_index.clock import Clock, isoformat_utc
-from bls_index.http_source import HttpSource, InputSet, InputSetError
+from bls_index.http_source import HttpSource, InputSet, InputSetError, redact_user_agent
 from bls_index.runner_info import runner_info
 from bls_index.scope import LOOKUP_FILES
 
@@ -137,7 +137,8 @@ def run_probe(
     report: dict[str, Any] = {
         "probe_started_at": isoformat_utc(started),
         "base_url": source.config.base_url,
-        "user_agent": source.config.user_agent,
+        # Reports may be published as CI artifacts; never include the contact email.
+        "user_agent": redact_user_agent(source.config.user_agent),
         "fetch_config": {
             "connect_timeout": source.config.connect_timeout,
             "read_timeout": source.config.read_timeout,

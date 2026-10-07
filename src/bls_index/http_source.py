@@ -10,7 +10,9 @@ entire input set up to a fixed limit.
 from __future__ import annotations
 
 import hashlib
+import math
 import os
+import re
 import shutil
 import threading
 import time
@@ -21,6 +23,7 @@ from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -29,6 +32,8 @@ from bls_index.events import EventLog
 from bls_index.scope import input_files, source_path
 
 DEFAULT_BASE_URL = "https://download.bls.gov/pub/time.series/"
+# BLS blocks robots that request "multiple times per second" (bls.gov/bls/pss.htm).
+BLS_MIN_REQUEST_INTERVAL = 1.0
 USER_AGENT_ENV = "BLS_INDEX_USER_AGENT"
 RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 RECORDED_HEADERS = (
@@ -54,6 +59,15 @@ def validate_user_agent(user_agent: str) -> str:
         # "github" (including github.com and github.io URLs).
         raise ValueError("BLS rejects User-Agents containing 'github'; use another contact URL")
     return ua
+
+
+def _is_loopback(url: str) -> bool:
+    return urlsplit(url).hostname in {"127.0.0.1", "localhost", "::1"}
+
+
+def redact_user_agent(user_agent: str) -> str:
+    """The agent with email addresses masked, for reports that may be published."""
+    return re.sub(r"[^\s;()<>,]+@[^\s;()<>,]+", "<email>", user_agent)
 
 
 def user_agent_from_env() -> str:
@@ -86,8 +100,15 @@ class FetchConfig:
         for name in ("max_request_attempts", "max_input_set_attempts", "max_concurrency"):
             if getattr(self, name) < 1:
                 raise ValueError(f"{name} must be at least 1")
-        if self.min_request_interval < 0:
-            raise ValueError("min_request_interval must not be negative")
+        if not math.isfinite(self.min_request_interval) or self.min_request_interval < 0:
+            raise ValueError("min_request_interval must be a finite, non-negative number")
+        if self.min_request_interval < BLS_MIN_REQUEST_INTERVAL and not _is_loopback(
+            self.base_url
+        ):
+            raise ValueError(
+                f"min_request_interval below {BLS_MIN_REQUEST_INTERVAL}s is allowed only for "
+                "local test sources"
+            )
 
 
 @dataclass(frozen=True)
@@ -162,8 +183,9 @@ class InputSetError(Exception):
 class RequestPacer:
     """Spaces request starts at least ``interval`` seconds apart across threads.
 
-    Each caller reserves the next free start slot under a lock, then sleeps outside
-    the lock until that slot, so concurrent workers queue in order without bursting.
+    Callers queue on a lock and sleep while holding it, then record the actual time
+    they were released. The next caller is measured from that actual time, so a worker
+    that wakes late cannot be overtaken and followed immediately by another.
     """
 
     def __init__(
@@ -184,13 +206,12 @@ class RequestPacer:
         if self.interval <= 0:
             return 0.0
         with self._lock:
-            now = self._monotonic()
-            start = now if self._next_start is None else max(now, self._next_start)
-            self._next_start = start + self.interval
-        delay = start - now
-        if delay > 0:
-            self._sleep(delay)
-        return delay
+            entered = now = self._monotonic()
+            while self._next_start is not None and now < self._next_start:
+                self._sleep(self._next_start - now)
+                now = self._monotonic()
+            self._next_start = now + self.interval
+        return now - entered
 
 
 class HttpSource:
