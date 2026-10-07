@@ -42,7 +42,12 @@ SHA-256 (it never uses HEAD, ETag, or Last-Modified to skip a download). It reco
 response metadata, sizes, checksums and file layouts, and with `--parse-check` measures
 polars parse time and peak memory. Raw downloads go to a temporary directory and are
 deleted. The `source-probe` GitHub Actions workflow runs the same probe on a clean
-runner; it reads the User-Agent from the repository variable `BLS_INDEX_USER_AGENT`.
+runner; it reads the User-Agent from the repository secret `BLS_INDEX_USER_AGENT`.
+
+Two BLS constraints, observed 2026-10-07: `download.bls.gov` returns 403 for any
+User-Agent containing "github", and BLS blocks robots that request "multiple times per
+second". The fetcher rejects such agents and spaces request starts at least one second
+apart (`--min-request-interval`).
 
 ## Layout
 

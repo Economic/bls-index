@@ -6,7 +6,7 @@ import hashlib
 
 import pytest
 
-from bls_index.http_source import FetchConfig, InputSetError, validate_user_agent
+from bls_index.http_source import FetchConfig, InputSetError, RequestPacer, validate_user_agent
 from bls_index.scope import input_files
 from tests.conftest import TEST_USER_AGENT, TWO_PROGRAM
 from tests.harness.http_source import Reply
@@ -59,7 +59,14 @@ def test_only_full_unconditional_gets_with_contact_user_agent(http_server, make_
             assert header not in lowered
 
 
-@pytest.mark.parametrize("bad", ["", "   ", "python-httpx/0.28", "my scraper"])
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "", "   ", "python-httpx/0.28", "my scraper",
+        "bls-index (+https://github.com/Economic/bls-index; a@example.org)",
+        "bls-index (+https://economic.GitHub.io/bls-index)",
+    ],
+)  # fmt: skip
 def test_user_agent_requires_contact(bad):
     with pytest.raises(ValueError):
         validate_user_agent(bad)
@@ -315,3 +322,80 @@ def test_fault_scripts_replay_deterministically(http_server, make_source, events
         ]
 
     assert run("a") == run("b")
+
+
+class FakeTime:
+    def __init__(self) -> None:
+        self.now = 100.0
+        self.slept: list[float] = []
+
+    def monotonic(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.slept.append(seconds)
+        self.now += seconds
+
+
+def test_pacer_spaces_request_starts():
+    t = FakeTime()
+    pacer = RequestPacer(1.0, monotonic=t.monotonic, sleep=t.sleep)
+
+    assert pacer.wait() == 0.0  # first request starts immediately
+    assert pacer.wait() == 1.0
+    t.now += 0.25
+    assert pacer.wait() == 0.75
+    t.now += 5.0  # an idle gap longer than the interval needs no wait
+    assert pacer.wait() == 0.0
+    assert t.slept == [1.0, 0.75]
+
+
+def test_pacer_with_zero_interval_never_waits():
+    t = FakeTime()
+    pacer = RequestPacer(0.0, monotonic=t.monotonic, sleep=t.sleep)
+    assert [pacer.wait() for _ in range(5)] == [0.0] * 5
+    assert t.slept == []
+
+
+def test_min_request_interval_must_not_be_negative():
+    with pytest.raises(ValueError):
+        FetchConfig(user_agent=TEST_USER_AGENT, min_request_interval=-1.0)
+
+
+def test_default_interval_is_one_second():
+    assert FetchConfig(user_agent=TEST_USER_AGENT).min_request_interval == 1.0
+
+
+def arrival_gaps(http_server) -> list[float]:
+    times = sorted(r.arrived for r in http_server.requests)
+    return [b - a for a, b in zip(times, times[1:])]
+
+
+def test_concurrent_workers_never_start_requests_closer_than_interval(
+    http_server, make_source, tmp_path
+):
+    """Four workers fetching many small files still start at most one request per interval."""
+    programs = ["ap", "bd", "ce", "ci", "cm", "cu", "cw", "cx"]
+    for program in programs:
+        http_server.script(f"{program}/{program}.series", Reply(body=b"h\r\n"))
+    interval = 0.1
+    results = make_source(max_concurrency=4, min_request_interval=interval).fetch_programs(
+        programs, tmp_path
+    )
+
+    assert all(not isinstance(r, InputSetError) for r in results.values())
+    assert len(http_server.requests) == 16  # 8 files, each downloaded twice
+    # Unpaced, these requests arrive about 0.25 ms apart. Allow 30 ms of scheduling
+    # jitter between a client start and its server arrival on a busy machine.
+    assert min(arrival_gaps(http_server)) >= interval - 0.03
+
+
+def test_retries_are_paced_too(http_server, make_source, events, tmp_path):
+    body = (TWO_PROGRAM / "ap" / "ap.series").read_bytes()
+    http_server.script("ap/ap.series", Reply(status=503), Reply(body=body))
+    make_source(min_request_interval=0.1).fetch_input_set("ap", tmp_path)
+
+    assert len(http_server.requests) == 3  # failed attempt, retry, recheck
+    assert min(arrival_gaps(http_server)) >= 0.07
+    paced = [e.data["paced_seconds"] for e in events.of_kind("http.request")]
+    assert paced[0] == 0.0 and all(p > 0 for p in paced[1:])

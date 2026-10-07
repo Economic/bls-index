@@ -32,6 +32,7 @@ class SeenRequest:
     method: str
     path: str
     headers: Mapping[str, str]
+    arrived: float  # time.monotonic() when the server received the request
 
 
 class ControlledHttpSource:
@@ -105,7 +106,9 @@ class ControlledHttpSource:
     def _handle(self, handler: BaseHTTPRequestHandler) -> None:
         with self._lock:
             self.requests.append(
-                SeenRequest(handler.command, handler.path, dict(handler.headers.items()))
+                SeenRequest(
+                    handler.command, handler.path, dict(handler.headers.items()), time.monotonic()
+                )
             )
             self.in_flight += 1
             self.max_in_flight = max(self.max_in_flight, self.in_flight)

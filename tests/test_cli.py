@@ -38,7 +38,8 @@ def run_cli(http_server, tmp_path, monkeypatch, *extra: str) -> int:
     monkeypatch.setenv("BLS_INDEX_USER_AGENT", TEST_USER_AGENT)
     return main([
         "probe", "--base-url", http_server.base_url, "--out", str(tmp_path / "out" / "r.json"),
-        "--events", str(tmp_path / "logs" / "events.jsonl"), *extra,
+        "--events", str(tmp_path / "logs" / "events.jsonl"), "--min-request-interval", "0",
+        *extra,
     ])  # fmt: skip
 
 

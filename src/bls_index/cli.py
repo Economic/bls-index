@@ -41,6 +41,9 @@ def main(argv: list[str] | None = None) -> int:
                        help="parent directory for the probe's own run directory")
     probe.add_argument("--base-url", default=DEFAULT_BASE_URL)
     probe.add_argument("--max-concurrency", type=int, default=4)
+    probe.add_argument("--min-request-interval", type=float, default=1.0,
+                       help="minimum seconds between request starts (BLS blocks robots "
+                            "requesting multiple times per second; use 0 only for local tests)")
     probe.add_argument("--parse-check", action="store_true",
                        help="measure polars parse time and peak RSS for each .series")
     probe.add_argument("--keep-files", action="store_true",
@@ -63,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
         user_agent=user_agent_from_env(),
         base_url=args.base_url,
         max_concurrency=args.max_concurrency,
+        min_request_interval=args.min_request_interval,
     )
     with tempfile.TemporaryDirectory(prefix="bls-index-probe-") as tmp:
         workdir = args.workdir or Path(tmp)

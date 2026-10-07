@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import os
 import shutil
+import threading
 import time
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
@@ -48,6 +49,10 @@ def validate_user_agent(user_agent: str) -> str:
         raise ValueError("User-Agent must not be empty")
     if "@" not in ua and "http://" not in ua and "https://" not in ua:
         raise ValueError("User-Agent must include contact details (an email address or URL)")
+    if "github" in ua.lower():
+        # Observed 2026-10-07: download.bls.gov returns 403 for any User-Agent containing
+        # "github" (including github.com and github.io URLs).
+        raise ValueError("BLS rejects User-Agents containing 'github'; use another contact URL")
     return ua
 
 
@@ -70,6 +75,9 @@ class FetchConfig:
     # Provisional; Phase 1 sets the final limit from measured behavior.
     max_input_set_attempts: int = 3
     max_concurrency: int = 4
+    # Minimum seconds between request starts across all workers. BLS blocks robots
+    # that "access or download survey information multiple times per second".
+    min_request_interval: float = 1.0
 
     def __post_init__(self) -> None:
         validate_user_agent(self.user_agent)
@@ -78,6 +86,8 @@ class FetchConfig:
         for name in ("max_request_attempts", "max_input_set_attempts", "max_concurrency"):
             if getattr(self, name) < 1:
                 raise ValueError(f"{name} must be at least 1")
+        if self.min_request_interval < 0:
+            raise ValueError("min_request_interval must not be negative")
 
 
 @dataclass(frozen=True)
@@ -149,6 +159,40 @@ class InputSetError(Exception):
         return f"{self.program}: {self.reason} after {self.attempts} attempt(s): {self.detail}"
 
 
+class RequestPacer:
+    """Spaces request starts at least ``interval`` seconds apart across threads.
+
+    Each caller reserves the next free start slot under a lock, then sleeps outside
+    the lock until that slot, so concurrent workers queue in order without bursting.
+    """
+
+    def __init__(
+        self,
+        interval: float,
+        *,
+        monotonic: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
+        self.interval = interval
+        self._monotonic = monotonic
+        self._sleep = sleep
+        self._lock = threading.Lock()
+        self._next_start: float | None = None
+
+    def wait(self) -> float:
+        """Block until this caller may start a request; return the seconds waited."""
+        if self.interval <= 0:
+            return 0.0
+        with self._lock:
+            now = self._monotonic()
+            start = now if self._next_start is None else max(now, self._next_start)
+            self._next_start = start + self.interval
+        delay = start - now
+        if delay > 0:
+            self._sleep(delay)
+        return delay
+
+
 class HttpSource:
     def __init__(
         self,
@@ -157,11 +201,15 @@ class HttpSource:
         clock: Clock,
         *,
         sleep: Callable[[float], None] = time.sleep,
+        pacer: RequestPacer | None = None,
     ) -> None:
+        """``sleep`` is used for retry backoff; request pacing uses ``pacer``, which
+        defaults to real time with ``config.min_request_interval``."""
         self.config = config
         self._events = events
         self._clock = clock
         self._sleep = sleep
+        self._pacer = pacer or RequestPacer(config.min_request_interval)
         self._client = httpx.Client(
             headers={
                 "User-Agent": validate_user_agent(config.user_agent),
@@ -232,7 +280,10 @@ class HttpSource:
         return delay
 
     def _download_once(self, url: str, dest: Path, attempt: int) -> DownloadRecord:
-        self._events.record("http.request", method="GET", url=url, attempt=attempt)
+        paced = self._pacer.wait()
+        self._events.record(
+            "http.request", method="GET", url=url, attempt=attempt, paced_seconds=round(paced, 3)
+        )
         started = self._clock.now()
         body_started = False
         digest = hashlib.sha256()

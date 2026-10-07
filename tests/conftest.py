@@ -57,7 +57,7 @@ def make_source(http_server, events, clock, sleeps):
             user_agent=TEST_USER_AGENT, base_url=http_server.base_url,
             connect_timeout=2.0, read_timeout=0.5, max_request_attempts=3,
             backoff_initial=1.0, backoff_max=8.0, max_input_set_attempts=3,
-            max_concurrency=2,
+            max_concurrency=2, min_request_interval=0.0,
         )  # fmt: skip
         settings.update(overrides)
         source = HttpSource(FetchConfig(**settings), events, clock, sleep=sleeps.append)
