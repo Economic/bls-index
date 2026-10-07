@@ -104,5 +104,64 @@ def test_readback_of_different_checksum_is_detected(store, events):
 def test_missing_manifest_write_is_detected(store, events):
     upload_all(store)
     verify_all(store)
-    with pytest.raises(AssertionError, match="no manifest write"):
+    with pytest.raises(AssertionError, match="saw 0"):
+        assert_readback_precedes_manifest(events.events, "latest.json", REFERENCED)
+
+
+def test_every_manifest_write_is_checked(store, events, fault_proxy):
+    """A safe first publication must not hide an unsafe second switch."""
+    upload_all(store)
+    verify_all(store)
+    write_manifest(store)
+    first_etag = store.stat("latest.json").etag
+    store.put_immutable("bls_index-2.parquet", b"new combined", PARQUET)
+    fault_proxy.add(FaultRule("GET", "bls_index-2.parquet", CORRUPT_BODY))
+    with pytest.raises(ChecksumMismatch):
+        store.verify("bls_index-2.parquet", sha256_hex(b"new combined"))
+    store.put_conditional("latest.json", b'{"v":2}', JSON, if_match=first_etag)
+
+    second = {"programs/ap-1.parquet": REFERENCED["programs/ap-1.parquet"],
+              "bls_index-2.parquet": sha256_hex(b"new combined")}  # fmt: skip
+    with pytest.raises(AssertionError, match="manifest write 2 .*bls_index-2.parquet"):
+        assert_readback_precedes_manifest(events.events, "latest.json", REFERENCED, second)
+
+
+def test_two_safe_manifest_writes_pass(store, events):
+    upload_all(store)
+    verify_all(store)
+    write_manifest(store)
+    first_etag = store.stat("latest.json").etag
+    store.put_immutable("bls_index-2.parquet", b"new combined", PARQUET)
+    store.verify("bls_index-2.parquet", sha256_hex(b"new combined"))
+    store.put_conditional("latest.json", b'{"v":2}', JSON, if_match=first_etag)
+
+    second = {"programs/ap-1.parquet": REFERENCED["programs/ap-1.parquet"],
+              "bls_index-2.parquet": sha256_hex(b"new combined")}  # fmt: skip
+    assert_readback_precedes_manifest(events.events, "latest.json", REFERENCED, second)
+
+
+def test_reupload_requires_fresh_readback(store, events, backdoor, bucket):
+    upload_all(store)
+    verify_all(store)
+    backdoor.delete_object(Bucket=bucket, Key="test-ns/bls_index-1.parquet")
+    store.put_immutable("bls_index-1.parquet", OBJECTS["bls_index-1.parquet"], PARQUET)
+    write_manifest(store)
+    with pytest.raises(AssertionError, match="bls_index-1.parquet"):
+        assert_readback_precedes_manifest(events.events, "latest.json", REFERENCED)
+
+
+def test_write_count_must_match_reference_sets(store, events):
+    upload_all(store)
+    verify_all(store)
+    write_manifest(store)
+    with pytest.raises(AssertionError, match="expected 2 manifest write"):
+        assert_readback_precedes_manifest(events.events, "latest.json", REFERENCED, REFERENCED)
+
+
+def test_unexpected_extra_manifest_write_is_detected(store, events):
+    upload_all(store)
+    verify_all(store)
+    write_manifest(store)
+    store.put_conditional("latest.json", b'{"v":2}', JSON, if_match=store.stat("latest.json").etag)
+    with pytest.raises(AssertionError, match="no expected reference set"):
         assert_readback_precedes_manifest(events.events, "latest.json", REFERENCED)
