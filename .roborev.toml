@@ -1,20 +1,43 @@
 # .roborev.toml
+#
+# Naming convention: names ending in _reviewer or _panel are labels chosen for this
+# repo. roborev attaches no meaning to them; they only connect the sections below.
+# Everything else (section names, keys, and values such as review_type = "design")
+# is roborev's own vocabulary.
 
-# ---- Default agent ----
+# ---- Default agent (used by manual `roborev review` without --panel) ----
 agent = "codex"
 model = "gpt-6-sol"
 review_reasoning = "high"
+
+# ---- Which agent runs `--type design` reviews, including automatic ones ----
+design_agent = "codex"
+design_model = "gpt-6-astra"
 
 # ---- Review behavior ----
 review_min_severity = "medium"
 auto_close_passing_reviews = true
 
+# Review each commit in a temporary daemon-owned checkout of that commit, so
+# reviewers never see uncommitted edits, untracked files, or later work.
+# (`roborev review --dirty` still uses the live working tree.)
+isolate_reviews = true
+
+# Files never sent to reviewers (added to roborev's built-in exclusions).
+# Security reviews ignore this list by design.
+exclude_patterns = [
+  "uv.lock",
+  "docs/evidence/*.json",  # raw probe dumps; the .md summaries are still reviewed
+]
+
 review_guidelines = """
 Project artifacts:
 - design.md is the design and the source of truth. Items in its "Decisions"
   section are settled; challenge them only with a genuinely new argument.
-- docs/plans/ holds the implementation plan, once it exists.
-- Everything else is implementation code.
+- docs/plans/implementation-plan-v1.md is the implementation plan. Its phases,
+  gates and numbered acceptance checks define what each stage must deliver.
+- docs/evidence/ records measurements and checks for the plan's gates.
+- src/ and tests/ are implementation code.
 
 When a change touches design.md or the plan: read the whole document, not just
 the diff. Flag ambiguity, contradictions, missing requirements or non-goals,
@@ -22,37 +45,96 @@ unhandled failure modes, infeasible choices, and scope creep. Ignore wording
 and formatting unless meaning changes.
 
 When a change touches code: check it against design.md and the plan and flag
-deviations. Flag acceptance criteria that have no tests.
+deviations. Flag acceptance criteria that have no tests. In particular:
+- Default tests must run offline, without BLS access or credentials, and must
+  exercise production adapters through tests/harness. Test doubles belong only
+  in tests/harness.
+- Treat as high severity any change that could classify an ambiguous storage
+  result as confirmed absence or non-commit, re-enable automatic retries of
+  conditional writes, write a manifest before immutable read-back verification,
+  or infer program scope from BLS listings or future checkpoint lists.
+- Flag work that claims a gate or acceptance check is complete when the named
+  test (e.g. test_harness_faults_and_order) does not exist or does not assert it.
+
+When a change touches docs/evidence/: check that stated numbers and claims match
+the recorded data and tests, and that open items are not reported as done.
 """
 
-# ---- Reviewers and panels ----
-[review]
-# DESIGN/PLAN PHASE: every commit gets a design review.
-# When the first code commit lands: delete this line and uncomment the
-# [auto_design_review] block at the bottom of this file.
-hook_review_panel = "design"
+# ---- Reviewers (subagents) ----
+[review.subagents.codex_code_reviewer]
+review_type = "default"   # roborev's standard correctness review
+agent = "codex"
+model = "gpt-6-sol"
+reasoning = "high"
 
-[review.subagents.design_codex]
-review_type = "design"
+[review.subagents.claude_code_reviewer]
+review_type = "default"
+agent = "claude-code"
+model = "opus"
+reasoning = "high"
+
+[review.subagents.codex_design_reviewer]
+review_type = "design"    # roborev's design-focused review
 agent = "codex"
 model = "gpt-6-astra"
 reasoning = "high"
 
-[review.subagents.design_claude]
+[review.subagents.claude_design_reviewer]
 review_type = "design"
 agent = "claude-code"
 model = "opus"
 reasoning = "high"
 
-[review.panels.design]
-members = ["design_codex"]
+[review.subagents.codex_security_reviewer]
+review_type = "security"  # roborev's security-focused review
+agent = "codex"
+model = "gpt-6-sol"
+reasoning = "high"
 
-[review.panels.design_both]
-members = ["design_codex", "design_claude"]
+# ---- Panels (groups of reviewers) ----
+# Runs on every commit (see hook_review_panel below).
+# From Phase 2 on (credentials, R2, workflow secrets), add "codex_security_reviewer".
+[review.panels.every_commit_panel]
+members = ["codex_code_reviewer"]
+
+# Manual, at the plan's review points (native checkpoint; each of sm/jt/pr;
+# before staging): roborev review --branch --panel checkpoint_panel
+[review.panels.checkpoint_panel]
+members = ["codex_code_reviewer", "claude_code_reviewer", "codex_design_reviewer"]
 synthesis_agent = "codex"
 synthesis_model = "gpt-6-astra"
 
-# ---- CODING PHASE: uncomment when the first code commit lands ----
-# [auto_design_review]
-# hook_enabled = true
-# trigger_paths = ["design.md", "docs/design/**", "docs/plans/**"]
+# Manual design reviews (formerly the "design" and "design_both" panels).
+[review.panels.design_only_panel]
+members = ["codex_design_reviewer"]
+
+[review.panels.design_pair_panel]
+members = ["codex_design_reviewer", "claude_design_reviewer"]
+synthesis_agent = "codex"
+synthesis_model = "gpt-6-astra"
+
+# Manual security review: roborev review --branch --panel security_panel
+[review.panels.security_panel]
+members = ["codex_security_reviewer"]
+
+[review]
+hook_review_panel = "every_commit_panel"
+
+# ---- Automatic extra design review on post-commit hooks ----
+# roborev adds a `--type design` review (run by design_agent/design_model above)
+# on top of the every-commit review when a commit matches. Rules are checked in
+# order and the first match wins: trigger_paths, large diff, large file count,
+# trigger message patterns, then skip rules; unclear commits go to a classifier.
+# Lists replace roborev's defaults.
+[auto_design_review]
+hook_enabled = true
+trigger_paths = [
+  "design.md",
+  "docs/plans/**",
+  "src/bls_index/scope.py",  # fixed published scope
+]
+skip_paths = [               # skip only if every changed file matches
+  "**/*.md",
+  "docs/evidence/**",
+  "tests/fixtures/**",
+]
