@@ -35,7 +35,7 @@ hook_review_panel = "design"
 [review.subagents.design_codex]
 review_type = "design"
 agent = "codex"
-model = "gpt-6-sol"
+model = "gpt-6-astra"
 reasoning = "high"
 
 [review.subagents.design_claude]
@@ -50,7 +50,7 @@ members = ["design_codex"]
 [review.panels.design_both]
 members = ["design_codex", "design_claude"]
 synthesis_agent = "codex"
-synthesis_model = "gpt-6-sol"
+synthesis_model = "gpt-6-astra"
 
 # ---- CODING PHASE: uncomment when the first code commit lands ----
 # [auto_design_review]
