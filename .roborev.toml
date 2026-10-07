@@ -12,7 +12,7 @@ review_reasoning = "high"
 
 # ---- Which agent runs `--type design` reviews, including automatic ones ----
 design_agent = "codex"
-design_model = "gpt-6-astra"
+design_model = "gpt-6-sol"
 
 # ---- Review behavior ----
 review_min_severity = "medium"
@@ -81,7 +81,7 @@ reasoning = "high"
 [review.subagents.codex_design_reviewer]
 review_type = "design"    # roborev's design-focused review
 agent = "codex"
-model = "gpt-6-astra"
+model = "gpt-6-sol"
 reasoning = "high"
 
 [review.subagents.claude_design_reviewer]
@@ -107,7 +107,7 @@ members = ["codex_code_reviewer"]
 [review.panels.checkpoint_panel]
 members = ["codex_code_reviewer", "claude_code_reviewer", "codex_design_reviewer"]
 synthesis_agent = "codex"
-synthesis_model = "gpt-6-astra"
+synthesis_model = "gpt-6-sol"
 
 # Manual design reviews (formerly the "design" and "design_both" panels).
 [review.panels.design_only_panel]
@@ -116,7 +116,7 @@ members = ["codex_design_reviewer"]
 [review.panels.design_pair_panel]
 members = ["codex_design_reviewer", "claude_design_reviewer"]
 synthesis_agent = "codex"
-synthesis_model = "gpt-6-astra"
+synthesis_model = "gpt-6-sol"
 
 # Manual security review: roborev review --branch --panel security_panel
 [review.panels.security_panel]
