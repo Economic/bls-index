@@ -114,6 +114,25 @@ def test_source_mutation_during_parse_is_rejected_and_staged_output_removed(monk
     assert not output_dir.exists()
 
 
+def test_source_mutation_from_build_clock_fails_final_check_and_cleans_stage(tmp_path):
+    source_path = tmp_path / "ap.series"
+    source_path.write_bytes(FIXTURE_DIR.joinpath("ap.series").read_bytes())
+    input_set = _input_set(source_path)
+
+    class MutatingClock:
+        def now(self):
+            source_path.write_bytes(source_path.read_bytes() + b"\n")
+            return BUILD_TIME
+
+    output_dir = tmp_path / "output"
+    with pytest.raises(
+        NativeParquetBuildError,
+        match="changed or disagrees with verified provenance immediately before publication",
+    ):
+        build_native_parquet(input_set, output_dir, MutatingClock())
+    assert not output_dir.exists()
+
+
 def test_recheck_record_must_match_download_record(tmp_path):
     path = FIXTURE_DIR / "ap.series"
     input_set = _input_set(path)
@@ -151,6 +170,30 @@ def test_existing_unrelated_files_are_not_overwritten(tmp_path):
     assert unrelated.read_text() == "preserve this"
     assert result.parquet_path.is_file()
     assert result.provenance_path.is_file()
+
+
+def test_competing_destination_created_at_publish_is_not_replaced(monkeypatch, tmp_path):
+    path = FIXTURE_DIR / "ap.series"
+    output_dir = tmp_path / "output"
+    real_publish = native_parquet._rename_directory_noreplace
+    competitor_marker = "owned by competing writer"
+
+    def compete(source, destination):
+        destination.mkdir()
+        (destination / "marker.txt").write_text(competitor_marker)
+        real_publish(source, destination)
+
+    monkeypatch.setattr(native_parquet, "_rename_directory_noreplace", compete)
+    with pytest.raises(
+        NativeParquetBuildError,
+        match="content-addressed output was concurrently created and does not match",
+    ):
+        build_native_parquet(_input_set(path), output_dir, FakeClock(BUILD_TIME))
+
+    destination = next((output_dir / "ap").iterdir())
+    assert (destination / "marker.txt").read_text() == competitor_marker
+    assert sorted(p.name for p in destination.iterdir()) == ["marker.txt"]
+    assert not list((output_dir / "ap").glob(".native-build-*"))
 
 
 def test_parquet_write_failure_cleans_staging_and_new_output_directories(monkeypatch, tmp_path):

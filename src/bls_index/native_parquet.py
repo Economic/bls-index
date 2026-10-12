@@ -6,11 +6,14 @@ publish artifacts, or modify the native parser.
 
 from __future__ import annotations
 
+import ctypes
+import errno
 import hashlib
 import json
 import os
 import re
 import shutil
+import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,6 +33,7 @@ from bls_index.native_builders import (
 
 _COPY_CHUNK_SIZE = 1024 * 1024
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_RENAME_NOREPLACE = 1
 
 
 class NativeParquetBuildError(ValueError):
@@ -157,6 +161,35 @@ def _bundle_matches(
     return actual_sha256 == parquet_sha256 and actual_bytes == parquet_bytes
 
 
+def _rename_directory_noreplace(source: Path, destination: Path) -> None:
+    """Atomically expose a directory only if its destination name is still absent."""
+    if not sys.platform.startswith("linux"):
+        raise NativeParquetBuildError(
+            "atomic no-replace directory publication is unavailable on this platform"
+        )
+    libc = ctypes.CDLL(None, use_errno=True)
+    renameat2 = getattr(libc, "renameat2", None)
+    if renameat2 is None:
+        raise NativeParquetBuildError(
+            "atomic no-replace directory publication is unavailable on this system"
+        )
+    renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+    renameat2.restype = ctypes.c_int
+    result = renameat2(
+        -100, os.fsencode(source), -100, os.fsencode(destination), _RENAME_NOREPLACE
+    )
+    if result == 0:
+        return
+    error_number = ctypes.get_errno()
+    if error_number == errno.EEXIST:
+        raise FileExistsError(error_number, os.strerror(error_number), str(destination))
+    if error_number in {errno.ENOSYS, errno.EINVAL, errno.EOPNOTSUPP}:
+        raise NativeParquetBuildError(
+            "atomic no-replace directory publication is unavailable on this filesystem"
+        )
+    raise OSError(error_number, os.strerror(error_number), str(destination))
+
+
 def build_native_parquet(
     input_set: InputSet,
     output_dir: str | Path,
@@ -166,9 +199,10 @@ def build_native_parquet(
 
     The InputSet's download and recheck records must agree. Its bytes are copied into a
     private snapshot while hashing; that exact snapshot is checked against the expected
-    checksum and parsed. The downloaded path is checked again after parsing and before
-    publication. Output is zstd-compressed and published by one same-filesystem directory
-    rename. The bundle directory is addressed by the SHA-256 of its provenance JSON, so a
+    checksum and parsed. The downloaded path is checked after parsing and after complete
+    output staging immediately before publication; this check does not prevent changes after
+    that boundary. Output is zstd-compressed and published with an atomic no-replace directory
+    operation. The bundle directory is addressed by the SHA-256 of its provenance JSON, so a
     prior build or unrelated file is never overwritten.
     """
     program = input_set.program
@@ -243,8 +277,22 @@ def build_native_parquet(
                 parquet_sha256, bundle_sha256, source_built_at,
             )
 
-        os.rename(staging_dir, destination)
-        staging_dir = None
+        # Establish input provenance at the last check boundary, after both artifacts
+        # are complete. This cannot prevent a source change after the check.
+        _verify_source(source_path, record, "immediately before publication")
+        try:
+            _rename_directory_noreplace(staging_dir, destination)
+        except FileExistsError:
+            # Another builder may have won the name race. Treat it as success only if
+            # the entire bundle is exactly the one we intended to publish.
+            if not _bundle_matches(destination, parquet_sha256, parquet_bytes, provenance_bytes):
+                raise NativeParquetBuildError(
+                    f"content-addressed output was concurrently created and does not match: {destination}"
+                )
+            shutil.rmtree(staging_dir)
+            staging_dir = None
+        else:
+            staging_dir = None
         return NativeParquetBuild(
             program, frame.height, final_parquet, final_provenance, parquet_bytes,
             parquet_sha256, bundle_sha256, source_built_at,
