@@ -109,16 +109,30 @@ def test_titles_must_be_nonblank_but_keep_original_spacing(tmp_path):
 
 def test_invalid_missing_seasonal_code_is_rejected(tmp_path):
     header = "\t".join(SOURCE_HEADERS["ce"])
-    row = "\t".join(["CES1", "00", "000000", "01", "", "title", "", "2001", "M01", "2026", "M08"])
-    path = _write(tmp_path, f"{header}\n{row}\n".encode())
-    with pytest.raises(NativeSeriesError, match="invalid or missing seasonal"):
+    rows = [
+        ["CES1", "00", "000000", "01", "", "title", "", "2001", "M01", "2026", "M08"],
+        ["CES2", "00", "000000", "01", "X", "title", "", "2001", "M01", "2026", "M08"],
+    ]
+    body = "".join("\t".join(row) + "\n" for row in rows)
+    path = _write(tmp_path, f"{header}\n{body}".encode())
+    with pytest.raises(NativeSeriesError, match=r"invalid or missing seasonal.*None.*'X'"):
         parse_native_series(path, "ce")
 
-    row_fields = row.split("\t")
-    row_fields[4] = "X"
-    path = _write(tmp_path, f"{header}\n{'\t'.join(row_fields)}\n".encode())
-    with pytest.raises(NativeSeriesError, match="invalid or missing seasonal"):
-        parse_native_series(path, "ce")
+
+def test_source_mutation_after_staging_is_rejected(monkeypatch, tmp_path):
+    import bls_index.native_builders as native_builders
+
+    path = _write(tmp_path, _ap(_valid_ap_row(title="snapshot title")))
+    parse_snapshot = native_builders._parse_snapshot
+
+    def mutate_source_before_parse(snapshot, source_path, program):
+        # Keep the exact row shape and header, but change bytes after private staging.
+        path.write_bytes(_ap(_valid_ap_row(title="modified title")))
+        return parse_snapshot(snapshot, source_path, program)
+
+    monkeypatch.setattr(native_builders, "_parse_snapshot", mutate_source_before_parse)
+    with pytest.raises(NativeSeriesError, match="source changed while parsing"):
+        parse_native_series(path, "ap")
 
 
 @pytest.mark.parametrize(
