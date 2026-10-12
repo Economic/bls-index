@@ -58,6 +58,18 @@ def test_probe_exits_nonzero_on_failed_program(http_server, tmp_path, monkeypatc
     assert run_cli(http_server, tmp_path, monkeypatch, "--programs", "ap") == 1
 
 
+def test_probe_outputs_never_contain_the_user_agent(http_server, tmp_path, monkeypatch):
+    """CI uploads the report and event log as artifacts; the agent is a repository secret.
+    One program fails so failure details are written too."""
+    http_server.serve_tree(TWO_PROGRAM)
+    http_server.script("ap/ap.series", Reply(status=404))
+    assert run_cli(http_server, tmp_path, monkeypatch, "--programs", "ap,pr") == 1
+
+    for path in (tmp_path / "out" / "r.json", tmp_path / "logs" / "events.jsonl"):
+        text = path.read_text()
+        assert TEST_USER_AGENT not in text and "example.invalid" not in text, path
+
+
 def test_probe_exits_nonzero_on_failed_parse_check(http_server, tmp_path, monkeypatch):
     http_server.serve_tree(TWO_PROGRAM)
     http_server.script("ap/ap.series", Reply(body=b"series_id\tt\r\nAPU1\tT\tx\r\n"))

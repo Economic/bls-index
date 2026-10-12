@@ -46,8 +46,21 @@ jobs:
                 --out probe-report.json --events probe-events.jsonl)
           if [ "$PARSE_CHECK" = "true" ]; then args+=(--parse-check); fi
           uv run --frozen bls-index probe "${args[@]}"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      # GitHub masks secrets in logs but not in artifacts: never upload a file that
+      # contains the User-Agent.
+      - name: Check outputs for the User-Agent
+        id: user-agent-check
         if: always()
+        run: |
+          [ -n "$BLS_INDEX_USER_AGENT" ] || exit 0
+          for f in runner-info.json probe-report.json probe-events.jsonl; do
+            if [ -f "$f" ] && grep -qF -- "$BLS_INDEX_USER_AGENT" "$f"; then
+              echo "::error::$f contains the User-Agent; not uploading artifacts"
+              exit 1
+            fi
+          done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always() && steps.user-agent-check.outcome == 'success'
         with:
           name: source-probe-${{ github.run_id }}
           path: |
