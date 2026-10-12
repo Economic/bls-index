@@ -10,6 +10,7 @@ from bls_index.native_builders import (
     CANONICAL_SCHEMA,
     NativeSeriesError,
     SOURCE_HEADERS,
+    SERIES_ID_COMPONENTS,
     SUPPORTED_NATIVE_PROGRAMS,
     parse_native_series,
     valid_series_id,
@@ -51,6 +52,7 @@ def test_native_titles_are_preserved_verbatim_and_duplicates_are_allowed():
 def test_seasonal_and_period_fields_are_normalized():
     ce = parse_native_series(FIXTURE_DIR / "ce.series", "ce")
     assert ce.get_column("seasonal").to_list() == ["SA", "NSA"]
+    assert ce.get_column("series_id").to_list() == ["CES0000000001", "CEU0000000002"]
     oe = parse_native_series(FIXTURE_DIR / "oe.series", "oe")
     assert oe.get_column("end_period").to_list() == ["A01"]
     assert oe.get_column("begin_year").to_list() == [1997]
@@ -158,8 +160,8 @@ def test_invalid_year_or_period_metadata_fails_closed(tmp_path, begin, end, peri
 
 
 @pytest.mark.parametrize("program", ("cu", "cw"))
-@pytest.mark.parametrize("period", ("S01", "S02", "S03"))
-def test_cpi_programs_accept_documented_semiannual_and_annual_average_periods(
+@pytest.mark.parametrize("period", ("M12", "S01", "S02", "S03"))
+def test_cpi_programs_accept_documented_periods(
     tmp_path, program, period
 ):
     path = _constructed_program_file(tmp_path, program, end_period=period)
@@ -169,7 +171,9 @@ def test_cpi_programs_accept_documented_semiannual_and_annual_average_periods(
 
 @pytest.mark.parametrize(
     ("program", "period"),
-    [("cu", "S04"), ("cw", "S04"), ("su", "S01")],
+    [("cu", "S04"), ("cw", "S04"),
+     ("cu", "Q01"), ("cw", "Q01"), ("cu", "A01"), ("cw", "A01"),
+     ("su", "S01")],
 )
 def test_semiannual_periods_are_restricted_to_documented_cpi_programs(
     tmp_path, program, period
@@ -308,6 +312,79 @@ def test_all_native_adapters_parse_constructed_compact_rows(tmp_path, program):
         assert frame.get_column("seasonal").item() == "unknown"
     if program == "cx":
         assert frame.get_column("seasonal").item() == "NSA"
+
+
+@pytest.mark.parametrize(
+    ("program", "field"),
+    [
+        ("cu", "area_code"), ("cw", "item_code"), ("su", "area_code"),
+        ("wd", "group_code"), ("wp", "group_code"),
+        ("nd", "industry_code"), ("pc", "product_code"),
+        ("cx", "item_code"), ("oe", "area_code"),
+    ],
+)
+def test_documented_id_dimensions_must_match_source_columns(tmp_path, program, field):
+    path = _constructed_program_file(tmp_path, program)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split("\t")
+    row = lines[1].split("\t")
+    original = row[header.index(field)]
+    changed = ("Z" if not original.startswith("Z") else "Y") + original[1:]
+    row[header.index(field)] = changed
+    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+    with pytest.raises(NativeSeriesError, match="invalid series_id"):
+        parse_native_series(path, program)
+
+
+@pytest.mark.parametrize("program", ("cu", "cw", "su", "wd", "wp", "nd", "pc", "cx", "oe"))
+def test_documented_id_dimension_comparison_is_case_insensitive(tmp_path, program):
+    path = _constructed_program_file(tmp_path, program)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split("\t")
+    row = lines[1].split("\t")
+    row[0] = row[0].lower()
+    for field in SERIES_ID_COMPONENTS[program]:
+        if field in header and field != "seasonal":
+            row[header.index(field)] = row[header.index(field)].lower()
+    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+    assert parse_native_series(path, program).height == 1
+
+
+@pytest.mark.parametrize(
+    "program",
+    ("oe", "is", "wm", "ep", "nb", "tu", "or", "ln", "bd", "la", "ce", "ip",
+     "le", "wd", "cu", "cm", "cw", "nd", "wp", "pc", "fm", "ci", "ei", "lu", "su", "ws"),
+)
+def test_seasonal_column_must_match_third_series_id_character(tmp_path, program):
+    path = _constructed_program_file(tmp_path, program)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split("\t")
+    row = lines[1].split("\t")
+    row[header.index("seasonal")] = "S" if row[0][2].upper() == "U" else "U"
+    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+    with pytest.raises(NativeSeriesError, match="invalid series_id"):
+        parse_native_series(path, program)
+
+
+def test_saved_full_revalidation_id_examples_are_accepted_and_component_checked(tmp_path):
+    records = json.loads(
+        (FIXTURE_DIR / "full_revalidation_id_rows.json").read_text(encoding="utf-8")
+    )
+    for program, values in records["programs"].items():
+        path = _constructed_program_file(tmp_path, program)
+        lines = path.read_text(encoding="utf-8").splitlines()
+        header = lines[0].split("\t")
+        row = lines[1].split("\t")
+        for field, value in values.items():
+            if field in header:
+                row[header.index(field)] = value
+        row[0] = values["series_id"]
+        path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+        parsed = parse_native_series(path, program)
+        assert parsed.get_column("series_id").item() == values["series_id"]
+        if "seasonal" in values:
+            expected = "SA" if values["seasonal"] == "S" else "NSA"
+            assert parsed.get_column("seasonal").item() == expected
 
 
 def test_program_specific_seasonality_uses_verified_codes_and_rejects_others(tmp_path):

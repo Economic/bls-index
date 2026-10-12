@@ -35,8 +35,10 @@ series-ID prefixes, reports, or a shared schema guess.
   based on each official program's `.txt` ID example, with the exception of `cx`: its
   [`cx.txt`](https://download.bls.gov/pub/time.series/cx/cx.txt) document returned HTTP
   404, so `CX` is confirmed from the verified `cx.series` file. IDs use ASCII letters,
-  digits, `_`, or `-`, and must start with the requested program's code, case-insensitively.
-  Thus a row carrying a `CES...` ID in an `ap` file is rejected rather than reassigned.
+  digits, and program-specific separators; IDs must start with the requested program's
+  code, case-insensitively. The current native adapters accept `_` for `ip` and `-` for
+  `nd`, `oe`, and `pc`; other programs accept only letters and digits. Thus a row carrying
+  a `CES...` ID in an `ap` file is rejected rather than reassigned.
   The explicit leading-code contract for the 30 native-title programs is:
 
   | Program | ID begins with | Program | ID begins with | Program | ID begins with |
@@ -53,14 +55,23 @@ series-ID prefixes, reports, or a shared schema guess.
   | `wm` | `WM` | `wp` | `WP` | `ws` | `WS` |
 
   Observed `_` and `-` separators are permitted in the remainder of IDs, including the
-  verified `ip` and `nd` samples. The prefixes are checks only after an explicit adapter
-  program is supplied; they are not a mechanism for selecting that program.
+  verified `ip` and `nd` samples; full-file validation also observed embedded separators
+  in an `oe` industry component. Source-dimension comparisons are enabled only for the
+  layouts explicitly listed in `SERIES_ID_COMPONENTS`; variable-length IDs in other
+  programs are checked against observed length and character constraints, not guessed
+  component layouts. The prefixes are checks only after an explicit adapter program is
+  supplied; they are not a mechanism for selecting that program.
 - Small real-source samples for each of the 30 native programs are in
   [`../tests/fixtures/real_native/`](../tests/fixtures/real_native/). Each metadata JSON
   records the official URL, retrieval date, two matching SHA-256 reads, source row count,
   selected first/midpoint/last rows, raw fields, expected canonical values or parser error,
   and full-file parse status. The fixture tests compare those expectations and preserve
   the native series title. No bulk raw source files or request User-Agent are included.
+- `tests/fixtures/native/full_revalidation_id_rows.json` preserves the ten parsed row
+  dictionaries rejected by a saved full-file validation run. The captured output did not
+  include raw TSV lines, so these are explicitly marked constructed-from-record and used
+  only as offline parser regressions, not as verbatim BLS source samples. Component equality
+  is checked only for source layouts represented by `SERIES_ID_COMPONENTS`.
 - The official [`cu.txt`](https://download.bls.gov/pub/time.series/cu/cu.txt) and
   [`cw.txt`](https://download.bls.gov/pub/time.series/cw/cw.txt) documentation specifies
   `M01-M13` and `S01-S03` for begin/end periods, defines `S` as semi-annual, and says `S03`
@@ -99,7 +110,9 @@ where that domain is explicitly stated. `cx` is deliberately narrower: only its 
 `U` value is accepted, with no unverified `S` support. Blank values in any present seasonal
 field are rejected unless an official source documents blank as a valid value; none of these
 contracts documents it. Programs without a seasonal field normalize to `unknown`. No source
-code is inferred from ID prefixes or titles.
+code is inferred from ID prefixes or titles. Where a seasonal field is present, its `S` or
+`U` value must also match the third character of the series ID; this cross-check is in
+addition to validating the program-specific source seasonality policy.
 
 ## Layout and nullable metadata
 

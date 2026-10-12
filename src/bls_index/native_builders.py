@@ -251,40 +251,45 @@ SERIES_ID_PREFIXES: dict[str, str] = {
     "su": "SU", "ws": "WS", "sm": "SM", "jt": "JT", "pr": "PR",
 }
 
-# Inclusive lengths after trimming right-padding. Fixed shapes come from the ID
-# examples in the official .txt files; ranges cover documented component variants
-# and IDs verified in current .series samples. The upper bounds never exceed the
-# declared series_id field width in the corresponding official format documentation.
+# Inclusive lengths after trimming right-padding. Ranges include the valid variants
+# recorded in the checked-in native samples and saved full-file revalidation output.
 SERIES_ID_LENGTHS: dict[str, tuple[int, int]] = {
     "ap": (12, 13), "bd": (28, 30), "ce": (13, 13), "ci": (17, 17),
-    "cm": (17, 17), "cu": (11, 16), "cw": (11, 16), "cx": (16, 16),
-    "ei": (10, 12), "ep": (15, 15), "fm": (7, 11), "ip": (21, 21),
+    "cm": (17, 17), "cu": (11, 16), "cw": (11, 16), "cx": (16, 17),
+    "ei": (10, 14), "ep": (14, 15), "fm": (7, 11), "ip": (21, 21),
     "is": (17, 17), "kv": (19, 19), "la": (20, 20), "le": (13, 13),
-    "ln": (11, 11), "lu": (13, 13), "mp": (9, 10), "nb": (14, 23),
-    "nd": (15, 20), "oe": (25, 25), "or": (20, 20), "pc": (15, 20),
-    "su": (11, 13), "tu": (18, 18), "wd": (7, 11), "wm": (29, 29),
-    "wp": (9, 11), "ws": (6, 6),
+    "ln": (11, 12), "lu": (13, 13), "mp": (9, 10), "nb": (14, 23),
+    "nd": (15, 24), "oe": (25, 25), "or": (20, 20), "pc": (15, 22),
+    "su": (11, 14), "tu": (18, 18), "wd": (6, 11), "wm": (29, 29),
+    "wp": (5, 11), "ws": (6, 6),
 }
 
-# Only these observed/documented ID families contain separators. Their position
-# remains constrained by the component comparison below where it is established.
-SERIES_ID_SEPARATORS: dict[str, str] = {"ip": "_", "nd": "-", "pc": "-"}
+# Separators accepted in the observed ID families. Component checks constrain
+# their placement for programs with a verified source-column layout.
+SERIES_ID_SEPARATORS: dict[str, str] = {"ip": "_", "nd": "-", "oe": "-", "pc": "-"}
 SERIES_ID_SEASON_CODES: dict[str, str] = {p: "SU" for p in SUPPORTED_NATIVE_PROGRAMS}
 SERIES_ID_SEASON_CODES.update({"ap": "U", "cx": "U", "kv": "U", "mp": "U"})
 
-# The official ID breakdown and native .series columns align exactly for these
-# programs. Literal components are used only for AP, whose ID encodes unadjusted U
-# despite its .series header having no seasonal column.
+# ID component layouts are compared only where their order and source-column mapping
+# are supported by official examples, checked-in native samples, or saved parsed-row
+# evidence. Literal components are used for AP (no seasonal column) and the CPI programs
+# whose IDs encode dimensions in a different order from their .series headers.
 SERIES_ID_COMPONENTS: dict[str, tuple[str, ...]] = {
-    # These five component layouts are confirmed by official ID documentation and
-    # matching native .series columns. Other programs receive syntax/length checks only.
     "ap": ("U", "area_code", "item_code"),
+    "cx": ("seasonal", "item_code", "demographics_code", "characteristics_code", "process_code"),
+    "oe": ("seasonal", "areatype_code", "area_code", "industry_code", "occupation_code", "datatype_code"),
     "bd": ("seasonal", "msa_code", "state_code", "county_code", "industry_code",
            "unitanalysis_code", "dataelement_code", "sizeclass_code", "dataclass_code",
            "ratelevel_code", "periodicity_code", "ownership_code"),
     "ce": ("seasonal", "supersector_code", "industry_code", "data_type_code"),
+    "cu": ("seasonal", "periodicity_code", "area_code", "item_code"),
+    "cw": ("seasonal", "periodicity_code", "area_code", "item_code"),
     "ip": ("seasonal", "sector_code", "industry_code", "measure_code", "duration_code", "area_code"),
     "nd": ("seasonal", "industry_code", "product_code"),
+    "pc": ("seasonal", "industry_code", "product_code"),
+    "su": ("seasonal", "periodicity_code", "area_code", "item_code"),
+    "wd": ("seasonal", "group_code", "item_code"),
+    "wp": ("seasonal", "group_code", "item_code"),
 }
 
 
@@ -330,6 +335,13 @@ def _series_id_components_expr(program: str) -> pl.Expr:
             # CES IDs use the six-digit industry suffix; the source column also
             # contains its two-digit supersector prefix.
             parts.append(pl.col(part).str.strip_chars().str.slice(-6))
+        elif program == "wp" and part == "item_code":
+            # In this commodity series, a dash in the source is a no-item
+            # sentinel and is not included in the series ID.
+            parts.append(
+                pl.when(pl.col(part).str.strip_chars() == "-")
+                .then(pl.lit("")).otherwise(pl.col(part).str.strip_chars())
+            )
         else:
             parts.append(pl.col(part).str.strip_chars())
     return pl.concat_str([pl.lit(SERIES_ID_PREFIXES[program]), *parts])
@@ -531,8 +543,15 @@ def _parse_snapshot(snapshot: Path, source_path: Path, program: str) -> pl.DataF
         | ~pl.col("series_id").str.to_uppercase().str.contains(SERIES_ID_PATTERNS[program])
         | (pl.col("series_id") == "")
         | (
-            pl.col("series_id") != expected_id
+            pl.col("series_id").str.to_uppercase()
+            != expected_id.str.to_uppercase()
             if expected_id is not None
+            else pl.lit(False)
+        )
+        | (
+            pl.col("series_id").str.slice(2, 1).str.to_uppercase()
+            != pl.col("seasonal").str.strip_chars().str.to_uppercase()
+            if "seasonal" in normalized.columns
             else pl.lit(False)
         )
     )
