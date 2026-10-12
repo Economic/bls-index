@@ -12,6 +12,7 @@ from bls_index.native_builders import (
     SOURCE_HEADERS,
     SUPPORTED_NATIVE_PROGRAMS,
     parse_native_series,
+    valid_series_id,
 )
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "native"
@@ -41,7 +42,7 @@ def test_native_titles_are_preserved_verbatim_and_duplicates_are_allowed():
         "  Native title with punctuation — and spaces  ",
     ]
     assert frame.get_column("series_title").is_duplicated().all()
-    assert frame.get_column("series_id").to_list() == ["AP0001", "AP0002"]
+    assert frame.get_column("series_id").to_list() == ["APU0000000001", "APU0000000002"]
     assert frame.get_column("seasonal").to_list() == ["unknown", "unknown"]
     assert frame.get_column("begin_year").to_list() == [1980, None]
     assert frame.get_column("end_period").to_list() == ["M08", "M12"]
@@ -66,7 +67,7 @@ def _ap(body: str) -> bytes:
 
 
 def _valid_ap_row(
-    *, sid: str = "AP0001", title: str = "A title", begin: str = "1980",
+    *, sid: str = "APU0000000001", title: str = "A title", begin: str = "1980",
     bp: str = "M01", end: str = "2026", ep: str = "M08",
 ) -> str:
     return "\t".join([sid, "0000", "000001", title, "", begin, bp, end, ep]) + "\n"
@@ -85,7 +86,7 @@ def test_schema_drift_and_row_width_are_rejected(tmp_path):
 def test_series_ids_trim_but_must_be_nonempty_valid_and_unique(tmp_path):
     duplicate = _write(
         tmp_path,
-        _ap(_valid_ap_row(sid="AP1  ") + _valid_ap_row(sid="  AP1")),
+        _ap(_valid_ap_row(sid="APU0000000001  ") + _valid_ap_row(sid="  APU0000000001")),
     )
     with pytest.raises(NativeSeriesError, match="duplicate series_id"):
         parse_native_series(duplicate, "ap")
@@ -115,8 +116,8 @@ def test_titles_must_be_nonblank_but_keep_original_spacing(tmp_path):
 def test_invalid_missing_seasonal_code_is_rejected(tmp_path):
     header = "\t".join(SOURCE_HEADERS["ce"])
     rows = [
-        ["CES1", "00", "000000", "01", "", "title", "", "2001", "M01", "2026", "M08"],
-        ["CES2", "00", "000000", "01", "X", "title", "", "2001", "M01", "2026", "M08"],
+        ["CES0000000001", "00", "000000", "01", "", "title", "", "2001", "M01", "2026", "M08"],
+        ["CES0000000001", "00", "000000", "01", "X", "title", "", "2001", "M01", "2026", "M08"],
     ]
     body = "".join("\t".join(row) + "\n" for row in rows)
     path = _write(tmp_path, f"{header}\n{body}".encode())
@@ -234,8 +235,19 @@ def test_program_specific_prefixes_and_documented_id_separators():
 
     assert set(SERIES_ID_PREFIXES) == set(SUPPORTED_NATIVE_PROGRAMS) | {"sm", "jt", "pr"}
     assert valid_series_id("IPUAN1111__L010000000", "ip")
-    assert valid_series_id("NDU21112-21112-", "nd")
+    assert valid_series_id("NDU332710332710S", "nd")
+    assert valid_series_id("NDUBRSM--BRSM--", "nd")
+    assert valid_series_id("PCU1133--1133--", "pc")
     assert not valid_series_id("CES0000000001", "ap")
+    assert not valid_series_id("AP-", "ap")
+    assert not valid_series_id("CE", "ce")
+    assert not valid_series_id("CES_____", "ce")
+    assert valid_series_id("APU000070111", "ap")
+    assert not valid_series_id("APU00007011111", "ap")
+    assert valid_series_id("CES0000000001", "ce")
+    assert not valid_series_id("CES____00001", "ce")
+    assert valid_series_id("APU0000000001", "ap")
+    assert not valid_series_id("APU00007011", "ap")
 
 
 def _constructed_program_file(
@@ -245,34 +257,20 @@ def _constructed_program_file(
     end_period: str | None = None,
 ) -> Path:
     """Write one tiny constructed row; this is not a BLS sample row."""
-    from bls_index.native_builders import SEASONAL_SOURCE_CODES
-
-    fixture = json.loads((FIXTURE_DIR / "constructed_rows.json").read_text())
-    row = {name: fixture.get(name, "") for name in SOURCE_HEADERS[program]}
-    row["series_id"] = f"{program.upper()}FIXTURE0001"
-    row["series_title"] = fixture["series_title"]
-    allowed = SEASONAL_SOURCE_CODES[program]
-    if "seasonal" in row:
-        if seasonal is not None:
-            row["seasonal"] = seasonal
-        elif allowed is None:
-            row["seasonal"] = fixture["unresolved_seasonal"]
-        else:
-            row["seasonal"] = fixture["seasonal"]
+    source_lines = (Path(__file__).parent / "fixtures" / "real_native" / f"{program}.series").read_text().splitlines()
+    header = [field.strip() for field in source_lines[0].split("\t")]
+    row = dict(zip(header, source_lines[1].split("\t"), strict=True))
+    row["series_title"] = "Constructed native-title adapter fixture"
+    if seasonal is not None:
+        row["seasonal"] = seasonal
+        row["series_id"] = row["series_id"].strip()[:2] + seasonal + row["series_id"].strip()[3:]
     if program == "kv":
         # The current observed KV header has date columns; blank source dates become null.
-        for name, value in fixture["kv_missing_dates"].items():
-            if name in row:
-                row[name] = value
-    else:
         for name in ("begin_year", "begin_period", "end_year", "end_period"):
-            if name in row:
-                row[name] = fixture[name]
-        if end_period is not None:
-            row["end_period"] = end_period
-    content = "\t".join(SOURCE_HEADERS[program]) + "\n" + "\t".join(
-        row[name] for name in SOURCE_HEADERS[program]
-    ) + "\n"
+            row[name] = ""
+    if end_period is not None:
+        row["end_period"] = end_period
+    content = "\t".join(header) + "\n" + "\t".join(row[name] for name in header) + "\n"
     return _write(tmp_path, content.encode("utf-8"), filename=f"{program}.series")
 
 
@@ -299,7 +297,7 @@ def test_all_native_adapters_parse_constructed_compact_rows(tmp_path, program):
     assert frame.schema == CANONICAL_SCHEMA
     assert frame.height == 1
     assert frame.get_column("program").item() == program
-    assert frame.get_column("series_id").item() == f"{program.upper()}FIXTURE0001"
+    assert frame.get_column("series_id").item() == path.read_text().splitlines()[1].split("\t")[0].strip()
     assert frame.get_column("series_title").item() == "Constructed native-title adapter fixture"
     assert frame.get_column("title_source").item() == "native"
     if program == "kv":

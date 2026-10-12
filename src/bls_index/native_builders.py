@@ -234,13 +234,12 @@ CANONICAL_SCHEMA: dict[str, pl.DataType] = {
 }
 
 _YEAR_RE = re.compile(r"^[0-9]{4}$")
-_SERIES_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _PERIOD_RE = re.compile(r"^(M|Q|A|S)([0-9]{2})$")
 
 # The program ID examples in each official .txt identify the owning survey with
 # these leading codes (CX is confirmed from its .series file because cx.txt is 404).
-# Keep this explicit: a frame's requested program is never inferred from an ID.
-# Separators observed in official layouts include IP underscores and ND hyphens.
+# Native IDs are checked against their own documented/exampled shape; a shared prefix
+# and a permissive punctuation set are not sufficient assignment validation.
 SERIES_ID_PREFIXES: dict[str, str] = {
     "oe": "OE", "is": "IS", "wm": "WM", "cx": "CX",
     "ep": "EP", "nb": "NB", "tu": "TU", "or": "OR",
@@ -252,13 +251,88 @@ SERIES_ID_PREFIXES: dict[str, str] = {
     "su": "SU", "ws": "WS", "sm": "SM", "jt": "JT", "pr": "PR",
 }
 
+# Inclusive lengths after trimming right-padding. Fixed shapes come from the ID
+# examples in the official .txt files; ranges cover documented component variants
+# and IDs verified in current .series samples. The upper bounds never exceed the
+# declared series_id field width in the corresponding official format documentation.
+SERIES_ID_LENGTHS: dict[str, tuple[int, int]] = {
+    "ap": (12, 13), "bd": (28, 30), "ce": (13, 13), "ci": (17, 17),
+    "cm": (17, 17), "cu": (11, 16), "cw": (11, 16), "cx": (16, 16),
+    "ei": (10, 12), "ep": (15, 15), "fm": (7, 11), "ip": (21, 21),
+    "is": (17, 17), "kv": (19, 19), "la": (20, 20), "le": (13, 13),
+    "ln": (11, 11), "lu": (13, 13), "mp": (9, 10), "nb": (14, 23),
+    "nd": (15, 20), "oe": (25, 25), "or": (20, 20), "pc": (15, 20),
+    "su": (11, 13), "tu": (18, 18), "wd": (7, 11), "wm": (29, 29),
+    "wp": (9, 11), "ws": (6, 6),
+}
+
+# Only these observed/documented ID families contain separators. Their position
+# remains constrained by the component comparison below where it is established.
+SERIES_ID_SEPARATORS: dict[str, str] = {"ip": "_", "nd": "-", "pc": "-"}
+SERIES_ID_SEASON_CODES: dict[str, str] = {p: "SU" for p in SUPPORTED_NATIVE_PROGRAMS}
+SERIES_ID_SEASON_CODES.update({"ap": "U", "cx": "U", "kv": "U", "mp": "U"})
+
+# The official ID breakdown and native .series columns align exactly for these
+# programs. Literal components are used only for AP, whose ID encodes unadjusted U
+# despite its .series header having no seasonal column.
+SERIES_ID_COMPONENTS: dict[str, tuple[str, ...]] = {
+    # These five component layouts are confirmed by official ID documentation and
+    # matching native .series columns. Other programs receive syntax/length checks only.
+    "ap": ("U", "area_code", "item_code"),
+    "bd": ("seasonal", "msa_code", "state_code", "county_code", "industry_code",
+           "unitanalysis_code", "dataelement_code", "sizeclass_code", "dataclass_code",
+           "ratelevel_code", "periodicity_code", "ownership_code"),
+    "ce": ("seasonal", "supersector_code", "industry_code", "data_type_code"),
+    "ip": ("seasonal", "sector_code", "industry_code", "measure_code", "duration_code", "area_code"),
+    "nd": ("seasonal", "industry_code", "product_code"),
+}
+
+
+def series_id_pattern(program: str) -> str:
+    """Regex for the documented ID shape of an explicitly selected program."""
+    if program not in SUPPORTED_NATIVE_PROGRAMS:
+        raise KeyError(program)
+    minimum, maximum = SERIES_ID_LENGTHS[program]
+    separator = re.escape(SERIES_ID_SEPARATORS.get(program, ""))
+    rest_chars = f"A-Z0-9{separator}"
+    minimum_rest, maximum_rest = minimum - 3, maximum - 3
+    return (
+        rf"^{SERIES_ID_PREFIXES[program]}[{SERIES_ID_SEASON_CODES[program]}]"
+        rf"[{rest_chars}]{{{minimum_rest},{maximum_rest}}}$"
+    )
+
+
+SERIES_ID_PATTERNS: dict[str, str] = {
+    program: series_id_pattern(program) for program in SUPPORTED_NATIVE_PROGRAMS
+}
+
 
 def valid_series_id(series_id: str, program: str) -> bool:
-    """Return whether a normalized ID matches the explicit requested program."""
+    """Return whether an ID matches the explicit native program's documented shape."""
+    if program in SERIES_ID_PATTERNS:
+        return re.fullmatch(SERIES_ID_PATTERNS[program], series_id.upper()) is not None
+    # Synthesized-title programs are not covered by native-title ID shapes. Keep their
+    # check to the observed ownership code and ASCII ID alphabet until documented lengths
+    # and dimensions are available.
     return (
-        bool(_SERIES_ID_RE.fullmatch(series_id))
+        program in {"sm", "jt", "pr"}
+        and bool(re.fullmatch(r"[A-Za-z0-9_-]+", series_id))
         and series_id.upper().startswith(SERIES_ID_PREFIXES[program])
     )
+
+
+def _series_id_components_expr(program: str) -> pl.Expr:
+    parts = []
+    for part in SERIES_ID_COMPONENTS[program]:
+        if part not in SOURCE_HEADERS[program]:
+            parts.append(pl.lit(part))
+        elif program == "ce" and part == "industry_code":
+            # CES IDs use the six-digit industry suffix; the source column also
+            # contains its two-digit supersector prefix.
+            parts.append(pl.col(part).str.strip_chars().str.slice(-6))
+        else:
+            parts.append(pl.col(part).str.strip_chars())
+    return pl.concat_str([pl.lit(SERIES_ID_PREFIXES[program]), *parts])
 _COPY_CHUNK_SIZE = 1024 * 1024
 
 
@@ -360,13 +434,15 @@ def _validate_period(path: Path, values: pl.Series, program: str) -> None:
         return
     families = nonblank.str.extract(_PERIOD_RE.pattern, group_index=1)
     ordinals = nonblank.str.extract(_PERIOD_RE.pattern, group_index=2).cast(pl.Int8, strict=False)
-    valid_range = (
-        ((families == "M") & ordinals.is_between(1, 13))
-        | ((families == "Q") & ordinals.is_between(1, 5))
-        | ((families == "A") & (ordinals == 1))
-    )
+    monthly = (families == "M") & ordinals.is_between(1, 13)
     if program in {"cu", "cw"}:
-        valid_range = valid_range | ((families == "S") & ordinals.is_between(1, 3))
+        valid_range = monthly | ((families == "S") & ordinals.is_between(1, 3))
+    else:
+        valid_range = (
+            monthly
+            | ((families == "Q") & ordinals.is_between(1, 5))
+            | ((families == "A") & (ordinals == 1))
+        )
     if (~valid_range.fill_null(False)).any():
         invalid = nonblank.filter(~valid_range.fill_null(False))[0]
         raise _fail(path, f"invalid period code {invalid!r}; expected a supported BLS period code")
@@ -443,11 +519,22 @@ def _parse_snapshot(snapshot: Path, source_path: Path, program: str) -> pl.DataF
         ],
     )
 
+    seasonal_expr = _seasonal_expression(source_path, program, normalized)
+
+    expected_id = (
+        _series_id_components_expr(program)
+        if program in SERIES_ID_COMPONENTS
+        else None
+    )
     bad_id = normalized.filter(
         pl.col("series_id").is_null()
+        | ~pl.col("series_id").str.to_uppercase().str.contains(SERIES_ID_PATTERNS[program])
         | (pl.col("series_id") == "")
-        | ~pl.col("series_id").str.contains(_SERIES_ID_RE.pattern)
-        | ~pl.col("series_id").str.to_uppercase().str.starts_with(SERIES_ID_PREFIXES[program])
+        | (
+            pl.col("series_id") != expected_id
+            if expected_id is not None
+            else pl.lit(False)
+        )
     )
     if bad_id.height:
         row = bad_id.row(0, named=True)
@@ -464,8 +551,6 @@ def _parse_snapshot(snapshot: Path, source_path: Path, program: str) -> pl.DataF
     )
     if bad_title.height:
         raise _fail(source_path, "missing or whitespace-only series_title")
-
-    seasonal_expr = _seasonal_expression(source_path, program, normalized)
 
     for name in ("begin_year", "end_year"):
         values = normalized.get_column(name)
