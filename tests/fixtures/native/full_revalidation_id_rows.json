@@ -1,6 +1,22 @@
 {
   "fixture_type": "constructed-from-record; not verbatim BLS source rows",
   "source": "saved full native revalidation stdout, verified 2026-10-12; error output retained parsed row dictionaries but not raw tab-separated lines",
+  "cx_short_id_record": {
+    "series_id": "CXUBCBSLB0101M",
+    "seasonal": "U",
+    "category_code": "EXPEND",
+    "subcategory_code": "HEALTH",
+    "item_code": "BCBS",
+    "demographics_code": "LB01",
+    "characteristics_code": "01",
+    "process_code": "M",
+    "series_title": "Blue Cross, Blue Shield by Income Quintiles: All Consumer Units",
+    "footnote_codes": null,
+    "begin_year": "2010",
+    "begin_period": "A01",
+    "end_year": "2024",
+    "end_period": "A01"
+  },
   "programs": {
     "cx": {"series_id": "CXUALCAWAYLB0101M", "seasonal": "U", "item_code": "ALCAWAY", "demographics_code": "LB01", "characteristics_code": "01", "process_code": "M"},
     "ei": {"series_id": "EIUCDINDUSMANU", "seasonal": "U", "index_code": "CD"},

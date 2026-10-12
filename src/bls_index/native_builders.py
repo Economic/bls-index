@@ -255,7 +255,7 @@ SERIES_ID_PREFIXES: dict[str, str] = {
 # recorded in the checked-in native samples and saved full-file revalidation output.
 SERIES_ID_LENGTHS: dict[str, tuple[int, int]] = {
     "ap": (12, 13), "bd": (28, 30), "ce": (13, 13), "ci": (17, 17),
-    "cm": (17, 17), "cu": (11, 16), "cw": (11, 16), "cx": (16, 17),
+    "cm": (17, 17), "cu": (11, 16), "cw": (11, 16), "cx": (13, 18),
     "ei": (10, 14), "ep": (14, 15), "fm": (7, 11), "ip": (21, 21),
     "is": (17, 17), "kv": (19, 19), "la": (20, 20), "le": (13, 13),
     "ln": (11, 12), "lu": (13, 13), "mp": (9, 10), "nb": (14, 23),
@@ -271,11 +271,17 @@ SERIES_ID_SEASON_CODES: dict[str, str] = {p: "SU" for p in SUPPORTED_NATIVE_PROG
 SERIES_ID_SEASON_CODES.update({"ap": "U", "cx": "U", "kv": "U", "mp": "U"})
 
 # ID component layouts are compared only where their order and source-column mapping
-# are supported by official examples, checked-in native samples, or saved parsed-row
-# evidence. Literal components are used for AP (no seasonal column) and the CPI programs
-# whose IDs encode dimensions in a different order from their .series headers.
+# have been checked against retained evidence. The mappings added from real-source
+# fixtures are sample-verified, not asserted to cover every valid ID. Literal components
+# are used for programs without a seasonal source column and for layouts whose IDs encode
+# dimensions in a different order from their .series headers.
 SERIES_ID_COMPONENTS: dict[str, tuple[str, ...]] = {
     "ap": ("U", "area_code", "item_code"),
+    "ep": ("seasonal", "occ_code", "ind_code"),
+    "is": ("seasonal", "supersector_code", "industry_code", "data_type_code",
+           "case_type_code", "area_code"),
+    "mp": ("U", "sector_code", "measure_code", "duration_code"),
+    "ws": ("seasonal", "measure_code"),
     "la": ("seasonal", "area_code", "measure_code"),
     "cx": ("seasonal", "item_code", "demographics_code", "characteristics_code", "process_code"),
     "oe": ("seasonal", "areatype_code", "area_code", "industry_code", "occupation_code", "datatype_code"),
@@ -332,6 +338,9 @@ def _series_id_components_expr(program: str) -> pl.Expr:
     for part in SERIES_ID_COMPONENTS[program]:
         if part not in SOURCE_HEADERS[program]:
             parts.append(pl.lit(part))
+        elif program == "ep" and part in {"occ_code", "ind_code"}:
+            # The retained EP sample IDs omit the source-code hyphens.
+            parts.append(pl.col(part).str.strip_chars().str.replace_all("-", ""))
         elif program == "ce" and part == "industry_code":
             # CES IDs use the six-digit industry suffix; the source column also
             # contains its two-digit supersector prefix.

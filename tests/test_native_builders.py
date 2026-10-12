@@ -321,6 +321,11 @@ def test_all_native_adapters_parse_constructed_compact_rows(tmp_path, program):
         ("wd", "group_code"), ("wp", "group_code"),
         ("nd", "industry_code"), ("pc", "product_code"),
         ("cx", "item_code"), ("oe", "area_code"), ("la", "measure_code"),
+        ("ep", "occ_code"), ("ep", "ind_code"),
+        ("is", "supersector_code"), ("is", "industry_code"),
+        ("is", "data_type_code"), ("is", "case_type_code"), ("is", "area_code"),
+        ("mp", "sector_code"), ("mp", "measure_code"), ("mp", "duration_code"),
+        ("ws", "measure_code"),
     ],
 )
 def test_documented_id_dimensions_must_match_source_columns(tmp_path, program, field):
@@ -357,6 +362,26 @@ def test_whitespace_only_id_components_are_rejected(tmp_path, program, field):
         parse_native_series(path, program)
 
 
+@pytest.mark.parametrize(
+    ("program", "field"),
+    [
+        (program, field)
+        for program in ("ep", "is", "mp", "ws")
+        for field in SERIES_ID_COMPONENTS[program]
+        if field in SOURCE_HEADERS[program]
+    ],
+)
+def test_blank_newly_mapped_id_components_are_rejected(tmp_path, program, field):
+    path = _constructed_program_file(tmp_path, program)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split("\t")
+    row = lines[1].split("\t")
+    row[header.index(field)] = ""
+    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+    with pytest.raises(NativeSeriesError, match="invalid series_id|invalid, blank, or missing seasonal"):
+        parse_native_series(path, program)
+
+
 def test_blank_cu_area_component_is_rejected(tmp_path):
     path = _constructed_program_file(tmp_path, "cu")
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -380,7 +405,10 @@ def test_wp_dash_item_sentinel_remains_valid(tmp_path):
     assert parse_native_series(path, "wp").height == 1
 
 
-@pytest.mark.parametrize("program", ("cu", "cw", "su", "wd", "wp", "nd", "pc", "cx", "oe", "la"))
+@pytest.mark.parametrize("program", (
+    "cu", "cw", "su", "wd", "wp", "nd", "pc", "cx", "oe", "la",
+    "ep", "is", "mp", "ws",
+))
 def test_documented_id_dimension_comparison_is_case_insensitive(tmp_path, program):
     path = _constructed_program_file(tmp_path, program)
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -429,6 +457,26 @@ def test_saved_full_revalidation_id_examples_are_accepted_and_component_checked(
         if "seasonal" in values:
             expected = "SA" if values["seasonal"] == "S" else "NSA"
             assert parsed.get_column("seasonal").item() == expected
+
+
+def test_saved_cx_short_id_record_is_accepted_and_component_checked(tmp_path):
+    records = json.loads(
+        (FIXTURE_DIR / "full_revalidation_id_rows.json").read_text(encoding="utf-8")
+    )
+    record = records["cx_short_id_record"]
+    header = SOURCE_HEADERS["cx"]
+    row = ["" if record[field] is None else record[field] for field in header]
+    path = _write(
+        tmp_path,
+        ("\t".join(header) + "\n" + "\t".join(row) + "\n").encode("utf-8"),
+        filename="cx-short-id.series",
+    )
+
+    parsed = parse_native_series(path, "cx")
+    assert parsed.get_column("series_id").item() == "CXUBCBSLB0101M"
+    assert parsed.get_column("series_title").item() == record["series_title"]
+    assert parsed.get_column("seasonal").item() == "NSA"
+    assert len(parsed.get_column("series_id").item()) == 14
 
 
 def test_program_specific_seasonality_uses_verified_codes_and_rejects_others(tmp_path):

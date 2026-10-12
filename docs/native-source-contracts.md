@@ -59,8 +59,16 @@ series-ID prefixes, reports, or a shared schema guess.
   in an `oe` industry component. Source-dimension comparisons are enabled only for the
   layouts explicitly listed in `SERIES_ID_COMPONENTS`; variable-length IDs in other
   programs are checked against observed length and character constraints, not guessed
-  component layouts. The prefixes are checks only after an explicit adapter program is
-  supplied; they are not a mechanism for selecting that program.
+  component layouts. In particular, the `ep`, `is`, `mp`, and `ws` layouts are verified
+  against every retained local real-source row, including the `ep` removal of hyphens from
+  `occ_code` and `ind_code`. They are sample-verified, not claimed to cover every valid ID;
+  no program `.txt` confirmation is recorded for these mappings. Proposed `nb`, `or`, and
+  `wm` layouts did not match all their retained rows and remain unmapped rather than being
+  inferred: `nb` IDs include a `subcell_code` component that the proposed mapping omitted,
+  `or` rows encode a dimension inconsistent with the proposed `additive_code`, and `wm`
+  IDs do not match the proposed `subcell_code` plus `datatype_code` sequence. The prefixes are checks only after an
+  explicit adapter program is supplied; they are not a mechanism for selecting that
+  program.
 - Small real-source samples for each of the 30 native programs are in
   [`../tests/fixtures/real_native/`](../tests/fixtures/real_native/). Each metadata JSON
   records the official URL, retrieval date, two matching SHA-256 reads, source row count,
