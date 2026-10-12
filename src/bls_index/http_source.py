@@ -12,12 +12,12 @@ from __future__ import annotations
 import hashlib
 import math
 import os
-import re
 import shutil
 import threading
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
@@ -63,11 +63,6 @@ def validate_user_agent(user_agent: str) -> str:
 
 def _is_loopback(url: str) -> bool:
     return urlsplit(url).hostname in {"127.0.0.1", "localhost", "::1"}
-
-
-def redact_user_agent(user_agent: str) -> str:
-    """The agent with email addresses masked, for reports that may be published."""
-    return re.sub(r"[^\s;()<>,]+@[^\s;()<>,]+", "<email>", user_agent)
 
 
 def user_agent_from_env() -> str:
@@ -183,9 +178,10 @@ class InputSetError(Exception):
 class RequestPacer:
     """Spaces request starts at least ``interval`` seconds apart across threads.
 
-    Callers queue on a lock and sleep while holding it, then record the actual time
-    they were released. The next caller is measured from that actual time, so a worker
-    that wakes late cannot be overtaken and followed immediately by another.
+    A request is dispatched inside ``slot()``, which holds a lock from the pacing wait
+    until the response headers arrive (or the request fails). The next caller is measured
+    from that release, which is after this request actually started, so no delay between
+    pacing and dispatch can let two request starts bunch up.
     """
 
     def __init__(
@@ -201,17 +197,21 @@ class RequestPacer:
         self._lock = threading.Lock()
         self._next_start: float | None = None
 
-    def wait(self) -> float:
-        """Block until this caller may start a request; return the seconds waited."""
+    @contextmanager
+    def slot(self) -> Iterator[float]:
+        """Hold the only request slot; yield the seconds waited for it."""
         if self.interval <= 0:
-            return 0.0
+            yield 0.0
+            return
         with self._lock:
             entered = now = self._monotonic()
             while self._next_start is not None and now < self._next_start:
                 self._sleep(self._next_start - now)
                 now = self._monotonic()
-            self._next_start = now + self.interval
-        return now - entered
+            try:
+                yield now - entered
+            finally:
+                self._next_start = self._monotonic() + self.interval
 
 
 class HttpSource:
@@ -301,16 +301,19 @@ class HttpSource:
         return delay
 
     def _download_once(self, url: str, dest: Path, attempt: int) -> DownloadRecord:
-        paced = self._pacer.wait()
-        self._events.record(
-            "http.request", method="GET", url=url, attempt=attempt, paced_seconds=round(paced, 3)
-        )
-        started = self._clock.now()
         body_started = False
         digest = hashlib.sha256()
         size = 0
+        request = self._client.build_request("GET", url)
         try:
-            with self._client.stream("GET", url) as resp:
+            with self._pacer.slot() as paced:
+                self._events.record(
+                    "http.request", method="GET", url=url, attempt=attempt,
+                    paced_seconds=round(paced, 3),
+                )  # fmt: skip
+                started = self._clock.now()
+                resp = self._client.send(request, stream=True)
+            try:
                 status = resp.status_code
                 headers = {k: resp.headers[k] for k in RECORDED_HEADERS if k in resp.headers}
                 if status != 200:
@@ -333,6 +336,8 @@ class HttpSource:
                         digest.update(chunk)
                         fh.write(chunk)
                         size += len(chunk)
+            finally:
+                resp.close()
         except httpx.TimeoutException as exc:
             reason = "incomplete" if body_started else "timeout"
             raise SourceError(url, reason, repr(exc), retryable=True) from exc

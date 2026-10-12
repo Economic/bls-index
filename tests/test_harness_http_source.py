@@ -14,7 +14,6 @@ from bls_index.http_source import (
     FetchConfig,
     InputSetError,
     RequestPacer,
-    redact_user_agent,
     validate_user_agent,
 )
 from bls_index.scope import input_files
@@ -347,23 +346,38 @@ class FakeTime:
         self.now += seconds
 
 
+def wait(pacer: RequestPacer) -> float:
+    with pacer.slot() as waited:
+        return waited
+
+
 def test_pacer_spaces_request_starts():
     t = FakeTime()
     pacer = RequestPacer(1.0, monotonic=t.monotonic, sleep=t.sleep)
 
-    assert pacer.wait() == 0.0  # first request starts immediately
-    assert pacer.wait() == 1.0
+    assert wait(pacer) == 0.0  # first request starts immediately
+    assert wait(pacer) == 1.0
     t.now += 0.25
-    assert pacer.wait() == 0.75
+    assert wait(pacer) == 0.75
     t.now += 5.0  # an idle gap longer than the interval needs no wait
-    assert pacer.wait() == 0.0
+    assert wait(pacer) == 0.0
     assert t.slept == [1.0, 0.75]
+
+
+def test_pacer_measures_from_slot_release():
+    """Time spent dispatching inside the slot pushes the next start back."""
+    t = FakeTime()
+    pacer = RequestPacer(1.0, monotonic=t.monotonic, sleep=t.sleep)
+    with pacer.slot():
+        t.now += 0.4  # e.g. connect and wait for response headers
+    assert wait(pacer) == 1.0
+    assert t.now == 101.4
 
 
 def test_pacer_with_zero_interval_never_waits():
     t = FakeTime()
     pacer = RequestPacer(0.0, monotonic=t.monotonic, sleep=t.sleep)
-    assert [pacer.wait() for _ in range(5)] == [0.0] * 5
+    assert [wait(pacer) for _ in range(5)] == [0.0] * 5
     assert t.slept == []
 
 
@@ -391,7 +405,7 @@ def test_pacer_measures_from_actual_wake_time_when_a_sleeper_oversleeps():
     pacer = RequestPacer(1.0, monotonic=t.monotonic, sleep=late_sleep)
     released = []
     for _ in range(3):
-        pacer.wait()
+        wait(pacer)
         released.append(t.now)
     # The second caller woke 0.5 s late; the third is spaced from that actual time.
     assert released == [100.0, 101.5, 102.5]
@@ -436,6 +450,32 @@ def test_retries_are_paced_too(http_server, make_source, events, tmp_path):
     assert paced[0] == 0.0 and all(p > 0 for p in paced[1:])
 
 
+def test_worker_delayed_between_pacing_and_dispatch_holds_the_next_start(
+    http_server, make_source, tmp_path
+):
+    """A worker that stalls after its pacing wait, before its request reaches the server,
+    must not let another worker start in between and bunch the two arrivals together."""
+    programs = ["ap", "bd", "ce", "ci"]
+    for program in programs:
+        http_server.script(f"{program}/{program}.series", Reply(body=b"h\r\n"))
+    interval = 0.1
+    source = make_source(max_concurrency=4, min_request_interval=interval)
+    stalled = threading.Event()
+
+    def stall_first_request(request) -> None:
+        if not stalled.is_set():
+            stalled.set()
+            time.sleep(0.15)
+
+    source._client.event_hooks["request"].append(stall_first_request)
+    results = source.fetch_programs(programs, tmp_path)
+
+    assert stalled.is_set()
+    assert all(not isinstance(r, InputSetError) for r in results.values())
+    assert len(http_server.requests) == 8
+    assert min(arrival_gaps(http_server)) >= interval - 0.03
+
+
 def test_late_waking_worker_cannot_be_followed_immediately():
     """Real threads: the first sleeper oversleeps; no two releases may bunch up."""
     interval = 0.1
@@ -452,7 +492,7 @@ def test_late_waking_worker_cannot_be_followed_immediately():
 
     def worker() -> None:
         for _ in range(3):
-            pacer.wait()
+            wait(pacer)
             with lock:
                 released.append(time.monotonic())
 
@@ -466,8 +506,3 @@ def test_late_waking_worker_cannot_be_followed_immediately():
     gaps = [b - a for a, b in zip(times, times[1:])]
     assert len(times) == 12
     assert min(gaps) >= interval - 0.02
-
-
-def test_redact_user_agent_masks_emails():
-    ua = "bls-index catalog builder (+https://www.epi.org/; someone@example.org)"
-    assert redact_user_agent(ua) == "bls-index catalog builder (+https://www.epi.org/; <email>)"
