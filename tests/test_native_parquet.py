@@ -127,10 +127,31 @@ def test_source_mutation_from_build_clock_fails_final_check_and_cleans_stage(tmp
     output_dir = tmp_path / "output"
     with pytest.raises(
         NativeParquetBuildError,
-        match="changed or disagrees with verified provenance immediately before publication",
+        match="changed or disagrees with verified provenance after output staging",
     ):
         build_native_parquet(input_set, output_dir, MutatingClock())
     assert not output_dir.exists()
+
+
+def test_existing_bundle_is_not_returned_if_clock_callback_mutates_source(tmp_path):
+    source_path = tmp_path / "ap.series"
+    source_path.write_bytes(FIXTURE_DIR.joinpath("ap.series").read_bytes())
+    input_set = _input_set(source_path)
+    output_dir = tmp_path / "output"
+    existing = build_native_parquet(input_set, output_dir, FakeClock(BUILD_TIME))
+
+    class MutatingClock:
+        def now(self):
+            source_path.write_bytes(source_path.read_bytes() + b"\n")
+            return BUILD_TIME
+
+    with pytest.raises(
+        NativeParquetBuildError,
+        match="changed or disagrees with verified provenance after output staging",
+    ):
+        build_native_parquet(input_set, output_dir, MutatingClock())
+    assert existing.parquet_path.is_file()
+    assert existing.provenance_path.is_file()
 
 
 def test_recheck_record_must_match_download_record(tmp_path):
