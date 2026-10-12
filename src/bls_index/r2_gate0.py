@@ -11,6 +11,7 @@ from bls_index.object_store import (
     ObjectNotFound,
     S3ObjectStore,
     WriteOutcome,
+    WriteResult,
     sha256_hex,
 )
 
@@ -69,8 +70,21 @@ def run_r2_gate0(client: object, *, run_id: str | None = None) -> str:
     }
     preflight_complete = False
     submitted_bodies: dict[str, set[bytes]] = {}
+    unsettled_keys: set[str] = set()
     failure: str | None = None
     cleanup_failed: list[str] = []
+
+    def submit(write, key: str, body: bytes, *args, **kwargs) -> WriteResult:
+        # Track the body before dispatch: a write may change storage even when it reports
+        # rejection, and one with an unknown outcome may still land after cleanup.
+        submitted_bodies.setdefault(key, set()).add(body)
+        result = None
+        try:
+            result = write(key, body, *args, **kwargs)
+        finally:
+            if result is None or result.outcome is WriteOutcome.UNKNOWN:
+                unsettled_keys.add(key)
+        return result
 
     try:
         # Confirm every exact key is absent before making any write. A HEAD 404 by itself
@@ -98,34 +112,28 @@ def run_r2_gate0(client: object, *, run_id: str | None = None) -> str:
             raise Gate0CheckError("Confirmed-absence check failed.")
 
         immutable_body, duplicate_body = bodies["immutable.bin"]
-        created = store.put_immutable("immutable.bin", immutable_body, "application/octet-stream")
-        if created.outcome is not WriteOutcome.REJECTED:
-            submitted_bodies.setdefault("immutable.bin", set()).add(immutable_body)
+        created = submit(store.put_immutable, "immutable.bin", immutable_body, "application/octet-stream")
         if created.outcome is not WriteOutcome.COMMITTED or not created.etag:
             raise Gate0CheckError("Create-if-absent check failed.")
-        duplicate_body_result = store.put_immutable(
-            "immutable.bin", duplicate_body, "application/octet-stream"
+        duplicate_body_result = submit(
+            store.put_immutable, "immutable.bin", duplicate_body, "application/octet-stream"
         )
-        if duplicate_body_result.outcome is not WriteOutcome.REJECTED:
-            submitted_bodies.setdefault("immutable.bin", set()).add(duplicate_body)
         if duplicate_body_result.outcome is not WriteOutcome.REJECTED:
             raise Gate0CheckError("Duplicate create-if-absent check failed.")
         store.verify("immutable.bin", sha256_hex(immutable_body), len(immutable_body))
 
         first_body, second_body, stale_body = bodies["cas.json"]
-        first = store.put_conditional("cas.json", first_body, "application/json", if_absent=True)
-        if first.outcome is not WriteOutcome.REJECTED:
-            submitted_bodies.setdefault("cas.json", set()).add(first_body)
+        first = submit(store.put_conditional, "cas.json", first_body, "application/json", if_absent=True)
         if first.outcome is not WriteOutcome.COMMITTED or not first.etag:
             raise Gate0CheckError("Conditional create check failed.")
-        second = store.put_conditional("cas.json", second_body, "application/json", if_match=first.etag)
-        if second.outcome is not WriteOutcome.REJECTED:
-            submitted_bodies.setdefault("cas.json", set()).add(second_body)
+        second = submit(
+            store.put_conditional, "cas.json", second_body, "application/json", if_match=first.etag
+        )
         if second.outcome is not WriteOutcome.COMMITTED or not second.etag:
             raise Gate0CheckError("ETag compare-and-swap check failed.")
-        stale = store.put_conditional("cas.json", stale_body, "application/json", if_match=first.etag)
-        if stale.outcome is not WriteOutcome.REJECTED:
-            submitted_bodies.setdefault("cas.json", set()).add(stale_body)
+        stale = submit(
+            store.put_conditional, "cas.json", stale_body, "application/json", if_match=first.etag
+        )
         if stale.outcome is not WriteOutcome.REJECTED:
             raise Gate0CheckError("Stale ETag rejection check failed.")
         store.verify("cas.json", sha256_hex(second_body), len(second_body))
@@ -146,17 +154,17 @@ def run_r2_gate0(client: object, *, run_id: str | None = None) -> str:
                         cleanup_failed.append(key)
                         continue
                     client.delete_object(Bucket=STAGING_BUCKET, Key=prefix + key)
-                    try:
-                        store.stat(key)
-                    except ObjectNotFound:
-                        continue
-                    cleanup_failed.append(key)
+                    store.stat(key)
                 except ObjectNotFound:
-                    # A submitted conditional write may have been rejected or may
-                    # never have reached storage; confirmed absence is clean.
+                    # Confirmed absent now. That is clean unless a write with an unknown
+                    # outcome could still land after this check exits.
+                    if key in unsettled_keys:
+                        cleanup_failed.append(key)
                     continue
                 except Exception:
                     cleanup_failed.append(key)
+                    continue
+                cleanup_failed.append(key)  # still present after delete
 
     if cleanup_failed:
         keys = ", ".join(

@@ -134,3 +134,43 @@ def test_interactive_command_redacts_service_exception(monkeypatch, capsys):
     assert secret not in output.out
     assert secret not in output.err
     assert "service details were omitted" in output.err
+
+
+def test_gate0_runner_removes_write_that_commits_but_reports_rejection(
+    backdoor, staging_bucket, monkeypatch
+):
+    original_put = r2_gate0.S3ObjectStore.put_immutable
+
+    def commit_then_report_rejected(self, key, body, content_type):
+        original_put(self, key, body, content_type)
+        return object_store.WriteResult(key, object_store.WriteOutcome.REJECTED, status=412)
+
+    monkeypatch.setattr(r2_gate0.S3ObjectStore, "put_immutable", commit_then_report_rejected)
+    prefix = "gate0/" + "e" * 32 + "/"
+    with pytest.raises(Gate0CheckError, match="Create-if-absent check failed") as excinfo:
+        run_r2_gate0(backdoor, run_id="e" * 32)
+
+    assert "Cleanup could not be confirmed" not in str(excinfo.value)
+    with pytest.raises(backdoor.exceptions.NoSuchKey):
+        backdoor.get_object(Bucket=STAGING_BUCKET, Key=prefix + "immutable.bin")
+
+
+def test_gate0_runner_reports_absent_key_after_unknown_write(backdoor, staging_bucket, monkeypatch):
+    original_put = r2_gate0.S3ObjectStore.put_conditional
+
+    def time_out_before_landing(self, key, body, content_type, **condition):
+        if condition.get("if_absent"):
+            # The request may still be in flight: nothing is stored yet.
+            return object_store.WriteResult(key, object_store.WriteOutcome.UNKNOWN)
+        return original_put(self, key, body, content_type, **condition)
+
+    monkeypatch.setattr(r2_gate0.S3ObjectStore, "put_conditional", time_out_before_landing)
+    prefix = "gate0/" + "f" * 32 + "/"
+    with pytest.raises(Gate0CheckError, match="Conditional create check failed") as excinfo:
+        run_r2_gate0(backdoor, run_id="f" * 32)
+
+    message = str(excinfo.value)
+    assert f"Cleanup could not be confirmed for {STAGING_BUCKET}/{prefix}cas.json." in message
+    assert "immutable.bin" not in message
+    with pytest.raises(backdoor.exceptions.NoSuchKey):
+        backdoor.get_object(Bucket=STAGING_BUCKET, Key=prefix + "immutable.bin")
