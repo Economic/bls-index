@@ -17,8 +17,29 @@ One command, used locally and in CI:
 ./scripts/check.sh -k object  # extra arguments go to pytest
 ```
 
-The suite needs no network access to BLS and no credentials. It starts a local moto S3
-server and local HTTP fixture servers on `127.0.0.1`.
+The suite needs no network access to BLS or object storage and no credentials. It starts a
+local moto S3 server and local HTTP fixture servers on `127.0.0.1`.
+
+### Optional real R2 Gate 0 check
+
+Only run this on request, from a developer machine, after creating the **private** staging
+bucket `bls-index-staging`. This check is separate from the offline suite:
+
+```sh
+uv run bls-index r2-gate0
+```
+
+Enter the Cloudflare account endpoint (`https://<account-id>.r2.cloudflarestorage.com`),
+then the Access Key ID and Secret Access Key when prompted; the secret prompt is hidden.
+Use an R2 token scoped only to `bls-index-staging`, with object read, write, and delete
+permissions (GetObject, HeadObject, PutObject, DeleteObject). The check does not create or
+delete buckets, list objects, alter bucket settings, or access any other bucket. It uses a
+fresh `gate0/<random-id>/` namespace and removes only its own matching test objects, including
+on failure; if cleanup cannot be confirmed, it prints the exact keys to inspect. The check
+covers create-if-absent and duplicate rejection, ETag compare-and-swap and stale rejection,
+confirmed absence, and SHA-256 read-back. It does not test concurrency or broader deployment
+behavior. Do not pass credentials on the command line or save them in environment/config
+files. `./scripts/check.sh` remains offline and never requests credentials.
 
 Toolchain: Python 3.13 (`.python-version`) and dependencies pinned in `pyproject.toml`
 and `uv.lock`, including the `data-dict` validator (`data-dict-yaml` on PyPI). Install
