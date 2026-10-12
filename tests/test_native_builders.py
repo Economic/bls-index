@@ -320,7 +320,7 @@ def test_all_native_adapters_parse_constructed_compact_rows(tmp_path, program):
         ("cu", "area_code"), ("cw", "item_code"), ("su", "area_code"),
         ("wd", "group_code"), ("wp", "group_code"),
         ("nd", "industry_code"), ("pc", "product_code"),
-        ("cx", "item_code"), ("oe", "area_code"),
+        ("cx", "item_code"), ("oe", "area_code"), ("la", "measure_code"),
     ],
 )
 def test_documented_id_dimensions_must_match_source_columns(tmp_path, program, field):
@@ -336,7 +336,51 @@ def test_documented_id_dimensions_must_match_source_columns(tmp_path, program, f
         parse_native_series(path, program)
 
 
-@pytest.mark.parametrize("program", ("cu", "cw", "su", "wd", "wp", "nd", "pc", "cx", "oe"))
+@pytest.mark.parametrize(
+    ("program", "field"),
+    [
+        (program, field)
+        for program, components in SERIES_ID_COMPONENTS.items()
+        for field in components
+        if field in SOURCE_HEADERS[program]
+        and field != "seasonal"
+    ],
+)
+def test_whitespace_only_id_components_are_rejected(tmp_path, program, field):
+    path = _constructed_program_file(tmp_path, program)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split("\t")
+    row = lines[1].split("\t")
+    row[header.index(field)] = "   "
+    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+    with pytest.raises(NativeSeriesError, match="invalid series_id"):
+        parse_native_series(path, program)
+
+
+def test_blank_cu_area_component_is_rejected(tmp_path):
+    path = _constructed_program_file(tmp_path, "cu")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split("\t")
+    row = lines[1].split("\t")
+    row[header.index("area_code")] = ""
+    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+    with pytest.raises(NativeSeriesError, match="invalid series_id"):
+        parse_native_series(path, "cu")
+
+
+def test_wp_dash_item_sentinel_remains_valid(tmp_path):
+    path = _constructed_program_file(tmp_path, "wp")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split("\t")
+    row = lines[1].split("\t")
+    row[0] = "WPS01"
+    row[header.index("group_code")] = "01"
+    row[header.index("item_code")] = "-"
+    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+    assert parse_native_series(path, "wp").height == 1
+
+
+@pytest.mark.parametrize("program", ("cu", "cw", "su", "wd", "wp", "nd", "pc", "cx", "oe", "la"))
 def test_documented_id_dimension_comparison_is_case_insensitive(tmp_path, program):
     path = _constructed_program_file(tmp_path, program)
     lines = path.read_text(encoding="utf-8").splitlines()

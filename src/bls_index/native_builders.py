@@ -276,6 +276,7 @@ SERIES_ID_SEASON_CODES.update({"ap": "U", "cx": "U", "kv": "U", "mp": "U"})
 # whose IDs encode dimensions in a different order from their .series headers.
 SERIES_ID_COMPONENTS: dict[str, tuple[str, ...]] = {
     "ap": ("U", "area_code", "item_code"),
+    "la": ("seasonal", "area_code", "measure_code"),
     "cx": ("seasonal", "item_code", "demographics_code", "characteristics_code", "process_code"),
     "oe": ("seasonal", "areatype_code", "area_code", "industry_code", "occupation_code", "datatype_code"),
     "bd": ("seasonal", "msa_code", "state_code", "county_code", "industry_code",
@@ -538,13 +539,28 @@ def _parse_snapshot(snapshot: Path, source_path: Path, program: str) -> pl.DataF
         if program in SERIES_ID_COMPONENTS
         else None
     )
+    invalid_id_components = (
+        pl.any_horizontal([
+            (
+                pl.col(part).str.strip_chars().is_null()
+                | (pl.col(part).str.strip_chars() == "")
+            ).fill_null(True)
+            for part in SERIES_ID_COMPONENTS.get(program, ())
+            if part in source_header
+        ])
+        if program in SERIES_ID_COMPONENTS
+        else pl.lit(False)
+    )
     bad_id = normalized.filter(
         pl.col("series_id").is_null()
         | ~pl.col("series_id").str.to_uppercase().str.contains(SERIES_ID_PATTERNS[program])
         | (pl.col("series_id") == "")
+        | invalid_id_components
         | (
-            pl.col("series_id").str.to_uppercase()
-            != expected_id.str.to_uppercase()
+            (
+                pl.col("series_id").str.to_uppercase()
+                != expected_id.str.to_uppercase()
+            ).fill_null(True)
             if expected_id is not None
             else pl.lit(False)
         )
