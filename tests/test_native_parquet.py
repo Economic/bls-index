@@ -127,7 +127,7 @@ def test_source_mutation_from_build_clock_fails_final_check_and_cleans_stage(tmp
     output_dir = tmp_path / "output"
     with pytest.raises(
         NativeParquetBuildError,
-        match="changed or disagrees with verified provenance after output staging",
+        match="changed or disagrees with verified provenance immediately before publication",
     ):
         build_native_parquet(input_set, output_dir, MutatingClock())
     assert not output_dir.exists()

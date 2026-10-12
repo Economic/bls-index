@@ -265,11 +265,10 @@ def build_native_parquet(
         destination = program_dir / bundle_sha256
         final_parquet = destination / "catalog.parquet"
         final_provenance = destination / "provenance.json"
-        # Verify after the sidecar is complete, before either the existing-bundle
-        # success path or a new publication attempt. This boundary cannot prevent
-        # later changes to the source.
-        _verify_source(source_path, record, "after output staging")
         if destination.exists():
+            # Reuse also requires a post-staging source check; new bundles are
+            # checked immediately before publication below.
+            _verify_source(source_path, record, "after output staging")
             if not _bundle_matches(destination, parquet_sha256, parquet_bytes, provenance_bytes):
                 raise NativeParquetBuildError(
                     f"content-addressed output already exists and does not match: {destination}"
