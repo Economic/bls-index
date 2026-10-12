@@ -1,7 +1,8 @@
-"""Strict local parsers for the first native-title source adapters.
+"""Strict local parsers for all 30 fixed native-title source adapters.
 
 This module deliberately does not download data, publish files, or infer a program
-from an ID. The supported adapters are a bounded first increment of Phase 1.
+from an ID. Source contracts are explicit and versioned in code; probe reports are
+evidence for tests and documentation, never runtime configuration.
 """
 
 from __future__ import annotations
@@ -15,39 +16,210 @@ from pathlib import Path
 import polars as pl
 
 SCHEMA_VERSION = 1
-SUPPORTED_NATIVE_PROGRAMS = ("ap", "ce", "cu", "ln", "oe")
+SUPPORTED_NATIVE_PROGRAMS = (
+    "oe", "is", "wm", "cx", "ep", "nb", "tu", "or", "ln", "bd",
+    "la", "ce", "ip", "le", "wd", "cu", "cm", "cw", "nd", "wp",
+    "mp", "pc", "fm", "ci", "ei", "ap", "kv", "lu", "su", "ws",
+)
 
-# Exact source headers observed in docs/evidence/2026-10-07-local-source-probe.json.
+# Exact current .series header tuples observed in the local 2026-10-07 probe.
+# Do not replace these with a header-driven or report-loaded production contract.
 SOURCE_HEADERS: dict[str, tuple[str, ...]] = {
-    "ap": (
-        "series_id", "area_code", "item_code", "series_title", "footnote_codes",
-        "begin_year", "begin_period", "end_year", "end_period",
-    ),
-    "ce": (
-        "series_id", "supersector_code", "industry_code", "data_type_code", "seasonal",
-        "series_title", "footnote_codes", "begin_year", "begin_period", "end_year",
-        "end_period",
-    ),
-    "cu": (
-        "series_id", "area_code", "item_code", "seasonal", "periodicity_code", "base_code",
-        "base_period", "series_title", "footnote_codes", "begin_year", "begin_period",
-        "end_year", "end_period",
-    ),
-    "ln": (
-        "series_id", "lfst_code", "periodicity_code", "series_title", "absn_code",
-        "activity_code", "ages_code", "cert_code", "class_code", "duration_code",
-        "education_code", "entr_code", "expr_code", "hheader_code", "hour_code",
-        "indy_code", "jdes_code", "look_code", "mari_code", "mjhs_code", "occupation_code",
-        "orig_code", "pcts_code", "race_code", "rjnw_code", "rnlf_code", "rwns_code",
-        "seek_code", "sexs_code", "tdat_code", "vets_code", "wkst_code", "born_code",
-        "chld_code", "disa_code", "seasonal", "tlwk_code", "footnote_codes", "begin_year",
-        "begin_period", "end_year", "end_period",
-    ),
     "oe": (
         "series_id", "seasonal", "areatype_code", "industry_code", "occupation_code",
         "datatype_code", "state_code", "area_code", "sector_code", "series_title",
         "footnote_codes", "begin_year", "begin_period", "end_year", "end_period",
     ),
+    "is": (
+        "series_id", "seasonal", "supersector_code", "industry_code", "data_type_code",
+        "case_type_code", "area_code", "series_title", "footnote_codes", "begin_year",
+        "begin_period", "end_year", "end_period",
+    ),
+    "wm": (
+        "series_id", "seasonal", "area_code", "ownership_code", "estimate_code",
+        "industry_code", "occupation_code", "subcell_code", "datatype_code", "level_code",
+        "series_title", "footnote_codes", "begin_year", "begin_period", "end_year",
+        "end_period",
+    ),
+    "cx": (
+        "series_id", "seasonal", "category_code", "subcategory_code", "item_code",
+        "demographics_code", "characteristics_code", "process_code", "series_title",
+        "footnote_codes", "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "ep": (
+        "series_id", "seasonal", "occ_type", "ind_type", "occ_code", "ind_code",
+        "wkex_code", "rank_code", "otjt_code", "eductrn_code", "disp_code",
+        "series_title", "footnote_codes", "begin_year", "begin_period", "end_year",
+        "end_period",
+    ),
+    "nb": (
+        "series_id", "seasonal", "ownership_code", "estimate_code", "industry_code",
+        "occupation_code", "subcell_code", "datatype_code", "provision_code", "survey_code",
+        "series_title", "footnote_codes", "begin_year", "begin_period", "end_year",
+        "end_period",
+    ),
+    "tu": (
+        "series_id", "seasonal", "stattype_code", "datays_code", "sex_code", "region_code",
+        "lfstat_code", "educ_code", "maritlstat_code", "age_code", "orig_code", "race_code",
+        "mjcow_code", "nmet_code", "where_code", "sjmj_code", "timeday_code", "actcode_code",
+        "industry_code", "occ_code", "prhhchild_code", "earn_code", "disability_code",
+        "who_code", "hhnscc03_code", "schenr_code", "prownhhchild_code", "work_code",
+        "elnum_code", "ecage_code", "elfreq_code", "eldur_code", "elwho_code", "ecytd_code",
+        "elder_code", "lfstatw_code", "pertype_code", "series_title", "footnote_codes",
+        "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "or": (
+        "series_id", "seasonal", "ownership_code", "industry_code", "occupation_code",
+        "soc_code", "job_characteristic_code", "estimate_code", "datatype_code",
+        "category_code", "additive_code", "requirement_code", "series_title", "footnote_codes",
+        "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "ln": (
+        "series_id", "lfst_code", "periodicity_code", "series_title", "absn_code",
+        "activity_code", "ages_code", "cert_code", "class_code", "duration_code",
+        "education_code", "entr_code", "expr_code", "hheader_code", "hour_code", "indy_code",
+        "jdes_code", "look_code", "mari_code", "mjhs_code", "occupation_code", "orig_code",
+        "pcts_code", "race_code", "rjnw_code", "rnlf_code", "rwns_code", "seek_code",
+        "sexs_code", "tdat_code", "vets_code", "wkst_code", "born_code", "chld_code",
+        "disa_code", "seasonal", "tlwk_code", "footnote_codes", "begin_year", "begin_period",
+        "end_year", "end_period",
+    ),
+    "bd": (
+        "series_id", "seasonal", "msa_code", "state_code", "county_code", "industry_code",
+        "unitanalysis_code", "dataelement_code", "sizeclass_code", "dataclass_code",
+        "ratelevel_code", "periodicity_code", "ownership_code", "series_title", "footnote_codes",
+        "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "la": (
+        "series_id", "area_type_code", "area_code", "measure_code", "seasonal", "srd_code",
+        "series_title", "footnote_codes", "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "ce": (
+        "series_id", "supersector_code", "industry_code", "data_type_code", "seasonal",
+        "series_title", "footnote_codes", "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "ip": (
+        "series_id", "seasonal", "sector_code", "industry_code", "measure_code", "duration_code",
+        "base_year", "type_code", "area_code", "series_title", "footnote_codes", "begin_year",
+        "begin_period", "end_year", "end_period",
+    ),
+    "le": (
+        "series_id", "lfst_code", "fips_code", "series_title", "tdata_code", "pcts_code",
+        "earn_code", "cert_code", "class_code", "unin_code", "indy_code", "occupation_code",
+        "education_code", "ages_code", "race_code", "orig_code", "sexs_code", "born_code",
+        "seasonal", "footnote_codes", "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "wd": (
+        "series_id", "group_code", "item_code", "seasonal", "base_date", "series_title",
+        "footnote_codes", "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "cu": (
+        "series_id", "area_code", "item_code", "seasonal", "periodicity_code", "base_code",
+        "base_period", "series_title", "footnote_codes", "begin_year", "begin_period", "end_year",
+        "end_period",
+    ),
+    "cm": (
+        "series_id", "seasonal", "owner_code", "industry_code", "occupation_code", "subcell_code",
+        "area_code", "datatype_code", "estimate_code", "series_title", "footnote_codes",
+        "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "cw": (
+        "series_id", "area_code", "item_code", "seasonal", "periodicity_code", "base_code",
+        "base_period", "series_title", "footnote_codes", "begin_year", "begin_period", "end_year",
+        "end_period",
+    ),
+    "nd": (
+        "series_id", "industry_code", "product_code", "seasonal", "base_date", "series_title",
+        "footnote_codes", "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "wp": (
+        "series_id", "group_code", "item_code", "seasonal", "base_date", "series_title",
+        "footnote_codes", "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "mp": (
+        "series_id", "sector_code", "measure_code", "duration_code", "base_year", "series_title",
+        "footnote_codes", "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "pc": (
+        "series_id", "industry_code", "product_code", "seasonal", "base_date", "series_title",
+        "footnote_codes", "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "fm": (
+        "series_id", "seasonal", "series_title", "fchld_code", "fdat_code", "fhlf_code",
+        "fnmatwk_code", "fnme_code", "fnmlf_code", "fnmu_code", "fnmws_code", "forig_code",
+        "frace_code", "ftpt_code", "ftyp_code", "hhlf_code", "misclf_code", "mwlf_code",
+        "prlf_code", "chld_code", "lfst_code", "mari_code", "orig_code", "race_code",
+        "sexs_code", "tdat_code", "wkst_code", "footnote_codes", "begin_year", "begin_period",
+        "end_year", "end_period",
+    ),
+    "ci": (
+        "series_id", "seasonal", "owner_code", "industry_code", "occupation_code", "subcell_code",
+        "area_code", "periodicity_code", "estimate_code", "series_title", "footnote_codes",
+        "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "ei": (
+        "series_id", "seasonal", "index_code", "series_name", "base_period", "series_title",
+        "footnote_codes", "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "ap": (
+        "series_id", "area_code", "item_code", "series_title", "footnote_codes", "begin_year",
+        "begin_period", "end_year", "end_period",
+    ),
+    "kv": (
+        "series_id", "seasonal", "footnote_codes", "lfst_code", "series_title", "ages_code",
+        "clas_code", "indy_code", "pcts_code", "rsng_code", "scdr_code", "sexs_code",
+        "tdat_code", "vets_code", "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "lu": (
+        "series_id", "lfst_code", "fips_code", "series_title", "tdata_code", "pcts_code",
+        "earn_code", "class_code", "unin_code", "indy_code", "occupation_code", "education_code",
+        "ages_code", "race_code", "orig_code", "sexs_code", "seasonal", "footnote_codes",
+        "begin_year", "begin_period", "end_year", "end_period",
+    ),
+    "su": (
+        "series_id", "area_code", "item_code", "seasonal", "periodicity_code", "base_code",
+        "base_period", "series_title", "footnote_codes", "begin_year", "begin_period", "end_year",
+        "end_period",
+    ),
+    "ws": (
+        "series_id", "measure_code", "seasonal", "series_title", "footnote_codes", "begin_year",
+        "begin_period", "end_year", "end_period",
+    ),
+}
+
+# Per-program meanings are grounded in the official sources listed in
+# docs/native-source-contracts.md. Known seasonal fields reject blank and unsupported codes.
+SEASONAL_SOURCE_CODES: dict[str, frozenset[str] | None] = {
+    "oe": frozenset({"S", "U"}),
+    "is": frozenset({"S", "U"}),
+    "wm": frozenset({"S", "U"}),
+    "cx": frozenset({"U"}),
+    "ep": frozenset({"S", "U"}),
+    "nb": frozenset({"S", "U"}),
+    "tu": frozenset({"S", "U"}),
+    "or": frozenset({"S", "U"}),
+    "ln": frozenset({"S", "U"}),
+    "bd": frozenset({"S", "U"}),
+    "la": frozenset({"S", "U"}),
+    "ce": frozenset({"S", "U"}),
+    "ip": frozenset({"S", "U"}),
+    "le": frozenset({"S", "U"}),
+    "wd": frozenset({"S", "U"}),
+    "cu": frozenset({"S", "U"}),
+    "cm": frozenset({"S", "U"}),
+    "cw": frozenset({"S", "U"}),
+    "nd": frozenset({"S", "U"}),
+    "wp": frozenset({"S", "U"}),
+    "mp": None,
+    "pc": frozenset({"S", "U"}),
+    "fm": frozenset({"S", "U"}),
+    "ci": frozenset({"S", "U"}),
+    "ei": frozenset({"S", "U"}),
+    "ap": None,
+    "kv": frozenset({"U"}),
+    "lu": frozenset({"S", "U"}),
+    "su": frozenset({"S", "U"}),
+    "ws": frozenset({"S", "U"}),
 }
 
 CANONICAL_SCHEMA: dict[str, pl.DataType] = {
@@ -129,11 +301,7 @@ def _validate_raw_file(path: Path, program: str, diagnostic_path: Path | None = 
             except UnicodeDecodeError as exc:
                 raise _fail(report_path, "source is not valid UTF-8", line_number) from exc
             fields = decoded_line.split("\t")
-            if any(
-                unicodedata.category(char) == "Cc"
-                for field in fields
-                for char in field
-            ):
+            if any(unicodedata.category(char) == "Cc" for field in fields for char in field):
                 raise _fail(report_path, "control characters are not allowed in source fields", line_number)
             if header is None:
                 # BLS headers in the observed files have right-padding before tabs.
@@ -177,6 +345,41 @@ def _validate_period(path: Path, values: pl.Series) -> None:
     if (~valid_range.fill_null(False)).any():
         invalid = nonblank.filter(~valid_range.fill_null(False))[0]
         raise _fail(path, f"invalid period code {invalid!r}; expected a supported BLS period code")
+
+
+def _seasonal_expression(path: Path, program: str, source: pl.DataFrame) -> pl.Expr:
+    if "seasonal" not in source.columns:
+        return pl.lit("unknown", dtype=pl.String).alias("seasonal")
+
+    values = source.get_column("seasonal").str.strip_chars()
+    nonblank = values.filter(values.is_not_null() & (values != ""))
+    allowed = SEASONAL_SOURCE_CODES[program]
+    if allowed is None:
+        if nonblank.len():
+            codes = sorted(nonblank.unique().to_list())
+            raise _fail(
+                path,
+                f"seasonal source mapping is not verified for program {program!r}; "
+                f"observed nonblank code(s): {codes!r}",
+            )
+        return pl.lit("unknown", dtype=pl.String).alias("seasonal")
+
+    invalid = sorted(
+        set(values.unique().to_list()) - allowed,
+        key=lambda value: (value is not None, value or ""),
+    )
+    if invalid:
+        raise _fail(
+            path,
+            f"invalid, blank, or missing seasonal source code(s) for {program!r}: {invalid!r}; "
+            f"allowed: {sorted(allowed)!r}",
+        )
+    return (
+        pl.when(values == "S").then(pl.lit("SA"))
+        .when(values == "U").then(pl.lit("NSA"))
+        .otherwise(pl.lit("unknown"))
+        .alias("seasonal")
+    )
 
 
 def _parse_snapshot(snapshot: Path, source_path: Path, program: str) -> pl.DataFrame:
@@ -223,10 +426,7 @@ def _parse_snapshot(snapshot: Path, source_path: Path, program: str) -> pl.DataF
     if bad_id.height:
         raise _fail(source_path, f"invalid series_id at data row {bad_id.row(0, named=True)}")
     if normalized.get_column("series_id").is_duplicated().any():
-        duplicate_id = (
-            normalized.filter(pl.col("series_id").is_duplicated())
-            .get_column("series_id")[0]
-        )
+        duplicate_id = normalized.filter(pl.col("series_id").is_duplicated()).get_column("series_id")[0]
         raise _fail(source_path, f"duplicate series_id {duplicate_id!r} within program {program!r}")
 
     bad_title = normalized.filter(
@@ -235,26 +435,11 @@ def _parse_snapshot(snapshot: Path, source_path: Path, program: str) -> pl.DataF
     if bad_title.height:
         raise _fail(source_path, "missing or whitespace-only series_title")
 
-    if "seasonal" in normalized.columns:
-        seasonal_codes = normalized.get_column("seasonal").unique().to_list()
-        invalid_seasonal = [code for code in seasonal_codes if code not in {"S", "U"}]
-        if invalid_seasonal:
-            invalid_seasonal.sort(key=lambda code: (code is not None, str(code)))
-            raise _fail(source_path, f"invalid or missing seasonal source code(s): {invalid_seasonal!r}")
-        seasonal_expr = (
-            pl.when(pl.col("seasonal") == "S").then(pl.lit("SA"))
-            .when(pl.col("seasonal") == "U").then(pl.lit("NSA"))
-            .otherwise(pl.lit("unknown"))
-            .alias("seasonal")
-        )
-    else:
-        seasonal_expr = pl.lit("unknown", dtype=pl.String).alias("seasonal")
+    seasonal_expr = _seasonal_expression(source_path, program, normalized)
 
     for name in ("begin_year", "end_year"):
         values = normalized.get_column(name)
-        invalid = values.filter(
-            (values != "") & ~values.str.contains(_YEAR_RE.pattern)
-        )
+        invalid = values.filter((values != "") & ~values.str.contains(_YEAR_RE.pattern))
         if len(invalid):
             raise _fail(source_path, f"invalid {name} value {invalid[0]!r}; expected a four-digit year")
         invalid_zero = values.filter(values == "0000")

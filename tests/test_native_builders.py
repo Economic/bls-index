@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import polars as pl
@@ -17,14 +18,14 @@ FIXTURE_DIR = Path(__file__).parent / "fixtures" / "native"
 
 
 def test_supported_program_headers_are_explicit_and_differ_by_program():
-    assert SUPPORTED_NATIVE_PROGRAMS == ("ap", "ce", "cu", "ln", "oe")
+    assert len(SUPPORTED_NATIVE_PROGRAMS) == 30
     assert SOURCE_HEADERS["ap"] != SOURCE_HEADERS["ce"]
     assert "seasonal" not in SOURCE_HEADERS["ap"]
     assert "series_title" in SOURCE_HEADERS["oe"]
 
 
-@pytest.mark.parametrize("program", SUPPORTED_NATIVE_PROGRAMS)
-def test_native_fixtures_parse_to_exact_schema(program):
+@pytest.mark.parametrize("program", ("ap", "ce", "cu", "ln", "oe"))
+def test_original_native_fixtures_parse_to_exact_schema(program):
     frame = parse_native_series(FIXTURE_DIR / f"{program}.series", program)
     assert frame.schema == CANONICAL_SCHEMA
     assert frame.height > 0
@@ -115,7 +116,7 @@ def test_invalid_missing_seasonal_code_is_rejected(tmp_path):
     ]
     body = "".join("\t".join(row) + "\n" for row in rows)
     path = _write(tmp_path, f"{header}\n{body}".encode())
-    with pytest.raises(NativeSeriesError, match=r"invalid or missing seasonal.*None.*'X'"):
+    with pytest.raises(NativeSeriesError, match=r"invalid, blank, or missing seasonal.*'X'"):
         parse_native_series(path, "ce")
 
 
@@ -199,4 +200,94 @@ def test_header_padding_is_allowed_but_not_column_drift(tmp_path):
 
 def test_program_must_be_explicit_and_supported(tmp_path):
     with pytest.raises(NativeSeriesError, match="unsupported native program"):
-        parse_native_series(tmp_path / "does-not-exist.series", "bd")
+        parse_native_series(tmp_path / "does-not-exist.series", "zz")
+
+
+def _constructed_program_file(tmp_path: Path, program: str, seasonal: str | None = None) -> Path:
+    """Write one tiny constructed row; this is not a BLS sample row."""
+    from bls_index.native_builders import SEASONAL_SOURCE_CODES
+
+    fixture = json.loads((FIXTURE_DIR / "constructed_rows.json").read_text())
+    row = {name: fixture.get(name, "") for name in SOURCE_HEADERS[program]}
+    row["series_id"] = fixture["series_id"]
+    row["series_title"] = fixture["series_title"]
+    allowed = SEASONAL_SOURCE_CODES[program]
+    if "seasonal" in row:
+        if seasonal is not None:
+            row["seasonal"] = seasonal
+        elif allowed is None:
+            row["seasonal"] = fixture["unresolved_seasonal"]
+        else:
+            row["seasonal"] = fixture["seasonal"]
+    if program == "kv":
+        # The current observed KV header has date columns; blank source dates become null.
+        for name, value in fixture["kv_missing_dates"].items():
+            if name in row:
+                row[name] = value
+    else:
+        for name in ("begin_year", "begin_period", "end_year", "end_period"):
+            if name in row:
+                row[name] = fixture[name]
+    content = "\t".join(SOURCE_HEADERS[program]) + "\n" + "\t".join(
+        row[name] for name in SOURCE_HEADERS[program]
+    ) + "\n"
+    return _write(tmp_path, content.encode("utf-8"), filename=f"{program}.series")
+
+
+def test_supported_programs_match_observed_probe_headers_and_widths():
+    report = json.loads(Path("docs/evidence/2026-10-07-local-source-probe.json").read_text())
+    assert len(SUPPORTED_NATIVE_PROGRAMS) == 30
+    assert set(SOURCE_HEADERS) == set(SUPPORTED_NATIVE_PROGRAMS)
+    assert set(SOURCE_HEADERS).issubset(report["programs"])
+    for program in SUPPORTED_NATIVE_PROGRAMS:
+        entry = report["programs"][program]
+        series_file = next(
+            item for item in entry["files"] if item["url"].endswith(f"/{program}.series")
+        )
+        layout = series_file["layout"]
+        assert tuple(layout["header_columns"]) == SOURCE_HEADERS[program]
+        assert layout["rows_with_header_width"] == layout["rows"]
+        assert set(layout["field_count_histogram"]) == {str(len(SOURCE_HEADERS[program]))}
+
+
+@pytest.mark.parametrize("program", SUPPORTED_NATIVE_PROGRAMS)
+def test_all_native_adapters_parse_constructed_compact_rows(tmp_path, program):
+    path = _constructed_program_file(tmp_path, program)
+    frame = parse_native_series(path, program)
+    assert frame.schema == CANONICAL_SCHEMA
+    assert frame.height == 1
+    assert frame.get_column("program").item() == program
+    assert frame.get_column("series_id").item() == "FIXTURE0001"
+    assert frame.get_column("series_title").item() == "Constructed native-title adapter fixture"
+    assert frame.get_column("title_source").item() == "native"
+    if program == "kv":
+        assert frame.get_column("begin_year").item() is None
+        assert frame.get_column("end_year").item() is None
+        assert frame.get_column("end_period").item() is None
+    if program in {"ap", "mp"}:
+        assert frame.get_column("seasonal").item() == "unknown"
+    if program == "cx":
+        assert frame.get_column("seasonal").item() == "NSA"
+
+
+def test_program_specific_seasonality_uses_verified_codes_and_rejects_others(tmp_path):
+    assert parse_native_series(
+        _constructed_program_file(tmp_path, "kv"), "kv"
+    ).get_column("seasonal").item() == "NSA"
+    assert parse_native_series(
+        _constructed_program_file(tmp_path, "bd", seasonal="S"), "bd"
+    ).get_column("seasonal").item() == "SA"
+    assert parse_native_series(
+        _constructed_program_file(tmp_path, "cx", seasonal="U"), "cx"
+    ).get_column("seasonal").item() == "NSA"
+    with pytest.raises(NativeSeriesError, match=r"invalid, blank, or missing seasonal.*'S'"):
+        parse_native_series(_constructed_program_file(tmp_path, "cx", seasonal="S"), "cx")
+
+
+def test_invalid_and_blank_seasonal_values_are_rejected(tmp_path):
+    with pytest.raises(NativeSeriesError, match="invalid, blank, or missing seasonal.*'X'"):
+        parse_native_series(_constructed_program_file(tmp_path, "ce", seasonal="X"), "ce")
+    with pytest.raises(NativeSeriesError, match="invalid, blank, or missing seasonal"):
+        parse_native_series(_constructed_program_file(tmp_path, "ce", seasonal=""), "ce")
+    with pytest.raises(NativeSeriesError, match="invalid, blank, or missing seasonal"):
+        parse_native_series(_constructed_program_file(tmp_path, "cx", seasonal=""), "cx")

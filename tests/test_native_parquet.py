@@ -170,9 +170,9 @@ def test_recheck_record_must_match_download_record(tmp_path):
 
 
 def test_unsupported_program_is_rejected(tmp_path):
-    path = tmp_path / "bd.series"
+    path = tmp_path / "sm.series"
     path.write_text("unparsed")
-    input_set = _input_set(path, "bd")
+    input_set = _input_set(path, "sm")
     with pytest.raises(NativeParquetBuildError, match="unsupported native program"):
         build_native_parquet(input_set, tmp_path / "output", FakeClock(BUILD_TIME))
     assert not (tmp_path / "output").exists()
