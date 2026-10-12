@@ -1,0 +1,100 @@
+{
+  "program": "ws",
+  "url": "https://download.bls.gov/pub/time.series/ws/ws.series",
+  "sha256": "ada22764a544fb4a555977a54ba88252ef842ad3425d5f4c096082198f24d727",
+  "recheck_sha256": "ada22764a544fb4a555977a54ba88252ef842ad3425d5f4c096082198f24d727",
+  "two_read_sha256_match": true,
+  "source_bytes": 887,
+  "fetched_at": "2026-10-12T18:56:20.752314+00:00",
+  "http_date": "Mon, 12 Oct 2026 18:56:20 GMT",
+  "last_modified": "Fri, 09 Oct 2026 14:00:00 GMT",
+  "source_row_count": 6,
+  "selection": "header plus first, midpoint, and last data rows (deduplicated)",
+  "source_rows_1based": [
+    2,
+    5,
+    7
+  ],
+  "sample_sha256": "ce8fa51c36a94b39fe263de7bbd9709d44b8dbcf7ba061f25a4882f800311b34",
+  "sample_rows": [
+    {
+      "source_row_1based": 2,
+      "raw_fields": [
+        "WSU001           ",
+        "001",
+        "U",
+        "Days of idleness (in 1,000s) from all work stoppages in effect in the period",
+        "",
+        "1947",
+        "M13",
+        "2026",
+        "M09"
+      ],
+      "expected_canonical": {
+        "program": "ws",
+        "series_id": "WSU001",
+        "series_title": "Days of idleness (in 1,000s) from all work stoppages in effect in the period",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 1947,
+        "end_year": 2026,
+        "end_period": "M09"
+      },
+      "parse_status": "ok"
+    },
+    {
+      "source_row_1based": 5,
+      "raw_fields": [
+        "WSU020           ",
+        "020",
+        "U",
+        "Number of workers (in 1,000s) involved in all work stoppages in effect in the period",
+        "",
+        "1981",
+        "M01",
+        "2026",
+        "M09"
+      ],
+      "expected_canonical": {
+        "program": "ws",
+        "series_id": "WSU020",
+        "series_title": "Number of workers (in 1,000s) involved in all work stoppages in effect in the period",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 1981,
+        "end_year": 2026,
+        "end_period": "M09"
+      },
+      "parse_status": "ok"
+    },
+    {
+      "source_row_1based": 7,
+      "raw_fields": [
+        "WSU200           ",
+        "200",
+        "U",
+        "Number of work stoppages involving 1,000 workers or more in effect in the period",
+        "",
+        "1981",
+        "M01",
+        "2026",
+        "M09"
+      ],
+      "expected_canonical": {
+        "program": "ws",
+        "series_id": "WSU200",
+        "series_title": "Number of work stoppages involving 1,000 workers or more in effect in the period",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 1981,
+        "end_year": 2026,
+        "end_period": "M09"
+      },
+      "parse_status": "ok"
+    }
+  ],
+  "full_file_parse": {
+    "status": "ok",
+    "row_count": 6
+  }
+}

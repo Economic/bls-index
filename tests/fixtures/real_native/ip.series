@@ -1,0 +1,4 @@
+series_id                     	seasonal	sector_code	industry_code	measure_code	duration_code	base_year	type_code	area_code	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+IPUAN1111__L010000000         	U	A	N1111__	L01	0	2017	I	000000	Annual hours worked (index, 2017=100) for NAICS 1111, oilseed and grain farming, U.S. total	A	1987	A01	2024	A01
+IPUEN3399__T010000000         	U	E	N3399__	T01	0	2017	I	000000	Annual real sectoral output (index, 2017=100) for NAICS 3399, other miscellaneous manufacturing, U.S. total		1987	A01	2025	A01
+IPUZN______W201984000         	U	Z	N______	W20	1	-	E	984000	Annual percent change of employment for private nonfarm, West Region		2008	A01	2025	A01

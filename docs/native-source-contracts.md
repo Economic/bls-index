@@ -30,9 +30,55 @@ series-ID prefixes, reports, or a shared schema guess.
   Combined with the general BLS `U` convention, this supports mapping observed `U` to
   `NSA`. It does not establish that `S` is valid for `cx`; all other nonblank or blank
   values in this known field are rejected.
+- Program ownership for series IDs is checked against explicit leading survey codes in
+  `SERIES_ID_PREFIXES`; IDs are never used to infer which adapter to run. The mapping is
+  based on each official program's `.txt` ID example, with the exception of `cx`: its
+  [`cx.txt`](https://download.bls.gov/pub/time.series/cx/cx.txt) document returned HTTP
+  404, so `CX` is confirmed from the verified `cx.series` file. IDs use ASCII letters,
+  digits, `_`, or `-`, and must start with the requested program's code, case-insensitively.
+  Thus a row carrying a `CES...` ID in an `ap` file is rejected rather than reassigned.
+  The explicit leading-code contract for the 30 native-title programs is:
+
+  | Program | ID begins with | Program | ID begins with | Program | ID begins with |
+  |---|---|---|---|---|---|
+  | `ap` | `AP` | `bd` | `BD` | `ce` | `CE` |
+  | `ci` | `CI` | `cm` | `CM` | `cu` | `CU` |
+  | `cw` | `CW` | `cx` | `CX` | `ei` | `EI` |
+  | `ep` | `EP` | `fm` | `FM` | `ip` | `IP` |
+  | `is` | `IS` | `kv` | `KV` | `la` | `LA` |
+  | `le` | `LE` | `ln` | `LN` | `lu` | `LU` |
+  | `mp` | `MP` | `nb` | `NB` | `nd` | `ND` |
+  | `oe` | `OE` | `or` | `OR` | `pc` | `PC` |
+  | `su` | `SU` | `tu` | `TU` | `wd` | `WD` |
+  | `wm` | `WM` | `wp` | `WP` | `ws` | `WS` |
+
+  Observed `_` and `-` separators are permitted in the remainder of IDs, including the
+  verified `ip` and `nd` samples. The prefixes are checks only after an explicit adapter
+  program is supplied; they are not a mechanism for selecting that program.
+- Small real-source samples for each of the 30 native programs are in
+  [`../tests/fixtures/real_native/`](../tests/fixtures/real_native/). Each metadata JSON
+  records the official URL, retrieval date, two matching SHA-256 reads, source row count,
+  selected first/midpoint/last rows, raw fields, expected canonical values or parser error,
+  and full-file parse status. The fixture tests compare those expectations and preserve
+  the native series title. No bulk raw source files or request User-Agent are included.
+- The official [`cu.txt`](https://download.bls.gov/pub/time.series/cu/cu.txt) and
+  [`cw.txt`](https://download.bls.gov/pub/time.series/cw/cw.txt) documentation specifies
+  `M01-M13` and `S01-S03` for begin/end periods, defines `S` as semi-annual, and says `S03`
+  indicates annual averages. This supports accepting `S01`, `S02`, and `S03` only for `cu`
+  and `cw`; no other program's period family is widened. Current BLS `cu.series` and
+  `cw.series` files contain examples of all three codes and both files now parse fully.
+  The compact fixtures include exact source rows containing `S01`, `S02`, and `S03` values
+  plus their expected canonical output. The small current `su.series` file has no semi-annual periods,
+  so no `S` support is added there.
+- `full_file_parse` in `cu.json`/`cw.json` and the corresponding manifest
+  `full_file_parse_failures` preserve the original 2026-10-12 results from before this
+  period-contract correction. They are explicitly labeled historical. Separate
+  `current_full_file_revalidation` records document subsequent twice-hash-verified reads
+  and successful full parses (8,104 `cu` rows; 7,868 `cw` rows); the manifest cross-checks
+  those current results against each program record.
 - Test rows in `tests/fixtures/native/constructed_rows.json` are compact constructed
   data, not copied from BLS. Existing `ap`, `ce`, `cu`, `ln`, and `oe` fixtures remain
-  the original focused parser fixtures. No bulk raw source files are included.
+  the original focused parser fixtures.
 
 ## Programs and seasonality
 

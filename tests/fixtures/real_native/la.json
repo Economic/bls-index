@@ -1,0 +1,109 @@
+{
+  "program": "la",
+  "url": "https://download.bls.gov/pub/time.series/la/la.series",
+  "sha256": "a938666287086eb9eae630c434948e0b9dd90eaf91285f92183f24b1074e26a0",
+  "recheck_sha256": "a938666287086eb9eae630c434948e0b9dd90eaf91285f92183f24b1074e26a0",
+  "two_read_sha256_match": true,
+  "source_bytes": 4086542,
+  "fetched_at": "2026-10-12T18:52:50.943049+00:00",
+  "http_date": "Mon, 12 Oct 2026 18:52:50 GMT",
+  "last_modified": "Wed, 30 Sep 2026 14:00:00 GMT",
+  "source_row_count": 33985,
+  "selection": "header plus first, midpoint, and last data rows (deduplicated)",
+  "source_rows_1based": [
+    2,
+    16994,
+    33986
+  ],
+  "sample_sha256": "2e49ac2aecdf9ed1a11666b854901f9b758b3aa3919f4f1842d69b8ed597f1a5",
+  "sample_rows": [
+    {
+      "source_row_1based": 2,
+      "raw_fields": [
+        "LASBS060000000000003          ",
+        "L",
+        "BS0600000000000",
+        "03",
+        "S",
+        "06",
+        "Unemployment Rate: Balance of California, state less Los Angeles-Long Beach-Glendale MD (S)",
+        "",
+        "1976",
+        "M01",
+        "2026",
+        "M08"
+      ],
+      "expected_canonical": {
+        "program": "la",
+        "series_id": "LASBS060000000000003",
+        "series_title": "Unemployment Rate: Balance of California, state less Los Angeles-Long Beach-Glendale MD (S)",
+        "title_source": "native",
+        "seasonal": "SA",
+        "begin_year": 1976,
+        "end_year": 2026,
+        "end_period": "M08"
+      },
+      "parse_status": "ok"
+    },
+    {
+      "source_row_1based": 16994,
+      "raw_fields": [
+        "LAUCS252310500000005          ",
+        "G",
+        "CS2523105000000",
+        "05",
+        "U",
+        "25",
+        "Employment: Falmouth town, MA (U)",
+        "",
+        "1990",
+        "M01",
+        "2026",
+        "M08"
+      ],
+      "expected_canonical": {
+        "program": "la",
+        "series_id": "LAUCS252310500000005",
+        "series_title": "Employment: Falmouth town, MA (U)",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 1990,
+        "end_year": 2026,
+        "end_period": "M08"
+      },
+      "parse_status": "ok"
+    },
+    {
+      "source_row_1based": 33986,
+      "raw_fields": [
+        "LAUST720000000000006          ",
+        "A",
+        "ST7200000000000",
+        "06",
+        "U",
+        "72",
+        "Labor Force: Puerto Rico (U)",
+        "",
+        "1976",
+        "M01",
+        "2026",
+        "M08"
+      ],
+      "expected_canonical": {
+        "program": "la",
+        "series_id": "LAUST720000000000006",
+        "series_title": "Labor Force: Puerto Rico (U)",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 1976,
+        "end_year": 2026,
+        "end_period": "M08"
+      },
+      "parse_status": "ok"
+    }
+  ],
+  "full_file_parse": {
+    "status": "ok",
+    "row_count": 33985
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "program": "cm",
+  "url": "https://download.bls.gov/pub/time.series/cm/cm.series",
+  "sha256": "f203a81546dff819996415cc29cae2cf927cb6b13d78c27e0a5cddf593ab36b6",
+  "recheck_sha256": "f203a81546dff819996415cc29cae2cf927cb6b13d78c27e0a5cddf593ab36b6",
+  "two_read_sha256_match": true,
+  "source_bytes": 1557582,
+  "fetched_at": "2026-10-12T18:52:10.951028+00:00",
+  "http_date": "Mon, 12 Oct 2026 18:52:10 GMT",
+  "last_modified": "Wed, 09 Sep 2026 14:00:00 GMT",
+  "source_row_count": 7998,
+  "selection": "header plus first, midpoint, and last data rows (deduplicated)",
+  "source_rows_1based": [
+    2,
+    4001,
+    7999
+  ],
+  "sample_sha256": "8b237aefa0b2d3612f29c269fff4891250600e6ebb140a3def00ec2ed7b135fd",
+  "sample_rows": [
+    {
+      "source_row_1based": 2,
+      "raw_fields": [
+        "CMU1010000000000D",
+        "U",
+        "1",
+        "000000",
+        "000000",
+        "00",
+        "99999",
+        "D",
+        "01",
+        "Total compensation cost per hour worked for civilian workers",
+        "C",
+        "2004",
+        "Q01",
+        "2026",
+        "Q02"
+      ],
+      "expected_canonical": {
+        "program": "cm",
+        "series_id": "CMU1010000000000D",
+        "series_title": "Total compensation cost per hour worked for civilian workers",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 2004,
+        "end_year": 2026,
+        "end_period": "Q02"
+      },
+      "parse_status": "ok"
+    },
+    {
+      "source_row_1based": 4001,
+      "raw_fields": [
+        "CMU2096000000610P",
+        "U",
+        "2",
+        "600000",
+        "000000",
+        "25",
+        "99999",
+        "P",
+        "09",
+        "Supplemental pay as a percent of total compensation for full-time private industry workers in education and health services industries",
+        "",
+        "2004",
+        "Q01",
+        "2026",
+        "Q02"
+      ],
+      "expected_canonical": {
+        "program": "cm",
+        "series_id": "CMU2096000000610P",
+        "series_title": "Supplemental pay as a percent of total compensation for full-time private industry workers in education and health services industries",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 2004,
+        "end_year": 2026,
+        "end_period": "Q02"
+      },
+      "parse_status": "ok"
+    },
+    {
+      "source_row_1based": 7999,
+      "raw_fields": [
+        "CMU328S000000000P",
+        "U",
+        "3",
+        "S00000",
+        "000000",
+        "00",
+        "99999",
+        "P",
+        "28",
+        "State and local government Other benefits for Service providing industries; Percent of total compensation",
+        "H,X,Y",
+        "2004",
+        "Q01",
+        "2006",
+        "Q03"
+      ],
+      "expected_canonical": {
+        "program": "cm",
+        "series_id": "CMU328S000000000P",
+        "series_title": "State and local government Other benefits for Service providing industries; Percent of total compensation",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 2004,
+        "end_year": 2006,
+        "end_period": "Q03"
+      },
+      "parse_status": "ok"
+    }
+  ],
+  "full_file_parse": {
+    "status": "ok",
+    "row_count": 7998
+  }
+}

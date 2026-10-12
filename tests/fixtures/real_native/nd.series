@@ -1,0 +1,4 @@
+series_id                     	industry_code	product_code	seasonal	base_date	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+NDU1133101133100              	113310	1133100	U	201112	PPI industry data for Logging-Logs, including receipts from contract logging, not seasonally adjusted, discontinued		2011	M12	2014	M13
+NDU332710332710S              	332710	332710S	U	198406	PPI industry data for Machine shops-Secondary products, not seasonally adjusted, discontinued		1984	M06	2013	M11
+NDUBRSM--BRSM--               	BRSM--	BRSM--	U	198606	PPI industry group data for Material and supply inputs to multi-unit residential construction, not seasonally adjusted, discontinued		1986	M06	2010	M06

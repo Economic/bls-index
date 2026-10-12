@@ -1,0 +1,4 @@
+series_id                     	seasonal	areatype_code	industry_code	occupation_code	datatype_code	state_code	area_code	sector_code	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+OEUM001018000000000000001     	U	M	000000	000000	01	48	0010180	00--01	Employment for All Occupations in All Industries in Abilene, TX	1	2025	A01	2025	A01
+OEUM350000700000029207211     	U	M	000000	292072	11	35	3500007	00--01	Annual 10th percentile wage for Medical Records Specialists in All Industries in Eastern New Mexico nonmetropolitan area	2	2025	A01	2025	A01
+OEUS780000000000053706517     	U	S	000000	537065	17	78	7800000	00--01	Location Quotient for Stockers and Order Fillers in All Industries in Virgin Islands		2025	A01	2025	A01

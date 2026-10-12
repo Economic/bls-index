@@ -41,10 +41,10 @@ def test_native_titles_are_preserved_verbatim_and_duplicates_are_allowed():
         "  Native title with punctuation — and spaces  ",
     ]
     assert frame.get_column("series_title").is_duplicated().all()
-    assert frame.get_column("series_id").to_list() == ["X0001", "X0002"]
+    assert frame.get_column("series_id").to_list() == ["AP0001", "AP0002"]
     assert frame.get_column("seasonal").to_list() == ["unknown", "unknown"]
     assert frame.get_column("begin_year").to_list() == [1980, None]
-    assert frame.get_column("end_period").to_list() == ["M08", None]
+    assert frame.get_column("end_period").to_list() == ["M08", "M12"]
 
 
 def test_seasonal_and_period_fields_are_normalized():
@@ -94,9 +94,13 @@ def test_series_ids_trim_but_must_be_nonempty_valid_and_unique(tmp_path):
     with pytest.raises(NativeSeriesError, match="invalid series_id"):
         parse_native_series(empty_id, "ap")
 
-    invalid_id = _write(tmp_path, _ap(_valid_ap_row(sid="AP-1")))
+    invalid_id = _write(tmp_path, _ap(_valid_ap_row(sid="AP/1")))
     with pytest.raises(NativeSeriesError, match="invalid series_id"):
         parse_native_series(invalid_id, "ap")
+
+    wrong_program_id = _write(tmp_path, _ap(_valid_ap_row(sid="CES0000000001")))
+    with pytest.raises(NativeSeriesError, match="requested program 'ap'"):
+        parse_native_series(wrong_program_id, "ap")
 
 
 def test_titles_must_be_nonblank_but_keep_original_spacing(tmp_path):
@@ -152,6 +156,28 @@ def test_invalid_year_or_period_metadata_fails_closed(tmp_path, begin, end, peri
         parse_native_series(path, "ap")
 
 
+@pytest.mark.parametrize("program", ("cu", "cw"))
+@pytest.mark.parametrize("period", ("S01", "S02", "S03"))
+def test_cpi_programs_accept_documented_semiannual_and_annual_average_periods(
+    tmp_path, program, period
+):
+    path = _constructed_program_file(tmp_path, program, end_period=period)
+    frame = parse_native_series(path, program)
+    assert frame.get_column("end_period").item() == period
+
+
+@pytest.mark.parametrize(
+    ("program", "period"),
+    [("cu", "S04"), ("cw", "S04"), ("su", "S01")],
+)
+def test_semiannual_periods_are_restricted_to_documented_cpi_programs(
+    tmp_path, program, period
+):
+    path = _constructed_program_file(tmp_path, program, end_period=period)
+    with pytest.raises(NativeSeriesError, match="invalid period code"):
+        parse_native_series(path, program)
+
+
 def test_end_period_without_end_year_is_rejected(tmp_path):
     path = _write(tmp_path, _ap(_valid_ap_row(end="", ep="M08")))
     with pytest.raises(NativeSeriesError, match="end_period is present while end_year is missing"):
@@ -203,13 +229,27 @@ def test_program_must_be_explicit_and_supported(tmp_path):
         parse_native_series(tmp_path / "does-not-exist.series", "zz")
 
 
-def _constructed_program_file(tmp_path: Path, program: str, seasonal: str | None = None) -> Path:
+def test_program_specific_prefixes_and_documented_id_separators():
+    from bls_index.native_builders import SERIES_ID_PREFIXES, valid_series_id
+
+    assert set(SERIES_ID_PREFIXES) == set(SUPPORTED_NATIVE_PROGRAMS) | {"sm", "jt", "pr"}
+    assert valid_series_id("IPUAN1111__L010000000", "ip")
+    assert valid_series_id("NDU21112-21112-", "nd")
+    assert not valid_series_id("CES0000000001", "ap")
+
+
+def _constructed_program_file(
+    tmp_path: Path,
+    program: str,
+    seasonal: str | None = None,
+    end_period: str | None = None,
+) -> Path:
     """Write one tiny constructed row; this is not a BLS sample row."""
     from bls_index.native_builders import SEASONAL_SOURCE_CODES
 
     fixture = json.loads((FIXTURE_DIR / "constructed_rows.json").read_text())
     row = {name: fixture.get(name, "") for name in SOURCE_HEADERS[program]}
-    row["series_id"] = fixture["series_id"]
+    row["series_id"] = f"{program.upper()}FIXTURE0001"
     row["series_title"] = fixture["series_title"]
     allowed = SEASONAL_SOURCE_CODES[program]
     if "seasonal" in row:
@@ -228,6 +268,8 @@ def _constructed_program_file(tmp_path: Path, program: str, seasonal: str | None
         for name in ("begin_year", "begin_period", "end_year", "end_period"):
             if name in row:
                 row[name] = fixture[name]
+        if end_period is not None:
+            row["end_period"] = end_period
     content = "\t".join(SOURCE_HEADERS[program]) + "\n" + "\t".join(
         row[name] for name in SOURCE_HEADERS[program]
     ) + "\n"
@@ -257,7 +299,7 @@ def test_all_native_adapters_parse_constructed_compact_rows(tmp_path, program):
     assert frame.schema == CANONICAL_SCHEMA
     assert frame.height == 1
     assert frame.get_column("program").item() == program
-    assert frame.get_column("series_id").item() == "FIXTURE0001"
+    assert frame.get_column("series_id").item() == f"{program.upper()}FIXTURE0001"
     assert frame.get_column("series_title").item() == "Constructed native-title adapter fixture"
     assert frame.get_column("title_source").item() == "native"
     if program == "kv":

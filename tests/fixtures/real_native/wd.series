@@ -1,0 +1,4 @@
+series_id                     	group_code	item_code	seasonal	base_date	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+WDS0112                       	01	12	S	198200	PPI Commodity data for Farm products-Dried fruits, bulk, seasonally adjusted, discontinued		1967	M01	1975	M12
+WDU10220104                   	10	220104	U	196700	PPI Commodity data for Metals and metal products-Aluminum ingot,casting. . . . . . . . . . . . . . . . . . . ., not seasonally adjusted, discontinued		1967	M01	1970	M13
+WDUSOPCNMT                    	SOP	CNMT	U	198200	PPI Commodity data for Stage of processing-Crude nonfood materials, not seasonally adjusted, discontinued		1967	M01	2015	M13

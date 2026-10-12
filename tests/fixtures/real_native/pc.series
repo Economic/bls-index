@@ -1,0 +1,4 @@
+series_id                     	industry_code	product_code	seasonal	base_date	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+PCU1133--1133--               	1133--	1133--	U	198112	PPI industry group data for Logging, not seasonally adjusted		1981	M12	2026	M08
+PCU3329913329917              	332991	3329917	U	198306	PPI industry data for Ball and roller bearing mfg-Mounted bearings (excluding plain), not seasonally adjusted		1967	M01	2026	M05
+PCUOMIN--OMIN--               	OMIN--	OMIN--	U	198412	PPI industry group data for Total mining industries, not seasonally adjusted		1984	M12	2026	M08

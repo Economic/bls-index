@@ -1,0 +1,4 @@
+series_id        	lfst_code	fips_code	series_title	tdata_code	pcts_code	earn_code	cert_code	class_code	unin_code	indy_code	occupation_code	education_code	ages_code	race_code	orig_code	sexs_code	born_code	seasonal	footnote_codes	begin_year	begin_period	end_year	end_period
+LES1252881500    	25	00	(Seas)- Median usual weekly earnings (second quartile), Employed full time, Wage and salary workers	00	00	01	00	16	0	0000	0000	00	00	00	00	0	00	S		1979	Q01	2026	Q02
+LEU0254722800    	25	00	(unadj)- Employed full time, Wage and salary workers, First-line supervisors/managers of mechanics, installers, and repairers, Women	00	00	00	00	16	0	0000	7000	00	00	00	00	2	00	U		2000	A01	2025	A01
+LEU0268178200    	26	00	(unadj)- Median weekly earnings, Part-time wage and salary workers, Widowed	00	00	01	00	16	0	0000	0000	00	00	00	00	0	00	U		2012	A01	2025	A01

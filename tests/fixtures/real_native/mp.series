@@ -1,0 +1,4 @@
+series_id        	sector_code	measure_code	duration_code	base_year	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+MPU0011012       	0011	01	2	2017	Total factor productivity for Agriculture, forestry, fishing, and hunting (NAICS 11), Indexes = 100.000	04	1987	A01	2024	A01
+MPU0561082       	0561	08	2	2017	Capital intensity for Administrative and support services (NAICS 561), Indexes = 100.000		1987	A01	2024	A01
+MPU9920783       	9920	78	3	-	Contribution of intermediate inputs intensity to labor productivity for Durable Manufacturing Sector (NAICS 321 327 331-337 339), % Change Year Ago		1988	A01	2024	A01

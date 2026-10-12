@@ -1,0 +1,4 @@
+series_id        	seasonal	supersector_code	industry_code	data_type_code	case_type_code	area_code	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+ISU00000000000000	U	000	000000	0	0	000	Industry-level data from the Survey of Occupational Injuries and Illnesses (SOII)		2014	A01	2024	A01
+ISUMFG331500CW100	U	MFG	331500	C	W	100	Industry-level data from the Survey of Occupational Injuries and Illnesses (SOII)		2014	A01	2020	A01
+ISUTTUSP2WHTW9155	U	TTU	SP2WHT	W	9	155	Industry-level data from the Survey of Occupational Injuries and Illnesses (SOII)		2020	A01	2022	A01

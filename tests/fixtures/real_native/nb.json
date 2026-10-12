@@ -1,0 +1,121 @@
+{
+  "program": "nb",
+  "url": "https://download.bls.gov/pub/time.series/nb/nb.series",
+  "sha256": "d946bfa782e6d7329ab7aa17c4c4634e05d98db11687ab819ca50fc52b1a6a14",
+  "recheck_sha256": "d946bfa782e6d7329ab7aa17c4c4634e05d98db11687ab819ca50fc52b1a6a14",
+  "two_read_sha256_match": true,
+  "source_bytes": 25157672,
+  "fetched_at": "2026-10-12T18:53:03.029367+00:00",
+  "http_date": "Mon, 12 Oct 2026 18:53:02 GMT",
+  "last_modified": "Fri, 25 Sep 2026 14:00:00 GMT",
+  "source_row_count": 101893,
+  "selection": "header plus first, midpoint, and last data rows (deduplicated)",
+  "source_rows_1based": [
+    2,
+    50948,
+    101894
+  ],
+  "sample_sha256": "8fe8e6fad3919bc2f0f5a20e4464893d452f5bfc824ba5584451bd6cb80e85de",
+  "sample_rows": [
+    {
+      "source_row_1based": 2,
+      "raw_fields": [
+        "NBU10000000000000028007       ",
+        "U",
+        "1",
+        "00",
+        "000000",
+        "000000",
+        "00",
+        "28",
+        "007",
+        "IP",
+        "Percent of civilian workers with access to both medical care and retirement benefits",
+        "",
+        "2010",
+        "A01",
+        "2026",
+        "A01"
+      ],
+      "expected_canonical": {
+        "program": "nb",
+        "series_id": "NBU10000000000000028007",
+        "series_title": "Percent of civilian workers with access to both medical care and retirement benefits",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 2010,
+        "end_year": 2026,
+        "end_period": "A01"
+      },
+      "parse_status": "ok"
+    },
+    {
+      "source_row_1based": 50948,
+      "raw_fields": [
+        "NBU21600000000000422275       ",
+        "U",
+        "2",
+        "16",
+        "000000",
+        "000000",
+        "04",
+        "22",
+        "275",
+        "IP",
+        "Weekly maximum benefit dollar amount for fixed percent of annual earnings short-term disability plans (25th percentile) for private industry workers in establishments with 50-99 workers",
+        "",
+        "2010",
+        "A01",
+        "2024",
+        "A01"
+      ],
+      "expected_canonical": {
+        "program": "nb",
+        "series_id": "NBU21600000000000422275",
+        "series_title": "Weekly maximum benefit dollar amount for fixed percent of annual earnings short-term disability plans (25th percentile) for private industry workers in establishments with 50-99 workers",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 2010,
+        "end_year": 2024,
+        "end_period": "A01"
+      },
+      "parse_status": "ok"
+    },
+    {
+      "source_row_1based": 101894,
+      "raw_fields": [
+        "NBU59800000000000033968       ",
+        "U",
+        "5",
+        "98",
+        "000000",
+        "000000",
+        "00",
+        "33",
+        "968",
+        "IP",
+        "Percent of local government workers with access to flexible work schedule",
+        "",
+        "2020",
+        "A01",
+        "2026",
+        "A01"
+      ],
+      "expected_canonical": {
+        "program": "nb",
+        "series_id": "NBU59800000000000033968",
+        "series_title": "Percent of local government workers with access to flexible work schedule",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 2020,
+        "end_year": 2026,
+        "end_period": "A01"
+      },
+      "parse_status": "ok"
+    }
+  ],
+  "full_file_parse": {
+    "status": "ok",
+    "row_count": 101893
+  }
+}

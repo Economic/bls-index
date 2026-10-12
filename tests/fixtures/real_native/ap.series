@@ -1,0 +1,4 @@
+series_id        	area_code	item_code	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+APU0000701111    	0000	701111	Flour, white, all purpose, per lb. (453.6 gm) in U.S. city average, average price, not seasonally adjusted		1980	M01	2026	M08
+APU0400716111    	0400	716111	Margarine, vegetable oil blends, stick (cost per pound/453.6 grams) in West urban, average price, not seasonally adjusted		1980	M01	1981	M12
+APUS49G7471A     	S49G	7471A	Gasoline, all types, per gallon/3.785 liters in Urban Alaska, average price, not seasonally adjusted		1978	M01	2026	M08

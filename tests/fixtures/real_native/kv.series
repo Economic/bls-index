@@ -1,0 +1,4 @@
+series_id                     	seasonal	footnote_codes	lfst_code	series_title	ages_code	clas_code	indy_code	pcts_code	rsng_code	scdr_code	sexs_code	tdat_code	vets_code	begin_year	begin_period	end_year	end_period
+KVU0100000000000001           	U		01	Civilian noninstitutional population - Veterans, With a service-connected disability	005	00	0000	00	00	01	0	00	02	2010	A01	2025	A01
+KVU0300000000000331           	U		03	Employed - Veterans, Without a service-connected disability, State and local government wage and salary workers, Nonagricultural industries, Percent of the employed	005	14	0011	03	00	06	0	01	02	2010	A01	2025	A01
+KVU0502000000000130           	U		05	Not in the labor force - Gulf War era I veterans, Women	005	00	0000	00	00	00	2	00	10	2010	A01	2025	A01

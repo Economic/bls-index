@@ -1,0 +1,4 @@
+series_id                     	seasonal	category_code	subcategory_code	item_code	demographics_code	characteristics_code	process_code	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+CXU001000LB0101M              	U	ADDENDA	CHGASLI	001000	LB01	01	M	Purchase price of stocks, bonds or mutual funds by Income Quintiles: All Consumer Units		2010	A01	2013	A01
+CXU520542LB1604M              	U	EXPEND	TRANS	520542	LB16	04	M	Tolls on out of town trips by Generation: Birth year from 1946 to 1964		2016	A01	2024	A01
+CXUWOMENSLB2109M              	U	EXPEND	APPAREL	WOMENS	LB21	09	M	Women, 16 and over by Selected Age of Reference Person: 65 and older		2010	A01	2024	A01

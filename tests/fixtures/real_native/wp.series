@@ -1,0 +1,4 @@
+series_id                     	group_code	item_code	seasonal	base_date	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+WPS00000000                   	00	000000	S	198200	PPI Commodity data for All commodities, seasonally adjusted		1967	M01	1974	M12
+WPU09160101                   	09	160101	U	198212	PPI Commodity data for Pulp, paper, and allied products-Pressure-sensitive products, not seasonally adjusted		1982	M12	2026	M08
+WPUSISTEEL3                   	SI	STEEL3	U	198200	PPI Commodity data for Special indexes-Finished steel mill products, including fabricated wire products, not seasonally adjusted		1939	M01	2026	M08

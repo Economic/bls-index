@@ -1,0 +1,4 @@
+series_id                     	seasonal	area_code	ownership_code	estimate_code	industry_code	occupation_code	subcell_code	datatype_code	level_code	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+WMU00000001020000001100000006 	U	0000000	1	02	000000	110000	00	30	06	Average hourly wage for level 06 management occupations in the U.S.		2023	A01	2023	A01
+WMU00417001020000002110932500 	U	0041700	1	02	000000	211093	25	30	00	Average hourly wage for full-time social and human service assistants in San Antonio-New Braunfels, TX		2023	A01	2023	A01
+WMU56000071020000005370652700 	U	5600007	1	02	000000	537065	27	30	00	Average hourly wage for time-based stockers and order fillers in Eastern Wyoming nonmetropolitan area		2023	A01	2023	A01

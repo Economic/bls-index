@@ -1,0 +1,7 @@
+series_id        	area_code	item_code	seasonal	periodicity_code	base_code	base_period	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+CUSR0000SA0      	0000	SA0	S	R	S	1982-84=100	All items in U.S. city average, all urban consumers, seasonally adjusted		1947	M01	2026	M08
+CUURS49ESANL1    	S49E	SANL1	U	R	S	1982-84=100	Nondurables less food in San Diego-Carlsbad, CA, all urban consumers, not seasonally adjusted		1966	M11	2026	M07
+CUUSS49GSS47016  	S49G	SS47016	U	S	S	1982-84=100	Gasoline, unleaded premium in Urban Alaska, all urban consumers, not seasonally adjusted		1984	S01	2026	S01
+CUUS0000AA0      	0000	AA0	U	S	A	1967=100	All items - old base in U.S. city average, all urban consumers, not seasonally adjusted		1984	S01	2026	S01
+CUUS0100SAF111   	0100	SAF111	U	S	S	1982-84=100	Cereals and bakery products in Northeast urban, all urban consumers, not seasonally adjusted		2017	S02	2026	S01
+CUUS0000SEHP     	0000	SEHP	U	S	S	DECEMBER 1997=100	Household operations in U.S. city average, all urban consumers, not seasonally adjusted		2018	S01	2024	S03

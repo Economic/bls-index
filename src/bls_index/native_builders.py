@@ -234,8 +234,31 @@ CANONICAL_SCHEMA: dict[str, pl.DataType] = {
 }
 
 _YEAR_RE = re.compile(r"^[0-9]{4}$")
-_SERIES_ID_RE = re.compile(r"^[A-Za-z0-9]+$")
-_PERIOD_RE = re.compile(r"^(M|Q|A)([0-9]{2})$")
+_SERIES_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+_PERIOD_RE = re.compile(r"^(M|Q|A|S)([0-9]{2})$")
+
+# The program ID examples in each official .txt identify the owning survey with
+# these leading codes (CX is confirmed from its .series file because cx.txt is 404).
+# Keep this explicit: a frame's requested program is never inferred from an ID.
+# Separators observed in official layouts include IP underscores and ND hyphens.
+SERIES_ID_PREFIXES: dict[str, str] = {
+    "oe": "OE", "is": "IS", "wm": "WM", "cx": "CX",
+    "ep": "EP", "nb": "NB", "tu": "TU", "or": "OR",
+    "ln": "LN", "bd": "BD", "la": "LA", "ce": "CE",
+    "ip": "IP", "le": "LE", "wd": "WD", "cu": "CU",
+    "cm": "CM", "cw": "CW", "nd": "ND", "wp": "WP",
+    "mp": "MP", "pc": "PC", "fm": "FM", "ci": "CI",
+    "ei": "EI", "ap": "AP", "kv": "KV", "lu": "LU",
+    "su": "SU", "ws": "WS", "sm": "SM", "jt": "JT", "pr": "PR",
+}
+
+
+def valid_series_id(series_id: str, program: str) -> bool:
+    """Return whether a normalized ID matches the explicit requested program."""
+    return (
+        bool(_SERIES_ID_RE.fullmatch(series_id))
+        and series_id.upper().startswith(SERIES_ID_PREFIXES[program])
+    )
 _COPY_CHUNK_SIZE = 1024 * 1024
 
 
@@ -331,7 +354,7 @@ def _validate_raw_file(path: Path, program: str, diagnostic_path: Path | None = 
     return row_count
 
 
-def _validate_period(path: Path, values: pl.Series) -> None:
+def _validate_period(path: Path, values: pl.Series, program: str) -> None:
     nonblank = values.filter(values.is_not_null() & (values != ""))
     if nonblank.is_empty():
         return
@@ -342,6 +365,8 @@ def _validate_period(path: Path, values: pl.Series) -> None:
         | ((families == "Q") & ordinals.is_between(1, 5))
         | ((families == "A") & (ordinals == 1))
     )
+    if program in {"cu", "cw"}:
+        valid_range = valid_range | ((families == "S") & ordinals.is_between(1, 3))
     if (~valid_range.fill_null(False)).any():
         invalid = nonblank.filter(~valid_range.fill_null(False))[0]
         raise _fail(path, f"invalid period code {invalid!r}; expected a supported BLS period code")
@@ -422,9 +447,14 @@ def _parse_snapshot(snapshot: Path, source_path: Path, program: str) -> pl.DataF
         pl.col("series_id").is_null()
         | (pl.col("series_id") == "")
         | ~pl.col("series_id").str.contains(_SERIES_ID_RE.pattern)
+        | ~pl.col("series_id").str.to_uppercase().str.starts_with(SERIES_ID_PREFIXES[program])
     )
     if bad_id.height:
-        raise _fail(source_path, f"invalid series_id at data row {bad_id.row(0, named=True)}")
+        row = bad_id.row(0, named=True)
+        raise _fail(
+            source_path,
+            f"invalid series_id for requested program {program!r} at data row {row}",
+        )
     if normalized.get_column("series_id").is_duplicated().any():
         duplicate_id = normalized.filter(pl.col("series_id").is_duplicated()).get_column("series_id")[0]
         raise _fail(source_path, f"duplicate series_id {duplicate_id!r} within program {program!r}")
@@ -462,8 +492,8 @@ def _parse_snapshot(snapshot: Path, source_path: Path, program: str) -> pl.DataF
         row = inverted.row(0, named=True)
         raise _fail(source_path, f"begin_year exceeds end_year for series_id {row['series_id']!r}")
 
-    _validate_period(source_path, normalized.get_column("begin_period"))
-    _validate_period(source_path, normalized.get_column("end_period"))
+    _validate_period(source_path, normalized.get_column("begin_period"), program)
+    _validate_period(source_path, normalized.get_column("end_period"), program)
     has_begin_period_without_year = normalized.filter(
         pl.col("begin_period").is_not_null()
         & (pl.col("begin_period") != "")
