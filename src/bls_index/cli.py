@@ -53,7 +53,15 @@ def main(argv: list[str] | None = None) -> int:
     info = sub.add_parser("runner-info", help="print machine resources as JSON")
     info.add_argument("--workdir", type=Path, default=Path("."))
 
+    sub.add_parser(
+        "r2-gate0", help="opt-in real R2 check for the private bls-index-staging bucket"
+    )
+
     args = parser.parse_args(argv)
+    if args.command == "r2-gate0":
+        from bls_index.r2_gate0 import run_interactive_r2_gate0
+
+        return run_interactive_r2_gate0()
     if args.command == "runner-info":
         print(json.dumps(runner_info(args.workdir), indent=2))
         return 0
