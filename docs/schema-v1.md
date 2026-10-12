@@ -62,9 +62,27 @@ metadata value domains (including all valid periods, exceptional years, and seas
 against the five current `.series` files and authoritative BLS code tables; confirm whether
 any supported program has legitimate values outside the bounded checks above. This increment
 has no current-source download, row-count threshold, whole-scope cross-program uniqueness
-check, combined Parquet/provenance build, or publication integration. Do not infer liveness
-from year or period fields. `survey_name` and `begin_period` are intentionally deferred from
-schema v1 until their normalization and verification are explicitly approved.
+check, combined catalog build, or publication integration. Do not infer liveness from year or
+period fields. `survey_name` and `begin_period` are intentionally deferred from schema v1 until
+their normalization and verification are explicitly approved.
+
+## Local native Parquet build provenance
+
+A local per-program build is available only for `ap`, `ce`, `cu`, `ln`, and `oe`, from an explicit
+verified HTTP `InputSet`. The input's downloaded record and SHA-256 recheck must agree; actual bytes
+and size are checked against those records, and the exact privately staged, hash-verified snapshot is
+parsed. Changes to the downloaded path during the build fail closed. This does not fetch data or
+publish artifacts.
+
+Each completed local bundle contains `catalog.parquet` and `provenance.json` in a directory named by
+the SHA-256 of the sidecar bytes. The Parquet file uses Zstandard compression and exactly the canonical
+column order and types above. The JSON sidecar has `schema_version`, `program`, `row_count`,
+`source_built_at`, `inputs`, and `artifact` fields. `source_built_at` is the injected build clock in
+UTC with microseconds and a `Z` suffix; it is not read from source file metadata. Each input entry
+records its source `url`, byte count, and SHA-256. The artifact entry records its relative `path`, byte
+count, SHA-256, and compression. The build stages outputs privately and exposes them with a single
+local directory rename; it does not overwrite existing or unrelated files. This local build layer has
+no download command, R2 integration, or publication behavior.
 
 ## Evidence
 
