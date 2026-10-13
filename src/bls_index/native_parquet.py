@@ -1,7 +1,7 @@
-"""Local Parquet builds for verified native-title program inputs.
+"""Local Parquet builds for verified program inputs.
 
 This module writes only local, per-program artifacts. It does not fetch data,
-publish artifacts, or modify the native parser.
+publish artifacts, or modify source parsers.
 """
 
 from __future__ import annotations
@@ -37,12 +37,12 @@ _RENAME_NOREPLACE = 1
 
 
 class NativeParquetBuildError(ValueError):
-    """A verified native input could not be safely built or published locally."""
+    """A verified input could not be safely built or published locally."""
 
 
 @dataclass(frozen=True)
 class NativeParquetBuild:
-    """Paths and checksums for one locally completed native-program build."""
+    """Paths and checksums for one locally completed program build."""
 
     program: str
     row_count: int
@@ -190,36 +190,29 @@ def _rename_directory_noreplace(source: Path, destination: Path) -> None:
     raise OSError(error_number, os.strerror(error_number), str(destination))
 
 
-def build_native_parquet(
-    input_set: InputSet,
+def _verify_records(records: tuple[DownloadRecord, ...], phase: str) -> None:
+    for record in records:
+        if record.path is None:
+            raise NativeParquetBuildError(f"input {record.url!r} has no local downloaded path")
+        _verify_source(Path(record.path), record, phase)
+
+
+def _write_parquet_bundle(
+    program: str,
+    frame: pl.DataFrame,
+    records: tuple[DownloadRecord, ...],
     output_dir: str | Path,
     clock: Clock,
+    *,
+    verify_after_output_staging: bool = False,
 ) -> NativeParquetBuild:
-    """Build a local schema-v1 Parquet bundle from an explicitly verified InputSet.
-
-    The InputSet's download and recheck records must agree. Its bytes are copied into a
-    private snapshot while hashing; that exact snapshot is checked against the expected
-    checksum and parsed. The downloaded path is checked after parsing and after complete
-    output staging immediately before publication; this check does not prevent changes after
-    that boundary. Output is zstd-compressed and published with an atomic no-replace directory
-    operation. The bundle directory is addressed by the SHA-256 of its provenance JSON, so a
-    prior build or unrelated file is never overwritten.
-    """
-    program = input_set.program
-    record, source_path = _validate_input_set(input_set, program)
-    try:
-        _verify_source(source_path, record, "before staging")
-        with tempfile.TemporaryDirectory(prefix="bls-native-input-") as source_staging:
-            snapshot = Path(source_staging) / "source.series"
-            _copy_verified_snapshot(source_path, snapshot, record)
-            frame = parse_native_series(snapshot, program)
-        if frame.schema != CANONICAL_SCHEMA:
-            raise NativeParquetBuildError("native parser returned a non-canonical schema")
-        if frame.height < 1:
-            raise NativeParquetBuildError("native parser returned no rows")
-        _verify_source(source_path, record, "after parsing")
-    except NativeSeriesError as exc:
-        raise NativeParquetBuildError(str(exc)) from exc
+    """Write and atomically expose a canonical frame with all verified input records."""
+    if frame.schema != CANONICAL_SCHEMA or frame.height < 1:
+        raise NativeParquetBuildError("builder returned an invalid canonical frame")
+    for record in records:
+        _record_digest(record, "download record")
+        if record.path is None:
+            raise NativeParquetBuildError(f"input {record.url!r} has no local downloaded path")
 
     root = Path(output_dir)
     made_root = not root.exists()
@@ -227,15 +220,16 @@ def build_native_parquet(
     made_program_dir = not program_dir.exists()
     staging_dir: Path | None = None
     try:
-        _verify_source(source_path, record, "before publication")
+        _verify_records(records, "before publication")
         program_dir.mkdir(parents=True, exist_ok=True)
         staging_dir = Path(tempfile.mkdtemp(prefix=".native-build-", dir=program_dir))
         parquet_path = staging_dir / "catalog.parquet"
         frame.write_parquet(parquet_path, compression="zstd")
         parquet_sha256, parquet_bytes = _hash_artifact(parquet_path)
-        _verify_source(source_path, record, "before publication")
+        if not verify_after_output_staging:
+            _verify_records(records, "before publication")
 
-        # This is the build clock, never a file mtime or source-provided timestamp.
+        # This is the injected build clock, never a file mtime or source timestamp.
         source_built_at = isoformat_utc(clock.now())
         manifest = {
             "schema_version": SCHEMA_VERSION,
@@ -244,6 +238,7 @@ def build_native_parquet(
             "source_built_at": source_built_at,
             "inputs": [
                 {"url": record.url, "bytes": record.bytes, "sha256": record.sha256}
+                for record in records
             ],
             "artifact": {
                 "path": "catalog.parquet",
@@ -266,13 +261,13 @@ def build_native_parquet(
         final_parquet = destination / "catalog.parquet"
         final_provenance = destination / "provenance.json"
         if destination.exists():
-            # Reuse also requires a post-staging source check; new bundles are
-            # checked immediately before publication below.
-            _verify_source(source_path, record, "after output staging")
+            # A source change during staging or the injected clock also invalidates reuse.
+            _verify_records(records, "after output staging")
             if not _bundle_matches(destination, parquet_sha256, parquet_bytes, provenance_bytes):
                 raise NativeParquetBuildError(
                     f"content-addressed output already exists and does not match: {destination}"
                 )
+            _verify_records(records, "immediately before reuse")
             shutil.rmtree(staging_dir)
             staging_dir = None
             return NativeParquetBuild(
@@ -280,18 +275,20 @@ def build_native_parquet(
                 parquet_sha256, bundle_sha256, source_built_at,
             )
 
-        # Establish input provenance at the last check boundary, after both artifacts
-        # are complete. This cannot prevent a source change after the check.
-        _verify_source(source_path, record, "immediately before publication")
+        # Synthesized builds need a distinct post-staging check before the final
+        # immediately-before-publication check.
+        if verify_after_output_staging:
+            _verify_records(records, "after output staging")
+        _verify_records(records, "immediately before publication")
         try:
             _rename_directory_noreplace(staging_dir, destination)
         except FileExistsError:
-            # Another builder may have won the name race. Treat it as success only if
-            # the entire bundle is exactly the one we intended to publish.
+            # A racing writer is accepted only if the complete intended bundle won.
             if not _bundle_matches(destination, parquet_sha256, parquet_bytes, provenance_bytes):
                 raise NativeParquetBuildError(
                     f"content-addressed output was concurrently created and does not match: {destination}"
                 )
+            _verify_records(records, "immediately before reuse")
             shutil.rmtree(staging_dir)
             staging_dir = None
         else:
@@ -303,7 +300,7 @@ def build_native_parquet(
     except NativeParquetBuildError:
         raise
     except Exception as exc:
-        raise NativeParquetBuildError(f"native Parquet build failed: {exc}") from exc
+        raise NativeParquetBuildError(f"Parquet build failed: {exc}") from exc
     finally:
         if staging_dir is not None:
             shutil.rmtree(staging_dir, ignore_errors=True)
@@ -317,3 +314,33 @@ def build_native_parquet(
                 root.rmdir()
             except OSError:
                 pass
+
+
+def build_native_parquet(
+    input_set: InputSet,
+    output_dir: str | Path,
+    clock: Clock,
+) -> NativeParquetBuild:
+    """Build a local schema-v1 Parquet bundle from an explicitly verified InputSet.
+
+    The exact privately staged, hash-verified snapshot is parsed, and the downloaded path
+    is checked after parsing and again at output staging/publication boundaries. Output is
+    zstd-compressed and atomically published without replacement. A matching content-addressed
+    bundle is reused; unrelated or mismatched existing data is never overwritten.
+    """
+    program = input_set.program
+    record, source_path = _validate_input_set(input_set, program)
+    try:
+        _verify_source(source_path, record, "before staging")
+        with tempfile.TemporaryDirectory(prefix="bls-native-input-") as source_staging:
+            snapshot = Path(source_staging) / "source.series"
+            _copy_verified_snapshot(source_path, snapshot, record)
+            frame = parse_native_series(snapshot, program)
+        if frame.schema != CANONICAL_SCHEMA:
+            raise NativeParquetBuildError("native parser returned a non-canonical schema")
+        if frame.height < 1:
+            raise NativeParquetBuildError("native parser returned no rows")
+        _verify_source(source_path, record, "after parsing")
+    except NativeSeriesError as exc:
+        raise NativeParquetBuildError(str(exc)) from exc
+    return _write_parquet_bundle(program, frame, (record,), output_dir, clock)

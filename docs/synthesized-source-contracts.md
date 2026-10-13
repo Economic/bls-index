@@ -1,10 +1,11 @@
 # Synthesized source contracts (bounded local parsing)
 
-This document describes bounded local parsers for SM, JT, and PR. They do not initiate downloads,
-write Parquet or provenance bundles, create commits, publish artifacts, or contact GitHub. Each
-program accepts exact explicit local paths or an already fetched `HttpSource` `InputSet`; the latter
-is integrity-checked and never triggers a request. The parsers construct canonical rows only; no
-per-program artifact integration is included.
+This document describes bounded local parsers and local Parquet builds for SM, JT, and PR. They do
+not initiate downloads, create commits, publish artifacts remotely, or contact GitHub. Each program
+accepts exact explicit local paths or an already fetched `HttpSource` `InputSet`; the latter is
+integrity-checked and never triggers a request. `build_synthesized_parquet` writes a local schema-v1
+bundle only from a verified `InputSet`; see [`schema-v1.md`](schema-v1.md) for the common artifact
+layout and provenance fields.
 
 The SM/JT full-input headers, row counts, source response hashes, and report excerpts were supplied
 by a fresh double-read scan recorded in `tests/fixtures/real_synthesized/sm-jt-source-fixtures.json`
@@ -145,6 +146,7 @@ initial/recheck hashes and byte counts, and the actual file bytes before parsing
 snapshots; it checks source files again after parsing. This reuses the native snapshot/hash
 helpers and makes no weaker concurrent-mutation assumption.
 
-This phase does not integrate a synthesized Parquet/provenance bundle, alter the live fetcher,
-or perform any publication or remote operation. Broader source-domain verification beyond the
-checked-in fixture evidence remains deferred.
+The local `build_synthesized_parquet` entry point accepts only a verified `InputSet`; it
+writes a schema-v1 Parquet/provenance bundle without initiating downloads or performing remote
+publication. This does not alter the live fetcher or build a combined catalog. Broader
+source-domain verification beyond the checked-in fixture evidence remains deferred.

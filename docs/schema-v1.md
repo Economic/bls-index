@@ -73,11 +73,12 @@ cross-program uniqueness check, combined catalog build, or publication integrati
 liveness from year or period fields. `survey_name` and `begin_period` are intentionally deferred
 from schema v1 until their normalization and verification are explicitly approved.
 
-## Bounded synthesized parsers
+## Bounded synthesized builders
 
 The local PR, SM, and JT parsers and their explicit lookup, title, ID, and evidence limits are
 documented in [`synthesized-source-contracts.md`](synthesized-source-contracts.md). They return
-canonical rows but do not currently build a Parquet/provenance bundle.
+canonical rows. `build_synthesized_parquet` writes those rows as a schema-v1 Parquet/provenance
+bundle from a previously verified `InputSet`; it does not fetch inputs or publish artifacts remotely.
 
 ## Local native Parquet build provenance
 
