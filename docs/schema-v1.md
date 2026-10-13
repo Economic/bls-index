@@ -1,7 +1,8 @@
 # Catalog schema v1
 
-Schema version 1 is the canonical row format for series records. This increment implements
-local native-title parsing for `ap`, `ce`, `cu`, `ln`, and `oe`; it does not build a combined
+Schema version 1 is the canonical row format for series records. Local native-title parsing
+is implemented for all 30 fixed native-title programs. A bounded local synthesized-title parser
+is implemented for `pr`; `sm` and `jt` remain deferred. These parsers do not build a combined
 catalog or publish anything.
 
 ## Columns
@@ -9,9 +10,9 @@ catalog or publish anything.
 | Column | Type | Null? | Meaning and normalization |
 |---|---|---:|---|
 | `program` | string | no | The explicit BLS flat-file directory/program code passed to the builder. It is not inferred from the series ID. |
-| `series_id` | string | no | Native BLS series identifier with source padding removed from both ends. IDs remain strings. Must contain only ASCII letters/digits, be nonempty, and be unique within a program. |
-| `series_title` | string | no | The native source title, preserved byte-decoded Unicode text exactly (including leading/trailing spaces). A title containing only whitespace is invalid. Titles need not be unique. |
-| `title_source` | string | no | `native` for these five builders. `synthesized` is reserved for later builders. |
+| `series_id` | string | no | BLS series identifier with source padding removed from both ends. IDs remain strings and must be nonempty and unique within a program; native builders apply their documented source checks. |
+| `series_title` | string | no | Native builders preserve the source title, including surrounding spaces. PR uses a synthesized title from trimmed lookup labels. A title containing only whitespace is invalid. Titles need not be unique. |
+| `title_source` | string | no | `native` for native-title programs; `synthesized` for PR in this bounded local parser. |
 | `seasonal` | string | no | `SA`, `NSA`, or `unknown`. Observed source code `S` maps to `SA`; `U` maps to `NSA`. A source with no seasonal field (such as `ap`) maps to `unknown`. |
 | `begin_year` | int32 | yes | Four-digit positive year from the source, or null when the source field is blank. Descriptive metadata only, not a claim of current activity. |
 | `end_year` | int32 | yes | Four-digit positive year from the source, or null when the source field is blank. Descriptive metadata only, not a claim of current activity. |
@@ -22,7 +23,10 @@ any data-dictionary specification version.
 
 ## Native source contracts implemented here
 
-The builders require the exact ordered headers observed by the 2026-10-07 local source probe:
+All 30 native-title adapters require program-specific ordered headers observed by the
+2026-10-07 local source probe. Five representative contracts are listed below; the complete
+contract is maintained in `src/bls_index/native_builders.py` and described in
+[`native-source-contracts.md`](native-source-contracts.md):
 
 - `ap`: `series_id, area_code, item_code, series_title, footnote_codes, begin_year, begin_period, end_year, end_period`
 - `ce`: `series_id, supersector_code, industry_code, data_type_code, seasonal, series_title, footnote_codes, begin_year, begin_period, end_year, end_period`
@@ -35,13 +39,11 @@ before tabs. Data rows must have exactly the header's tab-separated field count.
 strict (no lossy replacement), blank lines and empty data rows are rejected, and control
 characters in fields are rejected. The parser retains source row order.
 
-IDs are checked for nonempty ASCII alphanumeric content and uniqueness within the explicit
-program. There is intentionally no requirement that an ID begin with its program code:
-source program/survey families do not universally match the directory code. The local
-research documents `ce` as Current Employment Statistics, `cu` as Consumer Price Index,
-`ln` as Labor Force Statistics from the CPS, `oe` as Occupational Employment and Wage
-Statistics, and `ap` as Average Price Data; these are descriptive mappings, not ID prefixes.
-The parser never assigns a survey name from a guessed prefix.
+Native IDs are checked against the explicit program-specific ownership prefix, character
+and length contract, and any verified source-field component checks. The parser never infers
+a program from an ID or assigns a survey name from a guessed prefix. The PR synthesized
+parser separately enforces the observed `PR` ownership prefix and seasonal character without
+claiming a complete component grammar.
 
 ## Validation behavior and deferred verification
 
@@ -59,12 +61,18 @@ column, so its canonical value is `unknown`.
 
 **Deferred verification before production catalog assembly:** review the source-specific
 metadata value domains (including all valid periods, exceptional years, and seasonal values)
-against the five current `.series` files and authoritative BLS code tables; confirm whether
-any supported program has legitimate values outside the bounded checks above. This increment
+against current `.series` inputs for all supported native-title programs and authoritative BLS
+code tables; confirm whether any supported program has legitimate values outside the bounded checks above. This increment
 has no current-source download, row-count threshold, whole-scope cross-program uniqueness
 check, combined catalog build, or publication integration. Do not infer liveness from year or
 period fields. `survey_name` and `begin_period` are intentionally deferred from schema v1 until
 their normalization and verification are explicitly approved.
+
+## Bounded synthesized PR parser
+
+The PR-only local parser and its explicit lookup, title, ID, and evidence limits are documented
+in [`synthesized-source-contracts.md`](synthesized-source-contracts.md). It returns canonical
+rows but does not currently build a Parquet/provenance bundle.
 
 ## Local native Parquet build provenance
 
@@ -88,8 +96,8 @@ local build layer has no download command, R2 integration, or publication behavi
 
 ## Evidence
 
-The five header contracts, exact widths, UTF-8 decodability, no blank `.series` rows, and
-examples of padded IDs are recorded in
+The 30 native header contracts, exact widths, UTF-8 decodability, no blank `.series` rows,
+and examples of padded IDs are recorded in
 [`evidence/2026-10-07-local-source-probe.json`](evidence/2026-10-07-local-source-probe.json)
 and summarized in [`evidence/2026-10-07-gate0.md`](evidence/2026-10-07-gate0.md).
 The program descriptions and examples of source period codes come from the local research
