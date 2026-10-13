@@ -1,5 +1,7 @@
 # Implementation plan: downloadable BLS series catalog (v1 draft)
 
+> **Superseded 2026-10-13** by [`plans/2026-10-13-simplification-implementation.md`](../../plans/2026-10-13-simplification-implementation.md) and the rewritten [`design.md`](../../design.md). Kept as a historical record; its gates and acceptance checks no longer apply.
+
 This is a first implementation draft for the standalone `bls_index` repository. The [current design](../../design.md) is the contract; the [research inventory](../../research/2026-08-11-existing-bls-series-catalogs.md) supplies starting counts, sample anomalies, and preliminary performance measurements, not a fixed source snapshot. Where the research proposes conditional downloads, caching frozen inputs, live/frozen status, a browser search index, or a 54-program initial release, follow the newer design instead. No `epidatatools` changes, hosted search API, or browser UI are part of v1.
 
 ## Scope and sequence

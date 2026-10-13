@@ -31,34 +31,39 @@ exclude_patterns = [
 ]
 
 review_guidelines = """
+Project context: this repository builds a low-stakes public catalog of BLS series IDs
+and titles. Once a day it rebuilds everything from fresh BLS files and publishes one
+Parquet file plus latest.json. If a run fails, yesterday's catalog keeps being served
+and the maintainer is alerted; the next run starts from scratch. Weigh every finding
+against those stakes.
+
 Project artifacts:
-- design.md is the design and the source of truth. Items in its "Decisions"
-  section are settled; challenge them only with a genuinely new argument.
-- docs/plans/implementation-plan-v1.md is the implementation plan. Its phases,
-  gates and numbered acceptance checks define what each stage must deliver.
-- docs/evidence/ records measurements and checks for the plan's gates.
+- design.md is the source of truth. Its "Decisions", "Non-goals" and "Accepted risks"
+  sections are settled. Challenge them only with a genuinely new argument, and do not
+  report an accepted risk as a defect.
+- The current implementation plan is in plans/ (newest dated file). docs/plans/ and
+  docs/evidence/ are historical records.
 - src/ and tests/ are implementation code.
 
-When a change touches design.md or the plan: read the whole document, not just
-the diff. Flag ambiguity, contradictions, missing requirements or non-goals,
-unhandled failure modes, infeasible choices, and scope creep. Ignore wording
-and formatting unless meaning changes.
+What to flag:
+- Correctness bugs, including wrong rows, wrong titles, lost rows, or a manifest that
+  points at an object that was not uploaded and verified.
+- Complexity the stakes do not justify: speculative features, defensive checks of
+  internal invariants, duplicated validation, instrumentation nobody reads, and tests
+  that pin incidental details such as exact error text. Recommending that a
+  requirement, check, or test be deleted is a valid finding.
+- Deviations from design.md, and changes that add requirements design.md does not ask for.
 
-When a change touches code: check it against design.md and the plan and flag
-deviations. Flag acceptance criteria that have no tests. In particular:
-- Default tests must run offline, without BLS access or credentials, and must
-  exercise production adapters through tests/harness. Test doubles belong only
-  in tests/harness.
-- Treat as high severity any change that could classify an ambiguous storage
-  result as confirmed absence or non-commit, re-enable automatic retries of
-  conditional writes, write a manifest before immutable read-back verification,
-  or infer program scope from BLS listings or future checkpoint lists.
-- Flag work that claims a gate or acceptance check is complete when the named
-  test (e.g. test_harness_faults_and_order) does not exist or does not assert it.
+What not to flag:
+- Failure modes that the daily full rebuild already repairs, unless they can publish
+  wrong data.
+- Missing handling for cases listed under "Accepted risks" or "Non-goals".
+- Wording and formatting, unless meaning changes.
 
-When a change touches docs/evidence/: check that stated numbers and claims match
-the recorded data (docs/evidence/*.json) and tests, and that open items are not
-reported as done.
+The one storage rule that is high severity: never write latest.json before the catalog
+object it references has been uploaded and verified by read-back.
+
+Default tests must run offline, without BLS access or credentials.
 
 uv.lock is excluded from diffs. When a change touches dependencies, check the
 pins in pyproject.toml and open uv.lock in the checkout if resolved versions
@@ -98,12 +103,11 @@ reasoning = "high"
 
 # ---- Panels (groups of reviewers) ----
 # Runs on every commit (see hook_review_panel below).
-# From Phase 2 on (credentials, R2, workflow secrets), add "codex_security_reviewer".
+# Once publication code lands (R2 credentials, workflow secrets), add "codex_security_reviewer".
 [review.panels.every_commit_panel]
 members = ["codex_code_reviewer"]
 
-# Manual, at the plan's review points (native checkpoint; each of sm/jt/pr;
-# before staging): roborev review --branch --panel checkpoint_panel
+# Manual, at the plan's milestones: roborev review --branch --panel checkpoint_panel
 [review.panels.checkpoint_panel]
 members = ["codex_code_reviewer", "claude_code_reviewer", "codex_design_reviewer"]
 synthesis_agent = "codex"
@@ -132,10 +136,12 @@ hook_review_panel = "every_commit_panel"
 # trigger message patterns, then skip rules; unclear commits go to a classifier.
 # Lists replace roborev's defaults.
 [auto_design_review]
-hook_enabled = true
+# Disabled 2026-10-13: run design reviews by hand at milestones instead
+# (roborev review --branch --panel design_only_panel).
+hook_enabled = false
 trigger_paths = [
   "design.md",
-  "docs/plans/**",
+  "plans/**",
   "src/bls_index/scope.py",  # fixed published scope
 ]
 skip_paths = [               # skip only if every changed file matches
