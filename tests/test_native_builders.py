@@ -12,6 +12,7 @@ from bls_index.native_builders import (
     SOURCE_HEADERS,
     SERIES_ID_COMPONENTS,
     SERIES_ID_FIELD_SLICES,
+    SERIES_ID_LENGTHS,
     SUPPORTED_NATIVE_PROGRAMS,
     parse_native_series,
     valid_series_id,
@@ -443,16 +444,55 @@ def test_blank_cu_area_component_is_rejected(tmp_path):
         parse_native_series(path, "cu")
 
 
-def test_wp_dash_item_sentinel_remains_valid(tmp_path):
+def test_wd_wp_dash_item_sentinel_remains_valid(tmp_path):
+    for program in ("wd", "wp"):
+        path = _constructed_program_file(tmp_path, program)
+        lines = path.read_text(encoding="utf-8").splitlines()
+        header = lines[0].split("\t")
+        row = lines[1].split("\t")
+        row[0] = f"{program.upper()}S01"
+        row[header.index("group_code")] = "01"
+        row[header.index("item_code")] = "-"
+        path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+        assert parse_native_series(path, program).height == 1
+
+
+def test_wp_recorded_pff_group_alias_is_narrow_and_validated(tmp_path):
     path = _constructed_program_file(tmp_path, "wp")
     lines = path.read_text(encoding="utf-8").splitlines()
     header = lines[0].split("\t")
     row = lines[1].split("\t")
-    row[0] = "WPS01"
-    row[header.index("group_code")] = "01"
-    row[header.index("item_code")] = "-"
+    row[0] = "WPS01PLUS02"
+    row[header.index("group_code")] = "PFF"
+    row[header.index("item_code")] = "PLUS02"
     path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
     assert parse_native_series(path, "wp").height == 1
+
+    row[header.index("group_code")] = "PFX"
+    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+    with pytest.raises(NativeSeriesError, match="invalid series_id"):
+        parse_native_series(path, "wp")
+
+
+def test_six_recorded_native_failure_rows_are_accepted(tmp_path):
+    evidence = json.loads(
+        Path("docs/evidence/2026-10-13-native-validation.json").read_text(encoding="utf-8")
+    )
+    for program in ("nb", "ln", "wd", "wp", "ci", "ei"):
+        program_evidence = evidence["programs"][program]
+        histogram = program_evidence["raw_source"]["series_id_length_counts"]
+        assert SERIES_ID_LENGTHS[program] == (min(map(int, histogram)), max(map(int, histogram)))
+        raw_fields = program_evidence["failure"][
+            "first_failure_row_or_first_data_row"
+        ]["raw_fields"]
+        path = _write(
+            tmp_path,
+            ("\t".join(SOURCE_HEADERS[program]) + "\n" + "\t".join(raw_fields) + "\n").encode(),
+            filename=f"{program}.series",
+        )
+        parsed = parse_native_series(path, program)
+        assert parsed.height == 1
+        assert parsed.get_column("series_id").item() == raw_fields[0].strip()
 
 
 @pytest.mark.parametrize("program", (

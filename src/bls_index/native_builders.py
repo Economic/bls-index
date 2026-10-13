@@ -256,12 +256,12 @@ SERIES_ID_PREFIXES: dict[str, str] = {
 SERIES_ID_LENGTHS: dict[str, tuple[int, int]] = {
     "ap": (12, 13), "bd": (28, 30), "ce": (13, 13), "ci": (17, 17),
     "cm": (17, 17), "cu": (11, 16), "cw": (11, 16), "cx": (13, 18),
-    "ei": (10, 14), "ep": (14, 15), "fm": (7, 11), "ip": (21, 21),
+    "ei": (5, 15), "ep": (14, 15), "fm": (7, 11), "ip": (21, 21),
     "is": (17, 17), "kv": (19, 19), "la": (20, 20), "le": (13, 13),
-    "ln": (11, 12), "lu": (13, 13), "mp": (9, 10), "nb": (14, 23),
+    "ln": (11, 13), "lu": (13, 13), "mp": (9, 10), "nb": (23, 23),
     "nd": (15, 24), "oe": (25, 25), "or": (20, 20), "pc": (15, 22),
-    "su": (11, 14), "tu": (18, 18), "wd": (6, 11), "wm": (29, 29),
-    "wp": (5, 11), "ws": (6, 6),
+    "su": (11, 14), "tu": (18, 18), "wd": (5, 14), "wm": (29, 29),
+    "wp": (5, 14), "ws": (6, 6),
 }
 
 # Separators accepted in the observed ID families. Component checks constrain
@@ -307,7 +307,9 @@ SERIES_ID_FIELD_SLICES: dict[str, tuple[tuple[str, int, int, int], ...]] = {
     "ei": (("index_code", 3, 2, 2),),
     "ci": (
         ("owner_code", 3, 1, 1), ("estimate_code", 4, 2, 2),
-        ("industry_code", 6, 4, 4), ("occupation_code", 10, 3, 3),
+        # Industry remains opaque: the recorded 611100 source value does not
+        # establish a universal transformation to the ID's 6110 slice.
+        ("occupation_code", 10, 3, 3),
         ("subcell_code", 13, 2, 2), ("periodicity_code", 16, 1, 1),
     ),
     "cm": (("owner_code", 3, 1, 1), ("datatype_code", 16, 1, 1)),
@@ -315,9 +317,10 @@ SERIES_ID_FIELD_SLICES: dict[str, tuple[tuple[str, int, int, int], ...]] = {
     "tu": (("stattype_code", 3, 5, 5), ("datays_code", 10, 2, 2)),
     "nb": (
         ("ownership_code", 3, 1, 1), ("estimate_code", 4, 2, 2),
-        ("industry_code", 6, 4, 4), ("occupation_code", 10, 6, 6),
-        ("subcell_code", 16, 2, 2), ("datatype_code", 18, 2, 2),
-        ("provision_code", 20, 3, 3),
+        # Industry remains opaque: the recorded 611100 source value does not
+        # establish a universal transformation to the ID's 6110 slice.
+        ("occupation_code", 10, 6, 6), ("subcell_code", 16, 2, 2),
+        ("datatype_code", 18, 2, 2), ("provision_code", 20, 3, 3),
     ),
     "or": (
         ("requirement_code", 3, 1, 1), ("ownership_code", 4, 1, 1),
@@ -378,9 +381,15 @@ def _series_id_components_expr(program: str) -> pl.Expr:
             # CES IDs use the six-digit industry suffix; the source column also
             # contains its two-digit supersector prefix.
             parts.append(pl.col(part).str.strip_chars().str.slice(-6))
-        elif program == "wp" and part == "item_code":
-            # In this commodity series, a dash in the source is a no-item
-            # sentinel and is not included in the series ID.
+        elif program == "wp" and part == "group_code":
+            # The recorded wp source row at line 61 uses PFF while its ID uses 01.
+            # Keep this named source-record alias explicit; do not waive group checks.
+            parts.append(
+                pl.when(pl.col(part).str.strip_chars() == "PFF")
+                .then(pl.lit("01")).otherwise(pl.col(part).str.strip_chars())
+            )
+        elif program in {"wd", "wp"} and part == "item_code":
+            # A dash is the no-item sentinel in both commodity series.
             parts.append(
                 pl.when(pl.col(part).str.strip_chars() == "-")
                 .then(pl.lit("")).otherwise(pl.col(part).str.strip_chars())
