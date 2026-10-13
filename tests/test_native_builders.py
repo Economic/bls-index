@@ -364,6 +364,54 @@ def test_verified_partial_id_field_mismatches_are_rejected(tmp_path, program, fi
         parse_native_series(path, program)
 
 
+def test_ci_occupation_code_is_opaque_to_id_slice_validation(tmp_path):
+    path = _constructed_program_file(tmp_path, "ci")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split("\t")
+    row = lines[1].split("\t")
+    original = row[header.index("occupation_code")].strip()
+    row[header.index("occupation_code")] = "9999" if original != "9999" else "8888"
+    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+
+    assert parse_native_series(path, "ci").height == 1
+
+
+def test_ci_subcell_code_is_opaque_to_id_slice_validation(tmp_path):
+    path = _constructed_program_file(tmp_path, "ci")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split("\t")
+    row = lines[1].split("\t")
+    row[header.index("subcell_code")] = "27"
+    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+
+    assert parse_native_series(path, "ci").height == 1
+
+
+def test_ci_full_row_with_nonmatching_subcell_is_accepted(tmp_path):
+    path = _constructed_program_file(tmp_path, "ci")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split("\t")
+    row = dict(zip(header, lines[1].split("\t"), strict=True))
+    row.update({
+        "series_id": "CIU1010000000710A",
+        "seasonal": "U",
+        "owner_code": "1",
+        "industry_code": "000000",
+        "occupation_code": "000000",
+        "subcell_code": "27",
+        "area_code": "99999",
+        "periodicity_code": "A",
+        "estimate_code": "01",
+    })
+    path.write_text(
+        "\t".join(header) + "\n" + "\t".join(row[field] for field in header) + "\n",
+        encoding="utf-8",
+    )
+
+    parsed = parse_native_series(path, "ci")
+    assert parsed.get_column("series_id").item() == "CIU1010000000710A"
+
+
 def test_ei_unlisted_id_position_is_opaque_when_verified_slice_matches(tmp_path):
     path = _constructed_program_file(tmp_path, "ei")
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -457,17 +505,42 @@ def test_wd_wp_dash_item_sentinel_remains_valid(tmp_path):
         assert parse_native_series(path, program).height == 1
 
 
-def test_wp_recorded_pff_group_alias_is_narrow_and_validated(tmp_path):
+def test_wp_group_aliases_map_verified_source_names_to_id_components(tmp_path):
     path = _constructed_program_file(tmp_path, "wp")
     lines = path.read_text(encoding="utf-8").splitlines()
     header = lines[0].split("\t")
     row = lines[1].split("\t")
-    row[0] = "WPS01PLUS02"
-    row[header.index("group_code")] = "PFF"
-    row[header.index("item_code")] = "PLUS02"
-    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
-    assert parse_native_series(path, "wp").height == 1
+    row[header.index("item_code")] = "T15M05"
 
+    for group_code in ("ILF", "ilf", "IND", "ind"):
+        row[0] = "WPS03T15M05"
+        row[header.index("group_code")] = group_code
+        path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+        assert parse_native_series(path, "wp").height == 1
+
+    row[header.index("item_code")] = "PLUS02"
+    for group_code, series_id in (("PFF", "WPS01PLUS02"), ("pff", "wps01plus02")):
+        row[0] = series_id
+        row[header.index("group_code")] = group_code
+        path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+        assert parse_native_series(path, "wp").height == 1
+
+
+def test_wp_numeric_group_codes_still_must_match_id(tmp_path):
+    path = _constructed_program_file(tmp_path, "wp")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split("\t")
+    row = lines[1].split("\t")
+    row[header.index("item_code")] = "T15M05"
+
+    for group_code, series_id in (("01", "WPS03T15M05"), ("03", "WPS01T15M05")):
+        row[0] = series_id
+        row[header.index("group_code")] = group_code
+        path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+        with pytest.raises(NativeSeriesError, match="invalid series_id"):
+            parse_native_series(path, "wp")
+
+    row[0] = "WPS03T15M05"
     row[header.index("group_code")] = "PFX"
     path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
     with pytest.raises(NativeSeriesError, match="invalid series_id"):

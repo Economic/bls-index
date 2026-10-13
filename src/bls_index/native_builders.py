@@ -307,10 +307,9 @@ SERIES_ID_FIELD_SLICES: dict[str, tuple[tuple[str, int, int, int], ...]] = {
     "ei": (("index_code", 3, 2, 2),),
     "ci": (
         ("owner_code", 3, 1, 1), ("estimate_code", 4, 2, 2),
-        # Industry remains opaque: the recorded 611100 source value does not
-        # establish a universal transformation to the ID's 6110 slice.
-        ("occupation_code", 10, 3, 3),
-        ("subcell_code", 13, 2, 2), ("periodicity_code", 16, 1, 1),
+        # Industry, occupation, and subcell remain opaque: retained full-source
+        # comparisons do not establish universal mappings to their ID slices.
+        ("periodicity_code", 16, 1, 1),
     ),
     "cm": (("owner_code", 3, 1, 1), ("datatype_code", 16, 1, 1)),
     "lu": (("lfst_code", 4, 2, 2), ("fips_code", 11, 2, 2)),
@@ -382,11 +381,15 @@ def _series_id_components_expr(program: str) -> pl.Expr:
             # contains its two-digit supersector prefix.
             parts.append(pl.col(part).str.strip_chars().str.slice(-6))
         elif program == "wp" and part == "group_code":
-            # The recorded wp source row at line 61 uses PFF while its ID uses 01.
-            # Keep this named source-record alias explicit; do not waive group checks.
+            # These source group names have verified two-digit ID components.
+            # Keep the aliases explicit; all other groups must match their ID.
+            group_code = pl.col(part).str.strip_chars().str.to_uppercase()
             parts.append(
-                pl.when(pl.col(part).str.strip_chars() == "PFF")
-                .then(pl.lit("01")).otherwise(pl.col(part).str.strip_chars())
+                pl.when(group_code.is_in(["ILF", "IND"]))
+                .then(pl.lit("03"))
+                .when(group_code == "PFF")
+                .then(pl.lit("01"))
+                .otherwise(group_code)
             )
         elif program in {"wd", "wp"} and part == "item_code":
             # A dash is the no-item sentinel in both commodity series.

@@ -78,7 +78,7 @@ series-ID prefixes, reports, or a shared schema guess.
   | Program | Official definition | SHA-256 recorded in saved output | Supported ID/source comparisons |
   |---|---|---|---|
   | `ei` | [`ei.txt`](https://download.bls.gov/pub/time.series/ei/ei.txt) | `627a8941cf11ad87072dff8deaae44a76be908bcc1dc148ba88e95cdfc16f2ac` | `index_code` (ID positions 3–4); the official decomposition also names the remaining `series_name`, but only the index-code agreement is asserted here. |
-  | `ci` | [`ci.txt`](https://download.bls.gov/pub/time.series/ci/ci.txt) | `bb0bdc159fc18a91b675b07cb78bc43170f135cbf3e62184edb52dcce19b626d` | owner, estimate, industry prefix, occupation prefix, subcell, periodicity at their documented ID positions. The documented field widths and ID example do not form a complete one-to-one layout, so intervening ID positions are not decoded. |
+  | `ci` | [`ci.txt`](https://download.bls.gov/pub/time.series/ci/ci.txt) | `bb0bdc159fc18a91b675b07cb78bc43170f135cbf3e62184edb52dcce19b626d` | owner, estimate, and periodicity at their documented ID positions. Industry, occupation, and subcell are opaque to ID validation: full-source comparisons do not establish universal mappings, including the observed `CIU1010000000710A` row where source subcell `27` differs from ID slice `71`. Other ID positions are also opaque because the documented widths and example do not form a complete one-to-one layout. |
   | `cm` | [`cm.txt`](https://download.bls.gov/pub/time.series/cm/cm.txt) | `dc606274517a9b2f21b8e4bd99bf47d1c0500184c9ce39e91faf92fe6da34bf1` | owner at ID position 3 and datatype at position 16 only; other source dimensions are not assumed from the inconsistent example/field widths. |
   | `fm` | [`fm.txt`](https://download.bls.gov/pub/time.series/fm/fm.txt) | `921aaa15df9b3e8bc1a60788091aa7b64f90724aab5219dde9c27b6840471143` | Program and seasonal prefix only; no suffix layout asserted. |
   | `kv` | [`kv.txt`](https://download.bls.gov/pub/time.series/kv/kv.txt) | `2c5eee6d0f97890a2ea0aab98ef0ec0268a203d552e340a7583c4297d5952e41` | Program and seasonal prefix only. The definition explicitly says the remaining ID digits cannot be decoded into attributes. |
@@ -86,15 +86,23 @@ series-ID prefixes, reports, or a shared schema guess.
   | `ln` | [`ln.txt`](https://download.bls.gov/pub/time.series/ln/ln.txt) | `a9a089a9294b49a851d38aca16342028cd4bd95e8e0149bb00a470298065db0c` | Program and seasonal prefix only. The definition says attributes cannot be decoded from the remaining ID positions. |
   | `lu` | [`lu.txt`](https://download.bls.gov/pub/time.series/lu/lu.txt) | `e4a6e6b0dcb873652466dcec8d235f525be44a4ca9bf4ba69fe7ff3b8b3a2b64` | `lfst_code` and `fips_code`; intervening positions are not asserted because the current source columns do not preserve all fields in the official example. |
   | `tu` | [`tu.txt`](https://download.bls.gov/pub/time.series/tu/tu.txt) | `be7ba131fb9c45b52ace64762d25c7296601c004aa71d359fe31ba19cba9eb9a` | `stattype_code` and `datays_code`; remaining composite character positions are opaque. |
-  | `nb` | [`nb.txt`](https://download.bls.gov/pub/time.series/nb/nb.txt) | `b7ad02eb5a384d90a99ac904dd4098055693e59a01fed544d8630c290e0ec743` | Ownership, estimate, four-character industry prefix, occupation, subcell, datatype, and provision code; this retains the source `subcell_code` omitted by the earlier proposed layout. |
+  | `nb` | [`nb.txt`](https://download.bls.gov/pub/time.series/nb/nb.txt) | `b7ad02eb5a384d90a99ac904dd4098055693e59a01fed544d8630c290e0ec743` | Ownership, estimate, occupation, subcell, datatype, and provision code; the industry source field remains opaque to ID validation because the recorded `611100` value does not establish a universal mapping to the apparent `6110` ID slice. This retains the source `subcell_code` omitted by the earlier proposed layout. |
   | `or` | [`or.txt`](https://download.bls.gov/pub/time.series/or/or.txt) | `2b39501038068cae61b97c905204af2c8f8e6a7088c33c70fa9f41ec3be801f7` | Requirement, ownership, industry, occupation, and job-characteristic fields only. The official example's final estimate positions conflict with retained source rows, so estimate and datatype fields are not asserted. |
   | `wm` | [`wm.txt`](https://download.bls.gov/pub/time.series/wm/wm.txt) | `b7ba3485a37356b7945b9b493296a16dedf75ba6c86cbbd6566943741287bfe2` | Area, ownership, estimate, industry, occupation, subcell, and level; datatype is not part of the documented ID decomposition. |
 
   `ep`, `is`, `mp`, and `ws` whole layouts remain sample-verified only, including the
   `ep` removal of hyphens from `occ_code` and `ind_code`; no official `.txt` confirmation
-  for those mappings is recorded. The prefixes remain checks after the caller selects an
-  explicit adapter; they never select the program. All mappings, including slices, are
-  evidence-bounded and do not claim coverage of every valid ID.
+  for those mappings is recorded. For `wp`, the local validation evidence records one
+  source row with `group_code` `PFF`, `item_code` `PLUS02`, and ID `WPS01PLUS02`; the parser
+  maps `PFF` to ID component `01`. The full group relationship scan also supports the
+  explicit `ILF` and `IND` aliases to ID component `03`. The subsequent
+  [six-program full-source revalidation](evidence/2026-10-13-native-six-revalidation.json)
+  passes all six formerly rejected files with matching download hashes and records the
+  exact parser hash; it does not replace the earlier all-30 failure evidence.
+  Group comparisons are case-insensitive;
+  other values are compared directly, so these aliases do not waive group checks. The prefixes
+  remain checks after the caller selects an explicit adapter; they never select the program. All mappings,
+  including slices, are evidence-bounded and do not claim coverage of every valid ID.
 - Small real-source samples for each of the 30 native programs are in
   [`../tests/fixtures/real_native/`](../tests/fixtures/real_native/). Each metadata JSON
   records the official URL, retrieval date, two matching SHA-256 reads, source row count,
