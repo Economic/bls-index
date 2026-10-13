@@ -10,8 +10,24 @@ The SM/JT full-input headers, row counts, source response hashes, and report exc
 by a fresh double-read scan recorded in `tests/fixtures/real_synthesized/sm-jt-source-fixtures.json`
 and `tests/fixtures/real_synthesized/sm-jt-series-descriptions.json`. Checked-in SM/JT parser
 fixtures are compact subsets selected from that local source read, with their own hashes and
-selection notes. They do not demonstrate that this parser has processed the complete double-read
-inputs. A parent-run live parse remains separate verification work.
+selection notes. The compact fixtures alone do not demonstrate full-source parsing. Separately,
+[the completed fresh-source validation](evidence/2026-10-13-sm-jt-validation.json) records successful
+parsing of all 22,927 SM and 2,060 JT rows, matching recheck hashes for every input, and the exact
+parser hash. Combined-catalog and intended-runner benchmark validation remain pending.
+
+## Approved SM and JT titles
+
+Each placeholder uses its corresponding BLS lookup label trimmed at both ends. Components
+appear in exactly the following order, with the shown labels and semicolon-space separators:
+
+```text
+SM: Data type: {data_type}; State: {state}; Area: {area}; Supersector: {supersector}; Industry: {industry}
+JT: Data element: {dataelement}; Rate/level: {ratelevel}; Industry: {industry}; State: {state}; Area: {area}; Size class: {sizeclass}
+```
+
+`SM:` and `JT:` above identify the templates and are not emitted in titles. Seasonality is
+stored separately; any seasonal wording already inside a BLS lookup label is preserved.
+Both builders emit `title_source=synthesized`, not an official native BLS title.
 
 ## SM inputs and observed evidence
 
