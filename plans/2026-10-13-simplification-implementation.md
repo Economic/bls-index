@@ -12,8 +12,7 @@ is kept as a historical record. The reasoning is in
   4.6 GB peak RSS, and produced 8,315,248 rows and a 47 MB Parquet file.
 - 538 offline tests pass in about 41 s.
 - Nothing is published. Gate 0 verified R2 conditional writes.
-- The branch `feature/phase1-native-builders` has three commits not yet merged to
-  `main` (the count-policy documentation and the handoff note).
+- `main` includes the count-policy documentation and the handoff note (PR #6).
 
 ## Phase 0: Documentation and review tooling
 
@@ -35,8 +34,7 @@ Most of this was done in the change that added this plan.
 5. Mark `docs/phase1-handoff.md` and `docs/evidence/2026-10-13-phase1-open-checks.md` as
    historical. Gate 1 is closed by decision: remote read-back timing moves into the
    Phase 2 staging run. **Done.**
-6. Add `tmp/` to `.gitignore`, and merge this phase to `main` together with the three
-   earlier unmerged commits. **Done.**
+6. Add `tmp/` to `.gitignore`, and merge this phase to `main`. **Done.**
 
 **Check:** a manual `roborev review --branch --panel design_only_panel` on Phase 0 alone,
 to confirm the new guidelines produce proportionate findings.
@@ -311,8 +309,9 @@ That is about 10 tests.
 
 The questions raised with the first draft of this plan were settled as follows.
 
-1. **Branch.** Phase 0 was merged to `main` together with the three earlier unmerged
-   commits. Phase 1 starts on a new branch from `main`.
+1. **Branch.** Phase 0 is merged to `main` in one PR. (The three follow-up commits
+   thought to be unmerged were already merged in PR #6.) Phase 1 starts on a new branch
+   from `main`.
 2. **Alerts.** One healthchecks.io check (free tier) with `/start`, success and `/fail`
    pings, a 1-day period and a 1-day grace time, and email to the maintainer. GitHub's
    failed-run emails are not relied on.
