@@ -62,11 +62,16 @@ column, so its canonical value is `unknown`.
 **Deferred verification before production catalog assembly:** review the source-specific
 metadata value domains (including all valid periods, exceptional years, and seasonal values)
 against current `.series` inputs for all supported native-title programs and authoritative BLS
-code tables; confirm whether any supported program has legitimate values outside the bounded checks above. This increment
-has no current-source download, row-count threshold, whole-scope cross-program uniqueness
-check, combined catalog build, or publication integration. Do not infer liveness from year or
-period fields. `survey_name` and `begin_period` are intentionally deferred from schema v1 until
-their normalization and verification are explicitly approved.
+code tables; confirm whether any supported program has legitimate values outside the bounded
+checks above. The parsers and local build layer do not download sources. Separately, completed
+PR source validation is recorded in
+[`evidence/2026-10-13-pr-validation.json`](evidence/2026-10-13-pr-validation.json): six PR
+source files were downloaded and parsed, their hashes matched on recheck, and validation
+completed with status `ok` for 282 rows. This PR-specific check does not resolve the deferred
+all-program native source-domain review. There is no row-count threshold, whole-scope
+cross-program uniqueness check, combined catalog build, or publication integration. Do not infer
+liveness from year or period fields. `survey_name` and `begin_period` are intentionally deferred
+from schema v1 until their normalization and verification are explicitly approved.
 
 ## Bounded synthesized PR parser
 

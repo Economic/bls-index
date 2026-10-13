@@ -20,19 +20,39 @@ under `tests/fixtures/two_program/pr/`:
 - `pr.seasonal`: `Seasonal_code, Seasonal_text`
 
 Files are strict UTF-8 tab-separated text with exact ordered headers and row widths. Lookup
-keys and labels are trimmed. Duplicate trimmed lookup keys are rejected, even when labels
-match. Required code-to-label joins must exist and labels must be nonblank. The seasonal lookup
-is consumed and checked; only the observed `S` and `U` keys and their checked fixture labels
-(`Seasonal Adjusted`, `Not Seasonally Adjusted`) are accepted. They normalize to `SA` and `NSA`.
+keys and labels are trimmed at both ends. Blank keys or labels are rejected, as are duplicate
+keys that become equal after trimming. Required code-to-label joins must exist. The seasonal
+lookup is consumed and checked; only the observed `S` and `U` keys and their checked fixture
+labels (`Seasonal Adjusted`, `Not Seasonally Adjusted`) are accepted. They normalize to `SA`
+and `NSA`.
 
-The parser retains one canonical row per input series row in source order, trims only the
-source ID and lookup labels, rejects duplicate trimmed IDs, and returns exactly the canonical
-schema in `docs/schema-v1.md`. The checked-in PR sample IDs follow `PR`, seasonal `S`/`U`, then
-the sector, class, measure, and duration codes, producing the fixture-observed layout
-`PR[SU]` plus eight digits. The parser enforces that layout and case-insensitive component
-equality but treats it as a local fixture contract, not a universal official ID specification.
-Source begin/end years and periods use the same bounded validation as native parsing.
-`base_year` is not canonical output metadata.
+For each series row, the parser trims `series_id`, `sector_code`, `class_code`, `measure_code`,
+`duration_code`, `seasonal`, `begin_year`, `end_year`, `begin_period`, `end_period`, and
+`base_year`. The trimmed component codes and seasonal code are lookup keys and are used to
+check that the series ID matches its components; blank or missing keys are rejected. The
+trimmed ID must match the observed layout and be unique. Trimmed years and periods are subject
+to bounded format, range, and consistency validation. For an `Index (YYYY=100)` duration label,
+the trimmed `base_year` must match `YYYY`; other duration labels do not trigger that check.
+
+The parser retains one canonical row per input series row in source order and returns exactly
+the schema in `docs/schema-v1.md`. It emits the trimmed ID, lookup-label-based title, normalized
+seasonal value, integer begin/end years, and trimmed end period (or null when blank). The
+trimmed begin period, component codes, and `base_year` are used for validation but are not
+canonical output fields. The checked-in PR sample IDs follow `PR`, seasonal `S`/`U`, then the
+sector, class, measure, and duration codes, producing the fixture-observed layout `PR[SU]`
+plus eight digits. The parser enforces that layout and case-insensitive component equality but
+treats it as a local fixture contract, not a universal official ID specification.
+
+## Independent report evidence for PR title fields
+
+The checked-in excerpt fixture `tests/fixtures/real_synthesized/pr-series-descriptions.json` records
+independently fetched official BLS series reports for [PRS30006011](https://data.bls.gov/timeseries/PRS30006011),
+[PRS30006012](https://data.bls.gov/timeseries/PRS30006012), and
+[PRS30006013](https://data.bls.gov/timeseries/PRS30006013). The offline builder test compares each
+report's Measure, Sector, and Duration fields with the corresponding generated title components.
+These reports do not expose Class; therefore `All workers` is supported by the checked-in PR class
+lookup fixture, but is not independently verified by these official reports. The excerpts are not
+official full synthesized titles and do not establish broader PR source contracts.
 
 ## Approved title
 

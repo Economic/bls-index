@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from bls_index.synthesized_builders import (
 )
 
 FIXTURES = Path(__file__).parent / "fixtures" / "two_program" / "pr"
+REPORT_FIXTURE = Path(__file__).parent / "fixtures" / "real_synthesized" / "pr-series-descriptions.json"
 
 
 def _sources(tmp_path: Path) -> dict[str, Path]:
@@ -59,6 +61,31 @@ def test_pr_builder_returns_exact_canonical_schema_and_approved_title(tmp_path):
     )
     assert frame.get_column("title_source").unique().to_list() == ["synthesized"]
     assert frame.get_column("program").unique().to_list() == ["pr"]
+
+
+def test_pr_builder_title_fields_match_independent_bls_reports(tmp_path):
+    frame = parse_pr_sources(_sources(tmp_path))
+    report_records = json.loads(REPORT_FIXTURE.read_text(encoding="utf-8"))["reports"]
+    reports = {report["series_id"]: report for report in report_records}
+    series_ids = ("PRS30006011", "PRS30006012", "PRS30006013")
+    generated_titles = dict(
+        zip(
+            frame.get_column("series_id").to_list(),
+            frame.get_column("series_title").to_list(),
+            strict=True,
+        )
+    )
+
+    for series_id in series_ids:
+        report = reports[series_id]
+        title_components = dict(
+            component.split(": ", maxsplit=1)
+            for component in generated_titles[series_id].split("; ")
+        )
+        for component in ("Measure", "Sector", "Duration"):
+            assert title_components[component] == report[component.lower()]
+        # Official series reports do not expose Class, so this test does not
+        # independently verify the generated "All workers" component.
 
 
 def test_pr_builder_uses_seasonal_lookup_and_preserves_trimmed_ids(tmp_path):
