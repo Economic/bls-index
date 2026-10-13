@@ -77,8 +77,12 @@ fixed initial 33-program scope; `--programs` accepts an explicit unique subset. 
 invocation creates a new `dry-build-<UTC-time>-<random-id>` directory under required
 `--workdir`; it does not replace prior runs. The run includes `report.json`, raw verified
 source inputs, per-program artifacts, and `combined/bls_index.parquet` only on success.
-Failed and incomplete runs still write a diagnostic report and do not expose a combined
-candidate. The command has no object-store, publication, or GitHub workflow integration.
+Failed and incomplete runs write a diagnostic report and do not expose a combined
+candidate. `report.json` is checkpointed at run start and after each program; a recoverable
+failure records the failed stage. A hard process kill or unavailable/full disk cannot be
+caught or reported reliably: in those cases only the last successfully written checkpoint
+may remain, and no stronger recovery guarantee is made. The command has no object-store,
+publication, or GitHub workflow integration.
 
 For a controlled offline run, use the local fixture HTTP source from the test harness or
 serve a compatible fixture tree and pass its URL with `--base-url`; the default base URL
@@ -89,10 +93,12 @@ fixture servers. Fetch attempts are bounded by `--max-request-attempts` and
 
 The JSON report records requested scope and per-input sizes/SHA-256, per-program
 download/build durations, row counts and bundle checksums, combined artifact size/checksum,
-pinned dictionary validation durations, representative in-memory search query durations
-and result counts, source total bytes, runtime/platform/CPU/revision, peak RSS, and
-filesystem capacity/output bytes. Timings are observations, not estimates or acceptance
-thresholds. Peak RSS records both `getrusage(RUSAGE_SELF)` and
+pinned dictionary validation durations, combined-Parquet load time, representative
+in-memory search query durations and result counts, source total bytes, runtime/platform/CPU/
+revision, peak RSS, and filesystem capacity/output bytes. Search examples are unemployment
+in `ln` with `NSA` seasonality and registered nurses in `oe` with `NSA` seasonality; each
+query reports count and elapsed time separately from the combined-file load. Timings are
+observations, not estimates or acceptance thresholds. Peak RSS records both `getrusage(RUSAGE_SELF)` and
 `getrusage(RUSAGE_CHILDREN)`, including terminated `data-dict` child processes. The child
 value is the maximum child-process peak, not a concurrent aggregate; both values use the
 same platform-specific source unit (KiB except bytes on macOS) and include normalized

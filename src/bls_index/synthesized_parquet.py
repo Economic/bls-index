@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from bls_index.clock import Clock
 from bls_index.http_source import InputSet
 from bls_index.native_parquet import (
     NativeParquetBuildError,
+    TimingCallback,
     _write_parquet_bundle,
 )
 from bls_index.synthesized_builders import (
@@ -52,6 +54,8 @@ def build_synthesized_parquet(
     input_set: InputSet,
     output_dir: str | Path,
     clock: Clock,
+    *,
+    timing_callback: TimingCallback | None = None,
 ) -> SynthesizedParquetBuild:
     """Build a local schema-v1 bundle from one verified SM, JT, or PR ``InputSet``.
 
@@ -59,6 +63,11 @@ def build_synthesized_parquet(
     parses exact source snapshots, and checks the downloaded paths after parsing. The
     shared writer then records every input and checks every downloaded file after output
     staging and immediately before publication or bundle reuse. No requests are made.
+
+    If provided, ``timing_callback`` receives elapsed seconds for input validation,
+    the parser call (including work internal to that parser), full Parquet bundle
+    staging/publication, and the exact ``DataFrame.write_parquet`` call. The write
+    duration is included in staging duration; do not sum these overlapping measures.
     """
     program = input_set.program
     parser_info = _PARSERS.get(program)
@@ -67,9 +76,19 @@ def build_synthesized_parquet(
             f"unsupported synthesized program {program!r}; supported: {tuple(_PARSERS)!r}"
         )
     names, parser = parser_info
+    timings = {
+        "input_validation_seconds": 0.0,
+        "parse_seconds": 0.0,
+        "parquet_staging_seconds": 0.0,
+        "parquet_write_seconds": 0.0,
+    }
     try:
+        validation_started = time.perf_counter()
         records_by_name = _validate_program_input_set(input_set, program, names)
+        timings["input_validation_seconds"] = time.perf_counter() - validation_started
+        parse_started = time.perf_counter()
         frame = parser(input_set)
+        timings["parse_seconds"] = time.perf_counter() - parse_started
         build = _write_parquet_bundle(
             program,
             frame,
@@ -77,9 +96,12 @@ def build_synthesized_parquet(
             output_dir,
             clock,
             verify_after_output_staging=True,
+            timing_results=timings,
         )
     except (SynthesizedSeriesError, NativeParquetBuildError) as exc:
         raise SynthesizedParquetBuildError(str(exc)) from exc
+    if timing_callback is not None:
+        timing_callback(dict(timings))
     return SynthesizedParquetBuild(
         build.program,
         build.row_count,

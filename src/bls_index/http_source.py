@@ -231,6 +231,9 @@ class HttpSource:
         self._clock = clock
         self._sleep = sleep
         self._pacer = pacer or RequestPacer(config.min_request_interval)
+        self._transfer_metrics_lock = threading.Lock()
+        self._received_body_bytes = 0
+        self._request_attempts = 0
         self._client = httpx.Client(
             headers={
                 "User-Agent": validate_user_agent(config.user_agent),
@@ -241,6 +244,22 @@ class HttpSource:
             limits=httpx.Limits(max_connections=config.max_concurrency),
             follow_redirects=False,
         )
+
+    @property
+    def received_body_bytes(self) -> int:
+        """Cumulative HTTP application-body bytes yielded by response iterators.
+
+        This excludes headers, framing, and wire bytes; bytes buffered below HTTPX but
+        never yielded to ``iter_raw`` cannot be observed. Partial bodies count as received.
+        """
+        with self._transfer_metrics_lock:
+            return self._received_body_bytes
+
+    @property
+    def request_attempts(self) -> int:
+        """Cumulative number of GET send attempts, including retries and rechecks."""
+        with self._transfer_metrics_lock:
+            return self._request_attempts
 
     def close(self) -> None:
         self._client.close()
@@ -312,6 +331,8 @@ class HttpSource:
                     paced_seconds=round(paced, 3),
                 )  # fmt: skip
                 started = self._clock.now()
+                with self._transfer_metrics_lock:
+                    self._request_attempts += 1
                 resp = self._client.send(request, stream=True)
             try:
                 status = resp.status_code
@@ -333,6 +354,10 @@ class HttpSource:
                 with dest.open("wb") as fh:
                     body_started = True
                     for chunk in resp.iter_raw(1 << 20):
+                        # Count bytes as HTTPX yields them, before local disk writes. If a
+                        # later read or write fails, the already received body stays counted.
+                        with self._transfer_metrics_lock:
+                            self._received_body_bytes += len(chunk)
                         digest.update(chunk)
                         fh.write(chunk)
                         size += len(chunk)

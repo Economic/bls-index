@@ -1,0 +1,84 @@
+# Manual local-only BLS catalog build. Artifacts contain diagnostics only, never sources or Parquet.
+name: dry-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      programs:
+        description: "Initial-scope programs, or 'initial' for all 33"
+        default: "initial"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bls-index-dry-build
+  cancel-in-progress: false
+
+jobs:
+  dry-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      # Stored as a repository secret. It must not contain "github": BLS returns 403.
+      BLS_INDEX_USER_AGENT: ${{ secrets.BLS_INDEX_USER_AGENT }}
+      ARTIFACT_DIR: ${{ runner.temp }}/dry-build-artifacts
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.10.3"
+      - name: Install locked toolchain
+        run: uv sync --frozen
+      - name: Record runner resources
+        run: |
+          rm -rf "$ARTIFACT_DIR"
+          mkdir -p "$ARTIFACT_DIR"
+          uv run --frozen bls-index runner-info --workdir "$RUNNER_TEMP" \
+            > "$ARTIFACT_DIR/runner-info.json"
+      - name: Build locally and stage diagnostic JSON only
+        env:
+          PROGRAMS: ${{ inputs.programs }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/dry-build-work" "$ARTIFACT_DIR"
+          set +e
+          uv run --frozen bls-index dry-build \
+            --programs "$PROGRAMS" \
+            --workdir "$RUNNER_TEMP/dry-build-work"
+          build_status=$?
+          set -e
+
+          # The CLI writes report.json and sanitized events.jsonl inside its fresh run
+          # directory. Keep raw downloads, bundles, and Parquet outside the artifact tree.
+          run_dir="$(find "$RUNNER_TEMP/dry-build-work" -mindepth 1 -maxdepth 1 \
+            -type d -name 'dry-build-*' -print -quit)"
+          if [ -n "$run_dir" ]; then
+            [ ! -f "$run_dir/report.json" ] || cp "$run_dir/report.json" "$ARTIFACT_DIR/dry-build-report.json"
+            [ ! -f "$run_dir/events.jsonl" ] || cp "$run_dir/events.jsonl" "$ARTIFACT_DIR/dry-build-events.jsonl"
+          elif [ "$build_status" -eq 0 ]; then
+            echo "::error::dry-build succeeded without producing a run directory"
+            exit 1
+          fi
+          exit "$build_status"
+      # GitHub masks secrets in logs but not artifacts. Scan every staged file before upload.
+      - name: Check candidate artifacts for the User-Agent
+        id: user-agent-check
+        if: always()
+        run: |
+          [ -n "$BLS_INDEX_USER_AGENT" ] || exit 0
+          if [ -d "$ARTIFACT_DIR" ]; then
+            while IFS= read -r -d '' f; do
+              if grep -qF -- "$BLS_INDEX_USER_AGENT" "$f"; then
+                echo "::error::A candidate artifact contains the User-Agent; not uploading artifacts"
+                exit 1
+              fi
+            done < <(find "$ARTIFACT_DIR" -type f -print0)
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always() && steps.user-agent-check.outcome == 'success'
+        with:
+          name: dry-build-${{ github.run_id }}
+          path: ${{ runner.temp }}/dry-build-artifacts/
+          if-no-files-found: warn
+          retention-days: 7

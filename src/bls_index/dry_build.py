@@ -49,6 +49,53 @@ def _tree_bytes(path: Path) -> int:
     return sum(p.stat().st_size for p in path.rglob("*") if p.is_file())
 
 
+def validate_dry_build_base_url(base_url: str) -> str:
+    """Reject URL components that could carry credentials or leak through provenance."""
+    try:
+        parsed = urlsplit(base_url)
+        # Reject even empty query/fragment delimiters: there is no dry-build use for them.
+        unsafe_delimiter = "?" in base_url or "#" in base_url
+        hostname = parsed.hostname
+        _ = parsed.port
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise ValueError("base_url must be a safe HTTP(S) URL without credentials, query, or fragment") from exc
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or unsafe_delimiter
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("base_url must be a safe HTTP(S) URL without credentials, query, or fragment")
+    return base_url
+
+
+def _write_checkpoint(run_dir: Path, requested: Sequence[str], programs: list[dict[str, Any]],
+                      completed: Sequence[str], *, checkpoint: str) -> None:
+    report = {
+        "schema_version": 1,
+        "workflow": "local_dry_build",
+        "status": "in_progress",
+        "checkpoint": checkpoint,
+        "requested_programs": list(requested),
+        "completed_programs": list(completed),
+        "programs": programs,
+        "combined": None,
+    }
+    target = run_dir / "report.json"
+    temporary = run_dir / f".report-{uuid.uuid4().hex}.tmp"
+    try:
+        with temporary.open("x", encoding="utf-8") as stream:
+            stream.write(json.dumps(report, indent=2, sort_keys=True) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, target)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def _memory_bytes(field: str) -> int | None:
     try:
         for line in Path("/proc/meminfo").read_text(encoding="utf-8").splitlines():
@@ -97,7 +144,7 @@ def _peak_rss() -> dict[str, Any]:
     }
 
 
-def _query_metrics(parquet_path: Path) -> list[dict[str, Any]]:
+def _query_metrics(parquet_path: Path) -> tuple[float, list[dict[str, Any]]]:
     queries: tuple[tuple[str, Callable[[pl.DataFrame], pl.DataFrame]], ...] = (
         ("row_count", lambda frame: frame.select(pl.len().alias("count"))),
         (
@@ -105,26 +152,34 @@ def _query_metrics(parquet_path: Path) -> list[dict[str, Any]]:
             lambda frame: frame.select(pl.col("program").n_unique().alias("count")),
         ),
         (
-            "prefix_lookup_ap",
-            lambda frame: frame.filter(pl.col("series_id").str.starts_with("AP")),
+            "unemployment_ln_nsa",
+            lambda frame: frame.filter(
+                (pl.col("program") == "ln")
+                & (pl.col("seasonal") == "NSA")
+                & pl.col("series_title").str.contains("(?i)unemployment")
+            ),
         ),
         (
-            "title_contains_employment",
+            "registered_nurses_oe_nsa",
             lambda frame: frame.filter(
-                pl.col("series_title").str.contains("(?i)employment")
+                (pl.col("program") == "oe")
+                & (pl.col("seasonal") == "NSA")
+                & pl.col("series_title").str.contains("(?i)registered\\s+nurses")
             ),
         ),
     )
     output: list[dict[str, Any]] = []
-    # Queries operate on one already-loaded DataFrame; elapsed time excludes Parquet read.
+    load_started = time.perf_counter()
     frame = pl.read_parquet(parquet_path)
+    load_seconds = time.perf_counter() - load_started
+    # Queries operate on one already-loaded DataFrame; each elapsed time excludes read.
     for name, query in queries:
         started = time.perf_counter()
         result = query(frame)
         elapsed = time.perf_counter() - started
         count = result.item(0, "count") if name in {"row_count", "distinct_programs"} else result.height
         output.append({"name": name, "elapsed_seconds": elapsed, "result_count": count})
-    return output
+    return load_seconds, output
 
 
 def run_dry_build(
@@ -141,6 +196,9 @@ def run_dry_build(
     requested = tuple(programs)
     if not requested or len(requested) != len(set(requested)):
         raise ValueError("requested program scope must be nonempty and unique")
+    config = getattr(source, "config", None)
+    if config is not None and hasattr(config, "base_url"):
+        validate_dry_build_base_url(config.base_url)
     unknown = sorted(set(requested) - set(INITIAL_PROGRAMS))
     if unknown:
         raise ValueError(f"requested programs outside initial scope: {unknown!r}")
@@ -161,6 +219,7 @@ def run_dry_build(
     failure: dict[str, str] | None = None
 
     events.record("dry_build.started", programs=list(requested), run_directory=str(run_dir))
+    _write_checkpoint(run_dir, requested, programs_report, (), checkpoint="started")
     for program in requested:
         events.record("dry_build.program_started", program=program)
         item: dict[str, Any] = {
@@ -168,6 +227,8 @@ def run_dry_build(
             "input_files_requested": list(input_files(program)),
             "status": "failed",
         }
+        bytes_before = source.received_body_bytes
+        attempts_before = source.request_attempts
         download_started = time.perf_counter()
         try:
             input_set = source.fetch_input_set(program, downloads_dir)
@@ -180,8 +241,27 @@ def run_dry_build(
             programs_report.append(item)
             failure = {"program": program, "stage": "download", "reason": exc.reason,
                        "detail": _safe_failure_detail(exc.detail)}
+            _write_checkpoint(run_dir, requested, programs_report,
+                              [entry["program"] for entry in programs_report if entry["status"] == "built"],
+                              checkpoint=f"program_failed:{program}")
+            break
+        except OSError as exc:
+            item["download_seconds"] = time.perf_counter() - download_started
+            detail = _safe_failure_detail(str(exc))
+            events.record("dry_build.program_failed", program=program, stage="download",
+                          reason=type(exc).__name__, detail=detail)
+            item["failure"] = {"type": type(exc).__name__, "detail": detail}
+            programs_report.append(item)
+            failure = {"program": program, "stage": "download", "reason": type(exc).__name__,
+                       "detail": detail}
+            _write_checkpoint(run_dir, requested, programs_report,
+                              [entry["program"] for entry in programs_report if entry["status"] == "built"],
+                              checkpoint=f"program_failed:{program}")
             break
         item["download_seconds"] = time.perf_counter() - download_started
+        item["received_body_bytes"] = source.received_body_bytes - bytes_before
+        item["http_request_attempts"] = source.request_attempts - attempts_before
+        item["verification_read_bytes"] = sum(record.bytes for record in input_set.rechecks)
         item["input_set_attempts"] = input_set.attempts
         item["sources"] = [
             {"url": _safe_url(record.url), "bytes": record.bytes, "sha256": record.sha256,
@@ -193,9 +273,9 @@ def run_dry_build(
         build_started = time.perf_counter()
         try:
             result = (
-                build_native_parquet(input_set, bundles_dir, clock)
+                build_native_parquet(input_set, bundles_dir, clock, timing_callback=lambda values: item.update(stage_seconds=values))
                 if program in NATIVE_TITLE_PROGRAMS
-                else build_synthesized_parquet(input_set, bundles_dir, clock)
+                else build_synthesized_parquet(input_set, bundles_dir, clock, timing_callback=lambda values: item.update(stage_seconds=values))
             )
         except Exception as exc:
             item["build_seconds"] = time.perf_counter() - build_started
@@ -205,6 +285,9 @@ def run_dry_build(
             programs_report.append(item)
             failure = {"program": program, "stage": "build", "reason": type(exc).__name__,
                        "detail": _safe_failure_detail(str(exc))}
+            _write_checkpoint(run_dir, requested, programs_report,
+                              [entry["program"] for entry in programs_report if entry["status"] == "built"],
+                              checkpoint=f"program_failed:{program}")
             break
         item["build_seconds"] = time.perf_counter() - build_started
         item["status"] = "built"
@@ -220,6 +303,9 @@ def run_dry_build(
         build_results[program] = result
         events.record("dry_build.program_built", program=program, row_count=result.row_count,
                       parquet_bytes=result.parquet_bytes, parquet_sha256=result.parquet_sha256)
+        _write_checkpoint(run_dir, requested, programs_report,
+                          [entry["program"] for entry in programs_report if entry["status"] == "built"],
+                          checkpoint=f"program_completed:{program}")
 
     combined_info: dict[str, Any] | None = None
     dictionary_metrics: dict[str, float] = {}
@@ -231,14 +317,24 @@ def run_dry_build(
         try:
             frames: dict[str, pl.DataFrame] = {}
             for program in requested:
-                frames[program] = pl.read_parquet(build_results[program].parquet_path)
+                result = build_results[program]
+                actual_bytes = result.parquet_path.stat().st_size
+                actual_sha256 = _sha256(result.parquet_path)
+                if actual_bytes != result.parquet_bytes or actual_sha256 != result.parquet_sha256:
+                    raise ValueError(
+                        f"bundle integrity check failed for {program}: "
+                        f"expected {result.parquet_sha256} ({result.parquet_bytes} bytes), "
+                        f"got {actual_sha256} ({actual_bytes} bytes)"
+                    )
+                frames[program] = pl.read_parquet(result.parquet_path)
             combined = write_combined_candidate(
                 frames, requested, combined_path, dictionary_path=dictionary_path,
                 timing_callback=lambda check, seconds: dictionary_metrics.__setitem__(check, seconds),
             )
             combined_seconds = time.perf_counter() - combined_started
-            query_metrics = _query_metrics(combined_path)
+            combined_load_seconds, query_metrics = _query_metrics(combined_path)
             combined_info = {
+                "load_seconds": combined_load_seconds,
                 "path": str(combined_path.relative_to(run_dir)),
                 "bytes": combined_path.stat().st_size,
                 "sha256": _sha256(combined_path),
@@ -262,6 +358,10 @@ def run_dry_build(
         "schema_version": 1,
         "workflow": "local_dry_build",
         "status": "success" if failure is None else "failed",
+        "checkpoint": (
+            "completed" if failure is None else
+            f"program_failed:{failure['program']}" if "program" in failure else "combined_failed"
+        ),
         "requested_programs": list(requested),
         "scope_complete": failure is None and set(build_results) == set(requested),
         "initial_scope_complete": (
@@ -289,6 +389,9 @@ def run_dry_build(
             "programs_requested": len(requested),
             "programs_built": len(build_results),
             "source_total_bytes": sum(item.get("source_total_bytes", 0) for item in programs_report),
+            "received_body_bytes": source.received_body_bytes,
+            "http_request_attempts": source.request_attempts,
+            "verification_read_bytes": sum(item.get("verification_read_bytes", 0) for item in programs_report),
             "download_seconds": sum(item.get("download_seconds", 0) for item in programs_report),
             "build_seconds": sum(item.get("build_seconds", 0) or 0 for item in programs_report),
             "combined_seconds": combined_seconds,
@@ -306,7 +409,15 @@ def run_dry_build(
         ],
     }
     report_path = run_dir / "report.json"
-    report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    report_tmp = run_dir / f".report-{uuid.uuid4().hex}.tmp"
+    try:
+        with report_tmp.open("x", encoding="utf-8") as stream:
+            stream.write(json.dumps(report, indent=2, sort_keys=True) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(report_tmp, report_path)
+    finally:
+        report_tmp.unlink(missing_ok=True)
     events.record("dry_build.finished", status=report["status"],
                   programs_built=report["summary"]["programs_built"])
     _write_sanitized_events(events, run_dir / "events.jsonl")
@@ -323,7 +434,10 @@ def _write_sanitized_events(events: EventLog, path: Path) -> None:
 
 def _sanitize_event_value(value: Any) -> Any:
     if isinstance(value, dict):
-        return {key: _sanitize_event_value(item) for key, item in value.items()}
+        return {
+            _safe_failure_detail(str(key)): _sanitize_event_value(item)
+            for key, item in value.items()
+        }
     if isinstance(value, list):
         return [_sanitize_event_value(item) for item in value]
     if isinstance(value, str):

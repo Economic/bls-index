@@ -10,7 +10,7 @@ from pathlib import Path
 
 from bls_index.clock import SystemClock
 from bls_index.events import EventLog
-from bls_index.dry_build import run_dry_build
+from bls_index.dry_build import run_dry_build, validate_dry_build_base_url
 from bls_index.http_source import DEFAULT_BASE_URL, FetchConfig, HttpSource, user_agent_from_env
 from bls_index.probe import run_probe
 from bls_index.runner_info import runner_info
@@ -83,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "dry-build":
         try:
+            validate_dry_build_base_url(args.base_url)
             config = FetchConfig(
                 user_agent=user_agent_from_env(), base_url=args.base_url,
                 max_concurrency=1, min_request_interval=args.min_request_interval,

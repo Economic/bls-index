@@ -15,6 +15,8 @@ import re
 import shutil
 import sys
 import tempfile
+import time
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -34,6 +36,7 @@ from bls_index.native_builders import (
 _COPY_CHUNK_SIZE = 1024 * 1024
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _RENAME_NOREPLACE = 1
+TimingCallback = Callable[[Mapping[str, float]], None]
 
 
 class NativeParquetBuildError(ValueError):
@@ -205,8 +208,10 @@ def _write_parquet_bundle(
     clock: Clock,
     *,
     verify_after_output_staging: bool = False,
+    timing_results: dict[str, float] | None = None,
 ) -> NativeParquetBuild:
     """Write and atomically expose a canonical frame with all verified input records."""
+    staging_started = time.perf_counter()
     if frame.schema != CANONICAL_SCHEMA or frame.height < 1:
         raise NativeParquetBuildError("builder returned an invalid canonical frame")
     for record in records:
@@ -224,7 +229,11 @@ def _write_parquet_bundle(
         program_dir.mkdir(parents=True, exist_ok=True)
         staging_dir = Path(tempfile.mkdtemp(prefix=".native-build-", dir=program_dir))
         parquet_path = staging_dir / "catalog.parquet"
+        write_started = time.perf_counter()
         frame.write_parquet(parquet_path, compression="zstd")
+        if timing_results is not None:
+            # Exact serialization/compression call only; hashing and bundle staging follow.
+            timing_results["parquet_write_seconds"] = time.perf_counter() - write_started
         parquet_sha256, parquet_bytes = _hash_artifact(parquet_path)
         if not verify_after_output_staging:
             _verify_records(records, "before publication")
@@ -302,6 +311,9 @@ def _write_parquet_bundle(
     except Exception as exc:
         raise NativeParquetBuildError(f"Parquet build failed: {exc}") from exc
     finally:
+        if timing_results is not None:
+            # Includes Parquet serialization plus hashing, provenance, checks, and publish/reuse.
+            timing_results["parquet_staging_seconds"] = time.perf_counter() - staging_started
         if staging_dir is not None:
             shutil.rmtree(staging_dir, ignore_errors=True)
         if made_program_dir:
@@ -320,6 +332,8 @@ def build_native_parquet(
     input_set: InputSet,
     output_dir: str | Path,
     clock: Clock,
+    *,
+    timing_callback: TimingCallback | None = None,
 ) -> NativeParquetBuild:
     """Build a local schema-v1 Parquet bundle from an explicitly verified InputSet.
 
@@ -327,15 +341,30 @@ def build_native_parquet(
     is checked after parsing and again at output staging/publication boundaries. Output is
     zstd-compressed and atomically published without replacement. A matching content-addressed
     bundle is reused; unrelated or mismatched existing data is never overwritten.
+
+    If provided, ``timing_callback`` receives elapsed seconds for input validation,
+    the parser call, full Parquet bundle staging/publication, and the exact
+    ``DataFrame.write_parquet`` call. The write duration is included in staging duration;
+    these phase measurements overlap and must not be summed as a whole-build time.
     """
+    timings = {
+        "input_validation_seconds": 0.0,
+        "parse_seconds": 0.0,
+        "parquet_staging_seconds": 0.0,
+        "parquet_write_seconds": 0.0,
+    }
+    validation_started = time.perf_counter()
     program = input_set.program
     record, source_path = _validate_input_set(input_set, program)
+    timings["input_validation_seconds"] += time.perf_counter() - validation_started
     try:
         _verify_source(source_path, record, "before staging")
         with tempfile.TemporaryDirectory(prefix="bls-native-input-") as source_staging:
             snapshot = Path(source_staging) / "source.series"
             _copy_verified_snapshot(source_path, snapshot, record)
+            parse_started = time.perf_counter()
             frame = parse_native_series(snapshot, program)
+            timings["parse_seconds"] = time.perf_counter() - parse_started
         if frame.schema != CANONICAL_SCHEMA:
             raise NativeParquetBuildError("native parser returned a non-canonical schema")
         if frame.height < 1:
@@ -343,4 +372,9 @@ def build_native_parquet(
         _verify_source(source_path, record, "after parsing")
     except NativeSeriesError as exc:
         raise NativeParquetBuildError(str(exc)) from exc
-    return _write_parquet_bundle(program, frame, (record,), output_dir, clock)
+    build = _write_parquet_bundle(
+        program, frame, (record,), output_dir, clock, timing_results=timings
+    )
+    if timing_callback is not None:
+        timing_callback(dict(timings))
+    return build
