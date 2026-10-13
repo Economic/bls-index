@@ -23,7 +23,7 @@ jobs:
     env:
       # Stored as a repository secret. It must not contain "github": BLS returns 403.
       BLS_INDEX_USER_AGENT: ${{ secrets.BLS_INDEX_USER_AGENT }}
-      ARTIFACT_DIR: ${{ runner.temp }}/dry-build-artifacts
+      ARTIFACT_DIR: ${{ github.workspace }}/dry-build-artifacts
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -79,6 +79,6 @@ jobs:
         if: always() && steps.user-agent-check.outcome == 'success'
         with:
           name: dry-build-${{ github.run_id }}
-          path: ${{ runner.temp }}/dry-build-artifacts/
+          path: dry-build-artifacts/
           if-no-files-found: warn
           retention-days: 7
