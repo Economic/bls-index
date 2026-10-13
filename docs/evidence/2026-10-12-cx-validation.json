@@ -52,6 +52,6 @@
     "range_derived_from": "series_id column scanned across all data rows in the full downloaded file before parsing",
     "source_rows_scanned": 183935,
     "parser": "bls_index.native_builders.parse_native_series",
-    "no_programs_other_than_cx_changed": true
+    "validation_scope": "CX only; this result makes no claim about concurrent changes or validation of other programs. Parser revision and file hash for the later repeat run are recorded in 2026-10-12-native-mapping-validation.json."
   }
 }

@@ -299,6 +299,39 @@ SERIES_ID_COMPONENTS: dict[str, tuple[str, ...]] = {
     "wp": ("seasonal", "group_code", "item_code"),
 }
 
+# Independently verified ID slices for programs whose official documentation and
+# current source columns do not support one contiguous, complete layout. Each entry
+# is (source field, zero-based ID offset, width, source prefix width). Unlisted ID
+# positions remain opaque; do not fill them by guessing from sample suffixes.
+SERIES_ID_FIELD_SLICES: dict[str, tuple[tuple[str, int, int, int], ...]] = {
+    "ei": (("index_code", 3, 2, 2),),
+    "ci": (
+        ("owner_code", 3, 1, 1), ("estimate_code", 4, 2, 2),
+        ("industry_code", 6, 4, 4), ("occupation_code", 10, 3, 3),
+        ("subcell_code", 13, 2, 2), ("periodicity_code", 16, 1, 1),
+    ),
+    "cm": (("owner_code", 3, 1, 1), ("datatype_code", 16, 1, 1)),
+    "lu": (("lfst_code", 4, 2, 2), ("fips_code", 11, 2, 2)),
+    "tu": (("stattype_code", 3, 5, 5), ("datays_code", 10, 2, 2)),
+    "nb": (
+        ("ownership_code", 3, 1, 1), ("estimate_code", 4, 2, 2),
+        ("industry_code", 6, 4, 4), ("occupation_code", 10, 6, 6),
+        ("subcell_code", 16, 2, 2), ("datatype_code", 18, 2, 2),
+        ("provision_code", 20, 3, 3),
+    ),
+    "or": (
+        ("requirement_code", 3, 1, 1), ("ownership_code", 4, 1, 1),
+        ("industry_code", 5, 4, 4), ("occupation_code", 9, 3, 3),
+        ("job_characteristic_code", 12, 3, 3),
+    ),
+    "wm": (
+        ("area_code", 3, 7, 7), ("ownership_code", 10, 1, 1),
+        ("estimate_code", 11, 2, 2), ("industry_code", 13, 6, 6),
+        ("occupation_code", 19, 6, 6), ("subcell_code", 25, 2, 2),
+        ("level_code", 27, 2, 2),
+    ),
+}
+
 
 def series_id_pattern(program: str) -> str:
     """Regex for the documented ID shape of an explicitly selected program."""
@@ -355,6 +388,18 @@ def _series_id_components_expr(program: str) -> pl.Expr:
         else:
             parts.append(pl.col(part).str.strip_chars())
     return pl.concat_str([pl.lit(SERIES_ID_PREFIXES[program]), *parts])
+
+
+def _series_id_field_slice_checks(program: str) -> list[pl.Expr]:
+    """Return mismatch expressions for explicitly verified source-field ID slices."""
+    checks = []
+    for field, offset, width, source_width in SERIES_ID_FIELD_SLICES.get(program, ()):
+        expected = pl.col(field).str.strip_chars().str.slice(0, source_width)
+        actual = pl.col("series_id").str.slice(offset, width)
+        checks.append(
+            (actual.str.to_uppercase() != expected.str.to_uppercase()).fill_null(True)
+        )
+    return checks
 _COPY_CHUNK_SIZE = 1024 * 1024
 
 
@@ -560,11 +605,17 @@ def _parse_snapshot(snapshot: Path, source_path: Path, program: str) -> pl.DataF
         if program in SERIES_ID_COMPONENTS
         else pl.lit(False)
     )
+    field_slice_mismatch = (
+        pl.any_horizontal(_series_id_field_slice_checks(program))
+        if program in SERIES_ID_FIELD_SLICES
+        else pl.lit(False)
+    )
     bad_id = normalized.filter(
         pl.col("series_id").is_null()
         | ~pl.col("series_id").str.to_uppercase().str.contains(SERIES_ID_PATTERNS[program])
         | (pl.col("series_id") == "")
         | invalid_id_components
+        | field_slice_mismatch
         | (
             (
                 pl.col("series_id").str.to_uppercase()

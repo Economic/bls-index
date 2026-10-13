@@ -11,6 +11,7 @@ from bls_index.native_builders import (
     NativeSeriesError,
     SOURCE_HEADERS,
     SERIES_ID_COMPONENTS,
+    SERIES_ID_FIELD_SLICES,
     SUPPORTED_NATIVE_PROGRAMS,
     parse_native_series,
     valid_series_id,
@@ -336,6 +337,27 @@ def test_documented_id_dimensions_must_match_source_columns(tmp_path, program, f
     original = row[header.index(field)]
     changed = ("Z" if not original.startswith("Z") else "Y") + original[1:]
     row[header.index(field)] = changed
+    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+    with pytest.raises(NativeSeriesError, match="invalid series_id"):
+        parse_native_series(path, program)
+
+
+@pytest.mark.parametrize(
+    ("program", "field"),
+    [
+        (program, field)
+        for program, slices in SERIES_ID_FIELD_SLICES.items()
+        for field, _offset, _width, _source_width in slices
+    ],
+)
+def test_verified_partial_id_field_mismatches_are_rejected(tmp_path, program, field):
+    path = _constructed_program_file(tmp_path, program)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split("\t")
+    row = lines[1].split("\t")
+    original = row[header.index(field)]
+    changed_prefix = "Z" if not original.strip().upper().startswith("Z") else "Y"
+    row[header.index(field)] = changed_prefix + original[1:]
     path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
     with pytest.raises(NativeSeriesError, match="invalid series_id"):
         parse_native_series(path, program)

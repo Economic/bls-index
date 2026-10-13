@@ -56,19 +56,44 @@ series-ID prefixes, reports, or a shared schema guess.
 
   Observed `_` and `-` separators are permitted in the remainder of IDs, including the
   verified `ip` and `nd` samples; full-file validation also observed embedded separators
-  in an `oe` industry component. Source-dimension comparisons are enabled only for the
-  layouts explicitly listed in `SERIES_ID_COMPONENTS`; variable-length IDs in other
-  programs are checked against observed length and character constraints, not guessed
-  component layouts. In particular, the `ep`, `is`, `mp`, and `ws` layouts are verified
-  against every retained local real-source row, including the `ep` removal of hyphens from
-  `occ_code` and `ind_code`. They are sample-verified, not claimed to cover every valid ID;
-  no program `.txt` confirmation is recorded for these mappings. Proposed `nb`, `or`, and
-  `wm` layouts did not match all their retained rows and remain unmapped rather than being
-  inferred: `nb` IDs include a `subcell_code` component that the proposed mapping omitted,
-  `or` rows encode a dimension inconsistent with the proposed `additive_code`, and `wm`
-  IDs do not match the proposed `subcell_code` plus `datatype_code` sequence. The prefixes are checks only after an
-  explicit adapter program is supplied; they are not a mechanism for selecting that
-  program.
+  in an `oe` industry component. Whole-layout source comparisons are listed in
+  `SERIES_ID_COMPONENTS`; independently verified source-field slices for incomplete or
+  non-contiguous mappings are listed in `SERIES_ID_FIELD_SLICES`. A partial slice check
+  constrains only the named source field at the documented ID position: every unlisted
+  position remains opaque, and variable-length IDs are still checked only against their
+  observed length and character constraints. These checks validate reported source fields;
+  they do not decode every characteristic in a series ID or establish categorical code
+  validity from mapping files.
+
+  Local offline inspection of official BLS `.txt` definitions saved in the session output
+  (no network fetch or live revalidation in this change) supports the following. URLs are
+  authoritative BLS documents; each SHA-256 is the identifier recorded beside that
+  document in the saved output. For EI, LU, TU, NB, and WM the official text provides a
+  complete ID decomposition; the parser cross-checks every segment that has an exact
+  source-column counterpart. This does not make a human-readable name or composite code
+  into a source ID field: EI's `series_name`, LU's `stype_code`/`seq_code`, and TU's
+  composite `character_code` are not compared to guessed source values.
+
+  | Program | Official definition | SHA-256 recorded in saved output | Supported ID/source comparisons |
+  |---|---|---|---|
+  | `ei` | [`ei.txt`](https://download.bls.gov/pub/time.series/ei/ei.txt) | `627a8941cf11ad87072dff8deaae44a76be908bcc1dc148ba88e95cdfc16f2ac` | `index_code` (ID positions 3–4); the official decomposition also names the remaining `series_name`, but only the index-code agreement is asserted here. |
+  | `ci` | [`ci.txt`](https://download.bls.gov/pub/time.series/ci/ci.txt) | `bb0bdc159fc18a91b675b07cb78bc43170f135cbf3e62184edb52dcce19b626d` | owner, estimate, industry prefix, occupation prefix, subcell, periodicity at their documented ID positions. The documented field widths and ID example do not form a complete one-to-one layout, so intervening ID positions are not decoded. |
+  | `cm` | [`cm.txt`](https://download.bls.gov/pub/time.series/cm/cm.txt) | `dc606274517a9b2f21b8e4bd99bf47d1c0500184c9ce39e91faf92fe6da34bf1` | owner at ID position 3 and datatype at position 16 only; other source dimensions are not assumed from the inconsistent example/field widths. |
+  | `fm` | [`fm.txt`](https://download.bls.gov/pub/time.series/fm/fm.txt) | `921aaa15df9b3e8bc1a60788091aa7b64f90724aab5219dde9c27b6840471143` | Program and seasonal prefix only; no suffix layout asserted. |
+  | `kv` | [`kv.txt`](https://download.bls.gov/pub/time.series/kv/kv.txt) | `2c5eee6d0f97890a2ea0aab98ef0ec0268a203d552e340a7583c4297d5952e41` | Program and seasonal prefix only. The definition explicitly says the remaining ID digits cannot be decoded into attributes. |
+  | `le` | [`le.txt`](https://download.bls.gov/pub/time.series/le/le.txt) | `1281c6d707cc85c357909a0447dbda7572e6852ffa7b1ada4b4e7efbd6fb5ee6` | Program and seasonal prefix only; no suffix layout asserted. |
+  | `ln` | [`ln.txt`](https://download.bls.gov/pub/time.series/ln/ln.txt) | `a9a089a9294b49a851d38aca16342028cd4bd95e8e0149bb00a470298065db0c` | Program and seasonal prefix only. The definition says attributes cannot be decoded from the remaining ID positions. |
+  | `lu` | [`lu.txt`](https://download.bls.gov/pub/time.series/lu/lu.txt) | `e4a6e6b0dcb873652466dcec8d235f525be44a4ca9bf4ba69fe7ff3b8b3a2b64` | `lfst_code` and `fips_code`; intervening positions are not asserted because the current source columns do not preserve all fields in the official example. |
+  | `tu` | [`tu.txt`](https://download.bls.gov/pub/time.series/tu/tu.txt) | `be7ba131fb9c45b52ace64762d25c7296601c004aa71d359fe31ba19cba9eb9a` | `stattype_code` and `datays_code`; remaining composite character positions are opaque. |
+  | `nb` | [`nb.txt`](https://download.bls.gov/pub/time.series/nb/nb.txt) | `b7ad02eb5a384d90a99ac904dd4098055693e59a01fed544d8630c290e0ec743` | Ownership, estimate, four-character industry prefix, occupation, subcell, datatype, and provision code; this retains the source `subcell_code` omitted by the earlier proposed layout. |
+  | `or` | [`or.txt`](https://download.bls.gov/pub/time.series/or/or.txt) | `2b39501038068cae61b97c905204af2c8f8e6a7088c33c70fa9f41ec3be801f7` | Requirement, ownership, industry, occupation, and job-characteristic fields only. The official example's final estimate positions conflict with retained source rows, so estimate and datatype fields are not asserted. |
+  | `wm` | [`wm.txt`](https://download.bls.gov/pub/time.series/wm/wm.txt) | `b7ba3485a37356b7945b9b493296a16dedf75ba6c86cbbd6566943741287bfe2` | Area, ownership, estimate, industry, occupation, subcell, and level; datatype is not part of the documented ID decomposition. |
+
+  `ep`, `is`, `mp`, and `ws` whole layouts remain sample-verified only, including the
+  `ep` removal of hyphens from `occ_code` and `ind_code`; no official `.txt` confirmation
+  for those mappings is recorded. The prefixes remain checks after the caller selects an
+  explicit adapter; they never select the program. All mappings, including slices, are
+  evidence-bounded and do not claim coverage of every valid ID.
 - Small real-source samples for each of the 30 native programs are in
   [`../tests/fixtures/real_native/`](../tests/fixtures/real_native/). Each metadata JSON
   records the official URL, retrieval date, two matching SHA-256 reads, source row count,
@@ -79,7 +104,8 @@ series-ID prefixes, reports, or a shared schema guess.
   dictionaries rejected by a saved full-file validation run. The captured output did not
   include raw TSV lines, so these are explicitly marked constructed-from-record and used
   only as offline parser regressions, not as verbatim BLS source samples. Component equality
-  is checked only for source layouts represented by `SERIES_ID_COMPONENTS`.
+  is checked only for source layouts represented by `SERIES_ID_COMPONENTS` or the explicitly
+  supported partial ID slices in `SERIES_ID_FIELD_SLICES`.
 - The official [`cu.txt`](https://download.bls.gov/pub/time.series/cu/cu.txt) and
   [`cw.txt`](https://download.bls.gov/pub/time.series/cw/cw.txt) documentation specifies
   `M01-M13` and `S01-S03` for begin/end periods, defines `S` as semi-annual, and says `S03`
