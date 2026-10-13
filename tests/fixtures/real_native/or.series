@@ -1,0 +1,4 @@
+series_id                     	seasonal	ownership_code	industry_code	occupation_code	soc_code	job_characteristic_code	estimate_code	datatype_code	category_code	additive_code	requirement_code	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+ORUC1000000000001149          	U	1	0000	000	000000	000	01149	01	095	095	C	Percent of civilian workers that were not required to perform supervisory duties	P	2025	A01	2025	A01
+ORUP1000014F00000157          	U	1	0000	14F	271024	000	00157	01	016	C16	P	Percent of civilian graphic designers that required reaching overhead with both hands	P	2025	A01	2025	A01
+ORUV1000059X00001300          	U	1	0000	59X	537081	000	01300	01	012	J12	V	Percent of civilian refuse and recyclable material collectors that did not require an educational certificate	P	2025	A01	2025	A01

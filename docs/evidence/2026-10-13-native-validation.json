@@ -1,0 +1,1914 @@
+{
+  "validation": "all 30 native current EPI validation",
+  "validated_at": "2026-10-13T00:28:17.035940+00:00",
+  "commit_sha": "e0a740c4252bed5288c62763ea0aaede46624c88",
+  "native_builders_sha256": "114ee29b07f0ea8f6579bf3a1b0934d86133401e87ee5e38550756b253aaaf79",
+  "parser": "bls_index.native_builders.parse_native_series",
+  "source": {
+    "method": "HttpSource.fetch_input_set(program, workdir, files=(program + '.series',))",
+    "reads_per_program": 2,
+    "request_attempts_per_read": 1,
+    "input_set_attempts": 1,
+    "max_concurrency": 1,
+    "min_request_interval_seconds": 1.0,
+    "user_agent": "bls_index catalog builder (+https://www.epi.org/)",
+    "raw_source_files_retained": false,
+    "programs": [
+      "oe",
+      "is",
+      "wm",
+      "cx",
+      "ep",
+      "nb",
+      "tu",
+      "or",
+      "ln",
+      "bd",
+      "la",
+      "ce",
+      "ip",
+      "le",
+      "wd",
+      "cu",
+      "cm",
+      "cw",
+      "nd",
+      "wp",
+      "mp",
+      "pc",
+      "fm",
+      "ci",
+      "ei",
+      "ap",
+      "kv",
+      "lu",
+      "su",
+      "ws"
+    ]
+  },
+  "programs": {
+    "oe": {
+      "url": "https://download.bls.gov/pub/time.series/oe/oe.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/oe/oe.series",
+          "status": 200,
+          "bytes": 1261438980,
+          "sha256": "a8e59101552352c54dc7e44e3b8ed4c1582e6d53ae9498d8ad9283af5b43ff14",
+          "date": "Tue, 13 Oct 2026 00:28:17 GMT",
+          "last_modified": "Fri, 15 May 2026 14:00:00 GMT",
+          "etag": "\"030991e73e4dc1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/oe/oe.series",
+          "status": 200,
+          "bytes": 1261438980,
+          "sha256": "a8e59101552352c54dc7e44e3b8ed4c1582e6d53ae9498d8ad9283af5b43ff14",
+          "date": "Tue, 13 Oct 2026 00:29:51 GMT",
+          "last_modified": "Fri, 15 May 2026 14:00:00 GMT",
+          "etag": "\"030991e73e4dc1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 6023970,
+        "series_id_length_min": 25,
+        "series_id_length_max": 25,
+        "series_id_length_counts": {
+          "25": 6023970
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 6023970,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "is": {
+      "url": "https://download.bls.gov/pub/time.series/is/is.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/is/is.series",
+          "status": 200,
+          "bytes": 125676855,
+          "sha256": "328f27086170383521c32d5c960124751130691e275788bcda785a1dbf9e6b0a",
+          "date": "Tue, 13 Oct 2026 00:33:18 GMT",
+          "last_modified": "Thu, 22 Jan 2026 15:00:00 GMT",
+          "etag": "\"0d8afc7af8bdc1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/is/is.series",
+          "status": 200,
+          "bytes": 125676855,
+          "sha256": "328f27086170383521c32d5c960124751130691e275788bcda785a1dbf9e6b0a",
+          "date": "Tue, 13 Oct 2026 00:33:30 GMT",
+          "last_modified": "Thu, 22 Jan 2026 15:00:00 GMT",
+          "etag": "\"0d8afc7af8bdc1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 891324,
+        "series_id_length_min": 17,
+        "series_id_length_max": 17,
+        "series_id_length_counts": {
+          "17": 891324
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 891324,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "wm": {
+      "url": "https://download.bls.gov/pub/time.series/wm/wm.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/wm/wm.series",
+          "status": 200,
+          "bytes": 108479866,
+          "sha256": "cb5377d4b62bf87a0d12bd7e9b2de6a047a8e0cca9f5ac582a07ee83dd1cf56c",
+          "date": "Tue, 13 Oct 2026 00:33:54 GMT",
+          "last_modified": "Thu, 22 Aug 2024 14:00:00 GMT",
+          "etag": "\"0f0f0939bf4da1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/wm/wm.series",
+          "status": 200,
+          "bytes": 108479866,
+          "sha256": "cb5377d4b62bf87a0d12bd7e9b2de6a047a8e0cca9f5ac582a07ee83dd1cf56c",
+          "date": "Tue, 13 Oct 2026 00:34:03 GMT",
+          "last_modified": "Thu, 22 Aug 2024 14:00:00 GMT",
+          "etag": "\"0f0f0939bf4da1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 557753,
+        "series_id_length_min": 29,
+        "series_id_length_max": 29,
+        "series_id_length_counts": {
+          "29": 557753
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 557753,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "cx": {
+      "url": "https://download.bls.gov/pub/time.series/cx/cx.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/cx/cx.series",
+          "status": 200,
+          "bytes": 31109497,
+          "sha256": "9755a92a6605d05bae92ca34080b4214500603dd487c37090e0e1ed95b8432f2",
+          "date": "Tue, 13 Oct 2026 00:34:19 GMT",
+          "last_modified": "Fri, 19 Dec 2025 15:00:00 GMT",
+          "etag": "\"058a425f870dc1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/cx/cx.series",
+          "status": 200,
+          "bytes": 31109497,
+          "sha256": "9755a92a6605d05bae92ca34080b4214500603dd487c37090e0e1ed95b8432f2",
+          "date": "Tue, 13 Oct 2026 00:34:22 GMT",
+          "last_modified": "Fri, 19 Dec 2025 15:00:00 GMT",
+          "etag": "\"058a425f870dc1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 183935,
+        "series_id_length_min": 13,
+        "series_id_length_max": 18,
+        "series_id_length_counts": {
+          "13": 158,
+          "14": 1443,
+          "15": 2096,
+          "16": 152601,
+          "17": 6727,
+          "18": 20910
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 183935,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "ep": {
+      "url": "https://download.bls.gov/pub/time.series/ep/ep.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/ep/ep.series",
+          "status": 200,
+          "bytes": 18629320,
+          "sha256": "be3dfa996dd5939a18c9dd45347d9f4033098c30a3cb06e2a94b5a68037f5975",
+          "date": "Tue, 13 Oct 2026 00:34:27 GMT",
+          "last_modified": "Thu, 27 Aug 2026 14:00:00 GMT",
+          "etag": "\"0308f592c36dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/ep/ep.series",
+          "status": 200,
+          "bytes": 18629320,
+          "sha256": "be3dfa996dd5939a18c9dd45347d9f4033098c30a3cb06e2a94b5a68037f5975",
+          "date": "Tue, 13 Oct 2026 00:34:28 GMT",
+          "last_modified": "Thu, 27 Aug 2026 14:00:00 GMT",
+          "etag": "\"0308f592c36dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 113898,
+        "series_id_length_min": 14,
+        "series_id_length_max": 15,
+        "series_id_length_counts": {
+          "14": 5310,
+          "15": 108588
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 113898,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "nb": {
+      "url": "https://download.bls.gov/pub/time.series/nb/nb.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/nb/nb.series",
+          "status": 200,
+          "bytes": 25157672,
+          "sha256": "d946bfa782e6d7329ab7aa17c4c4634e05d98db11687ab819ca50fc52b1a6a14",
+          "date": "Tue, 13 Oct 2026 00:34:32 GMT",
+          "last_modified": "Fri, 25 Sep 2026 14:00:00 GMT",
+          "etag": "\"0f08927f64cdd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/nb/nb.series",
+          "status": 200,
+          "bytes": 25157672,
+          "sha256": "d946bfa782e6d7329ab7aa17c4c4634e05d98db11687ab819ca50fc52b1a6a14",
+          "date": "Tue, 13 Oct 2026 00:34:35 GMT",
+          "last_modified": "Fri, 25 Sep 2026 14:00:00 GMT",
+          "etag": "\"0f08927f64cdd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 101893,
+        "series_id_length_min": 23,
+        "series_id_length_max": 23,
+        "series_id_length_counts": {
+          "23": 101893
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "failed",
+        "error": "<TEMP>/nb/attempt-1/read-1/nb.series: invalid series_id for requested program 'nb' at data row {'series_id': 'NBU10061100000000028007', 'seasonal': 'U', 'ownership_code': '1', 'estimate_code': '00', 'industry_code': '611100', 'occupation_code': '000000', 'subcell_code': '00', 'datatype_code': '28', 'provision_code': '007', 'survey_code': 'IP', 'series_title': 'Percent of civilian workers with access to both medical care and retirement benefits in elementary and secondary schools', 'footnote_codes': None, 'begin_year': '2010', 'begin_period': 'A01', 'end_year': '2026', 'end_period': 'A01'}"
+      },
+      "failure": {
+        "stage": "native_parser",
+        "error": "<TEMP>/nb/attempt-1/read-1/nb.series: invalid series_id for requested program 'nb' at data row {'series_id': 'NBU10061100000000028007', 'seasonal': 'U', 'ownership_code': '1', 'estimate_code': '00', 'industry_code': '611100', 'occupation_code': '000000', 'subcell_code': '00', 'datatype_code': '28', 'provision_code': '007', 'survey_code': 'IP', 'series_title': 'Percent of civilian workers with access to both medical care and retirement benefits in elementary and secondary schools', 'footnote_codes': None, 'begin_year': '2010', 'begin_period': 'A01', 'end_year': '2026', 'end_period': 'A01'}",
+        "first_failure_row_or_first_data_row": {
+          "source_line_1based": 1131,
+          "raw_fields": [
+            "NBU10061100000000028007       ",
+            "U",
+            "1",
+            "00",
+            "611100",
+            "000000",
+            "00",
+            "28",
+            "007",
+            "IP",
+            "Percent of civilian workers with access to both medical care and retirement benefits in elementary and secondary schools",
+            "",
+            "2010",
+            "A01",
+            "2026",
+            "A01"
+          ],
+          "row_role": "parser_identified_invalid_series_id"
+        }
+      }
+    },
+    "tu": {
+      "url": "https://download.bls.gov/pub/time.series/tu/tu.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/tu/tu.series",
+          "status": 200,
+          "bytes": 23957979,
+          "sha256": "26cc80b28138946f29abe225cdae80ee265b879f57153fe942846a4399f53ac7",
+          "date": "Tue, 13 Oct 2026 00:34:38 GMT",
+          "last_modified": "Thu, 25 Jun 2026 14:00:00 GMT",
+          "etag": "\"0f088e9aa4dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/tu/tu.series",
+          "status": 200,
+          "bytes": 23957979,
+          "sha256": "26cc80b28138946f29abe225cdae80ee265b879f57153fe942846a4399f53ac7",
+          "date": "Tue, 13 Oct 2026 00:34:40 GMT",
+          "last_modified": "Thu, 25 Jun 2026 14:00:00 GMT",
+          "etag": "\"0f088e9aa4dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 87387,
+        "series_id_length_min": 18,
+        "series_id_length_max": 18,
+        "series_id_length_counts": {
+          "18": 87387
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 87387,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "or": {
+      "url": "https://download.bls.gov/pub/time.series/or/or.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/or/or.series",
+          "status": 200,
+          "bytes": 15120458,
+          "sha256": "85a034db3944cde16aea4d84867e356dd149df06edabab89be4b6a6d3c54d6c9",
+          "date": "Tue, 13 Oct 2026 00:34:44 GMT",
+          "last_modified": "Fri, 16 Jan 2026 15:00:00 GMT",
+          "etag": "\"05835c9f886dc1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/or/or.series",
+          "status": 200,
+          "bytes": 15120458,
+          "sha256": "85a034db3944cde16aea4d84867e356dd149df06edabab89be4b6a6d3c54d6c9",
+          "date": "Tue, 13 Oct 2026 00:34:45 GMT",
+          "last_modified": "Fri, 16 Jan 2026 15:00:00 GMT",
+          "etag": "\"05835c9f886dc1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 73711,
+        "series_id_length_min": 20,
+        "series_id_length_max": 20,
+        "series_id_length_counts": {
+          "20": 73711
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 73711,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "ln": {
+      "url": "https://download.bls.gov/pub/time.series/ln/ln.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/ln/ln.series",
+          "status": 200,
+          "bytes": 15287593,
+          "sha256": "4e3dbfbed7cd0037983fec5a481fd9527592a6ab9da8e112e03ff583c02ef54c",
+          "date": "Tue, 13 Oct 2026 00:34:47 GMT",
+          "last_modified": "Fri, 02 Oct 2026 12:30:00 GMT",
+          "etag": "\"094c7bd6952dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/ln/ln.series",
+          "status": 200,
+          "bytes": 15287593,
+          "sha256": "4e3dbfbed7cd0037983fec5a481fd9527592a6ab9da8e112e03ff583c02ef54c",
+          "date": "Tue, 13 Oct 2026 00:34:48 GMT",
+          "last_modified": "Fri, 02 Oct 2026 12:30:00 GMT",
+          "etag": "\"094c7bd6952dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 68626,
+        "series_id_length_min": 11,
+        "series_id_length_max": 13,
+        "series_id_length_counts": {
+          "11": 47518,
+          "12": 20110,
+          "13": 998
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "failed",
+        "error": "<TEMP>/ln/attempt-1/read-1/ln.series: invalid series_id for requested program 'ln' at data row {'series_id': 'LNU0004952601', 'lfst_code': '00', 'periodicity_code': 'A', 'series_title': '(Unadj) Population Level - Veterans, 18 years and over, Alabama', 'absn_code': '0', 'activity_code': '0', 'ages_code': '15', 'cert_code': '00', 'class_code': '00', 'duration_code': '000', 'education_code': '00', 'entr_code': '0', 'expr_code': '0', 'hheader_code': '00', 'hour_code': '00', 'indy_code': '0000', 'jdes_code': '0', 'look_code': '00', 'mari_code': '00', 'mjhs_code': '00', 'occupation_code': '0000', 'orig_code': '00', 'pcts_code': '00', 'race_code': '00', 'rjnw_code': '00', 'rnlf_code': '00', 'rwns_code': '00', 'seek_code': '00', 'sexs_code': '0', 'tdat_code': '00', 'vets_code': '01', 'wkst_code': '00', 'born_code': '00', 'chld_code': '00', 'disa_code': '00', 'seasonal': 'U', 'tlwk_code': '00', 'footnote_codes': None, 'begin_year': '2013', 'begin_period': 'A01', 'end_year': '2025', 'end_period': 'A01'}"
+      },
+      "failure": {
+        "stage": "native_parser",
+        "error": "<TEMP>/ln/attempt-1/read-1/ln.series: invalid series_id for requested program 'ln' at data row {'series_id': 'LNU0004952601', 'lfst_code': '00', 'periodicity_code': 'A', 'series_title': '(Unadj) Population Level - Veterans, 18 years and over, Alabama', 'absn_code': '0', 'activity_code': '0', 'ages_code': '15', 'cert_code': '00', 'class_code': '00', 'duration_code': '000', 'education_code': '00', 'entr_code': '0', 'expr_code': '0', 'hheader_code': '00', 'hour_code': '00', 'indy_code': '0000', 'jdes_code': '0', 'look_code': '00', 'mari_code': '00', 'mjhs_code': '00', 'occupation_code': '0000', 'orig_code': '00', 'pcts_code': '00', 'race_code': '00', 'rjnw_code': '00', 'rnlf_code': '00', 'rwns_code': '00', 'seek_code': '00', 'sexs_code': '0', 'tdat_code': '00', 'vets_code': '01', 'wkst_code': '00', 'born_code': '00', 'chld_code': '00', 'disa_code': '00', 'seasonal': 'U', 'tlwk_code': '00', 'footnote_codes': None, 'begin_year': '2013', 'begin_period': 'A01', 'end_year': '2025', 'end_period': 'A01'}",
+        "first_failure_row_or_first_data_row": {
+          "source_line_1based": 2498,
+          "raw_fields": [
+            "LNU0004952601    ",
+            "00",
+            "A",
+            "(Unadj) Population Level - Veterans, 18 years and over, Alabama",
+            "0",
+            "0",
+            "15",
+            "00",
+            "00",
+            "000",
+            "00",
+            "0",
+            "0",
+            "00",
+            "00",
+            "0000",
+            "0",
+            "00",
+            "00",
+            "00",
+            "0000",
+            "00",
+            "00",
+            "00",
+            "00",
+            "00",
+            "00",
+            "00",
+            "0",
+            "00",
+            "01",
+            "00",
+            "00",
+            "00",
+            "00",
+            "U",
+            "00",
+            "",
+            "2013",
+            "A01",
+            "2025",
+            "A01"
+          ],
+          "row_role": "parser_identified_invalid_series_id"
+        }
+      }
+    },
+    "bd": {
+      "url": "https://download.bls.gov/pub/time.series/bd/bd.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/bd/bd.series",
+          "status": 200,
+          "bytes": 5611545,
+          "sha256": "ea09556dc0e36a37b3946c56913a2007125e1f61e70938482b64f8768da7a8ed",
+          "date": "Tue, 13 Oct 2026 00:34:51 GMT",
+          "last_modified": "Wed, 29 Jul 2026 14:00:00 GMT",
+          "etag": "\"070948b621fdd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/bd/bd.series",
+          "status": 200,
+          "bytes": 5611545,
+          "sha256": "ea09556dc0e36a37b3946c56913a2007125e1f61e70938482b64f8768da7a8ed",
+          "date": "Tue, 13 Oct 2026 00:34:52 GMT",
+          "last_modified": "Wed, 29 Jul 2026 14:00:00 GMT",
+          "etag": "\"070948b621fdd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 34464,
+        "series_id_length_min": 28,
+        "series_id_length_max": 28,
+        "series_id_length_counts": {
+          "28": 34464
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 34464,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "la": {
+      "url": "https://download.bls.gov/pub/time.series/la/la.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/la/la.series",
+          "status": 200,
+          "bytes": 4086542,
+          "sha256": "a938666287086eb9eae630c434948e0b9dd90eaf91285f92183f24b1074e26a0",
+          "date": "Tue, 13 Oct 2026 00:34:53 GMT",
+          "last_modified": "Wed, 30 Sep 2026 14:00:00 GMT",
+          "etag": "\"0b09afbe350dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/la/la.series",
+          "status": 200,
+          "bytes": 4086542,
+          "sha256": "a938666287086eb9eae630c434948e0b9dd90eaf91285f92183f24b1074e26a0",
+          "date": "Tue, 13 Oct 2026 00:34:54 GMT",
+          "last_modified": "Wed, 30 Sep 2026 14:00:00 GMT",
+          "etag": "\"0b09afbe350dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 33985,
+        "series_id_length_min": 20,
+        "series_id_length_max": 20,
+        "series_id_length_counts": {
+          "20": 33985
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 33985,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "ce": {
+      "url": "https://download.bls.gov/pub/time.series/ce/ce.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/ce/ce.series",
+          "status": 200,
+          "bytes": 3941924,
+          "sha256": "c87ea7ca2dda315d10d626ec925c9fc02d07469371d734903f19ea695ba0b583",
+          "date": "Tue, 13 Oct 2026 00:34:55 GMT",
+          "last_modified": "Fri, 02 Oct 2026 12:30:00 GMT",
+          "etag": "\"094c7bd6952dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/ce/ce.series",
+          "status": 200,
+          "bytes": 3941924,
+          "sha256": "c87ea7ca2dda315d10d626ec925c9fc02d07469371d734903f19ea695ba0b583",
+          "date": "Tue, 13 Oct 2026 00:34:56 GMT",
+          "last_modified": "Fri, 02 Oct 2026 12:30:00 GMT",
+          "etag": "\"094c7bd6952dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 22049,
+        "series_id_length_min": 13,
+        "series_id_length_max": 13,
+        "series_id_length_counts": {
+          "13": 22049
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 22049,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "ip": {
+      "url": "https://download.bls.gov/pub/time.series/ip/ip.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/ip/ip.series",
+          "status": 200,
+          "bytes": 3965053,
+          "sha256": "380bd9835ed264c67231dcac85436e7cb431b202fdb3d4f8d4dc3eb45a4e4f82",
+          "date": "Tue, 13 Oct 2026 00:34:57 GMT",
+          "last_modified": "Thu, 24 Sep 2026 14:00:00 GMT",
+          "etag": "\"03020fd2c4cdd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/ip/ip.series",
+          "status": 200,
+          "bytes": 3965053,
+          "sha256": "380bd9835ed264c67231dcac85436e7cb431b202fdb3d4f8d4dc3eb45a4e4f82",
+          "date": "Tue, 13 Oct 2026 00:34:58 GMT",
+          "last_modified": "Thu, 24 Sep 2026 14:00:00 GMT",
+          "etag": "\"03020fd2c4cdd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 21072,
+        "series_id_length_min": 21,
+        "series_id_length_max": 21,
+        "series_id_length_counts": {
+          "21": 21072
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 21072,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "le": {
+      "url": "https://download.bls.gov/pub/time.series/le/le.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/le/le.series",
+          "status": 200,
+          "bytes": 2471460,
+          "sha256": "137e0d9a6ba1e2bc1b39cc77409483bc4a198e6b7ab0dbdb27454db276810a0f",
+          "date": "Tue, 13 Oct 2026 00:34:59 GMT",
+          "last_modified": "Tue, 21 Jul 2026 14:00:00 GMT",
+          "etag": "\"07046381919dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/le/le.series",
+          "status": 200,
+          "bytes": 2471460,
+          "sha256": "137e0d9a6ba1e2bc1b39cc77409483bc4a198e6b7ab0dbdb27454db276810a0f",
+          "date": "Tue, 13 Oct 2026 00:35:00 GMT",
+          "last_modified": "Tue, 21 Jul 2026 14:00:00 GMT",
+          "etag": "\"07046381919dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 11053,
+        "series_id_length_min": 13,
+        "series_id_length_max": 13,
+        "series_id_length_counts": {
+          "13": 11053
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 11053,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "wd": {
+      "url": "https://download.bls.gov/pub/time.series/wd/wd.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/wd/wd.series",
+          "status": 200,
+          "bytes": 1620020,
+          "sha256": "021dbbc00b6b221886ee96b89b2024fbe800a2178a4fe2a0f324ce4bc52f10b7",
+          "date": "Tue, 13 Oct 2026 00:35:01 GMT",
+          "last_modified": "Thu, 10 Sep 2026 12:30:00 GMT",
+          "etag": "\"014b1182041dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/wd/wd.series",
+          "status": 200,
+          "bytes": 1620020,
+          "sha256": "021dbbc00b6b221886ee96b89b2024fbe800a2178a4fe2a0f324ce4bc52f10b7",
+          "date": "Tue, 13 Oct 2026 00:35:02 GMT",
+          "last_modified": "Thu, 10 Sep 2026 12:30:00 GMT",
+          "etag": "\"014b1182041dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 8538,
+        "series_id_length_min": 5,
+        "series_id_length_max": 14,
+        "series_id_length_counts": {
+          "5": 3,
+          "6": 36,
+          "7": 311,
+          "8": 2,
+          "9": 1307,
+          "10": 141,
+          "11": 6462,
+          "12": 206,
+          "13": 67,
+          "14": 3
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "failed",
+        "error": "<TEMP>/wd/attempt-1/read-1/wd.series: invalid series_id for requested program 'wd' at data row {'series_id': 'WDS04', 'group_code': '04', 'item_code': '-', 'seasonal': 'S', 'base_date': '198200', 'series_title': 'PPI Commodity data for Hides, skins, leather, and related products, seasonally adjusted, discontinued', 'footnote_codes': None, 'begin_year': '1967', 'begin_period': 'M01', 'end_year': '1974', 'end_period': 'M12'}"
+      },
+      "failure": {
+        "stage": "native_parser",
+        "error": "<TEMP>/wd/attempt-1/read-1/wd.series: invalid series_id for requested program 'wd' at data row {'series_id': 'WDS04', 'group_code': '04', 'item_code': '-', 'seasonal': 'S', 'base_date': '198200', 'series_title': 'PPI Commodity data for Hides, skins, leather, and related products, seasonally adjusted, discontinued', 'footnote_codes': None, 'begin_year': '1967', 'begin_period': 'M01', 'end_year': '1974', 'end_period': 'M12'}",
+        "first_failure_row_or_first_data_row": {
+          "source_line_1based": 56,
+          "raw_fields": [
+            "WDS04                         ",
+            "04",
+            "-",
+            "S",
+            "198200",
+            "PPI Commodity data for Hides, skins, leather, and related products, seasonally adjusted, discontinued",
+            "",
+            "1967",
+            "M01",
+            "1974",
+            "M12"
+          ],
+          "row_role": "parser_identified_invalid_series_id"
+        }
+      }
+    },
+    "cu": {
+      "url": "https://download.bls.gov/pub/time.series/cu/cu.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/cu/cu.series",
+          "status": 200,
+          "bytes": 1339447,
+          "sha256": "f7367ea7851338d4d9165061bfb14051030f07f073dc12d007cdff2becd2320d",
+          "date": "Tue, 13 Oct 2026 00:35:03 GMT",
+          "last_modified": "Fri, 11 Sep 2026 12:30:00 GMT",
+          "etag": "\"0d41a43e941dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/cu/cu.series",
+          "status": 200,
+          "bytes": 1339447,
+          "sha256": "f7367ea7851338d4d9165061bfb14051030f07f073dc12d007cdff2becd2320d",
+          "date": "Tue, 13 Oct 2026 00:35:04 GMT",
+          "last_modified": "Fri, 11 Sep 2026 12:30:00 GMT",
+          "etag": "\"0d41a43e941dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 8104,
+        "series_id_length_min": 11,
+        "series_id_length_max": 16,
+        "series_id_length_counts": {
+          "11": 1605,
+          "12": 2423,
+          "13": 1103,
+          "14": 2138,
+          "15": 826,
+          "16": 9
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 8104,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "cm": {
+      "url": "https://download.bls.gov/pub/time.series/cm/cm.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/cm/cm.series",
+          "status": 200,
+          "bytes": 1557582,
+          "sha256": "f203a81546dff819996415cc29cae2cf927cb6b13d78c27e0a5cddf593ab36b6",
+          "date": "Tue, 13 Oct 2026 00:35:05 GMT",
+          "last_modified": "Wed, 09 Sep 2026 14:00:00 GMT",
+          "etag": "\"0f0ed806340dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/cm/cm.series",
+          "status": 200,
+          "bytes": 1557582,
+          "sha256": "f203a81546dff819996415cc29cae2cf927cb6b13d78c27e0a5cddf593ab36b6",
+          "date": "Tue, 13 Oct 2026 00:35:06 GMT",
+          "last_modified": "Wed, 09 Sep 2026 14:00:00 GMT",
+          "etag": "\"0f0ed806340dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 7998,
+        "series_id_length_min": 17,
+        "series_id_length_max": 17,
+        "series_id_length_counts": {
+          "17": 7998
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 7998,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "cw": {
+      "url": "https://download.bls.gov/pub/time.series/cw/cw.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/cw/cw.series",
+          "status": 200,
+          "bytes": 1458285,
+          "sha256": "75f7f0bb3b7bd9884a708301b9e86dbeae9c640e6dbf3509957cd3bf296ab1b9",
+          "date": "Tue, 13 Oct 2026 00:35:07 GMT",
+          "last_modified": "Fri, 11 Sep 2026 12:30:00 GMT",
+          "etag": "\"0d41a43e941dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/cw/cw.series",
+          "status": 200,
+          "bytes": 1458285,
+          "sha256": "75f7f0bb3b7bd9884a708301b9e86dbeae9c640e6dbf3509957cd3bf296ab1b9",
+          "date": "Tue, 13 Oct 2026 00:35:08 GMT",
+          "last_modified": "Fri, 11 Sep 2026 12:30:00 GMT",
+          "etag": "\"0d41a43e941dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 7868,
+        "series_id_length_min": 11,
+        "series_id_length_max": 16,
+        "series_id_length_counts": {
+          "11": 1605,
+          "12": 2423,
+          "13": 1103,
+          "14": 2135,
+          "15": 599,
+          "16": 3
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 7868,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "nd": {
+      "url": "https://download.bls.gov/pub/time.series/nd/nd.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/nd/nd.series",
+          "status": 200,
+          "bytes": 1377069,
+          "sha256": "9abff0de5df444ad48d4736399cf498f7aae1666ce46629204ef926aa8e21161",
+          "date": "Tue, 13 Oct 2026 00:35:09 GMT",
+          "last_modified": "Thu, 10 Sep 2026 12:30:00 GMT",
+          "etag": "\"014b1182041dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/nd/nd.series",
+          "status": 200,
+          "bytes": 1377069,
+          "sha256": "9abff0de5df444ad48d4736399cf498f7aae1666ce46629204ef926aa8e21161",
+          "date": "Tue, 13 Oct 2026 00:35:10 GMT",
+          "last_modified": "Thu, 10 Sep 2026 12:30:00 GMT",
+          "etag": "\"014b1182041dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 6509,
+        "series_id_length_min": 15,
+        "series_id_length_max": 23,
+        "series_id_length_counts": {
+          "15": 500,
+          "16": 2898,
+          "17": 1667,
+          "18": 1136,
+          "19": 88,
+          "20": 216,
+          "21": 2,
+          "23": 2
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 6509,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "wp": {
+      "url": "https://download.bls.gov/pub/time.series/wp/wp.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/wp/wp.series",
+          "status": 200,
+          "bytes": 985162,
+          "sha256": "cf06d3d3e03393dce142145fa24ba028915ca39637adb86a0efe1a2b66fe8265",
+          "date": "Tue, 13 Oct 2026 00:35:11 GMT",
+          "last_modified": "Thu, 10 Sep 2026 12:30:00 GMT",
+          "etag": "\"014b1182041dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/wp/wp.series",
+          "status": 200,
+          "bytes": 985162,
+          "sha256": "cf06d3d3e03393dce142145fa24ba028915ca39637adb86a0efe1a2b66fe8265",
+          "date": "Tue, 13 Oct 2026 00:35:12 GMT",
+          "last_modified": "Thu, 10 Sep 2026 12:30:00 GMT",
+          "etag": "\"014b1182041dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 5312,
+        "series_id_length_min": 5,
+        "series_id_length_max": 14,
+        "series_id_length_counts": {
+          "5": 58,
+          "6": 327,
+          "7": 763,
+          "8": 60,
+          "9": 1420,
+          "10": 382,
+          "11": 1482,
+          "12": 538,
+          "13": 267,
+          "14": 15
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "failed",
+        "error": "<TEMP>/wp/attempt-1/read-1/wp.series: invalid series_id for requested program 'wp' at data row {'series_id': 'WPS01PLUS02', 'group_code': 'PFF', 'item_code': 'PLUS02', 'seasonal': 'S', 'base_date': '198200', 'series_title': 'PPI Commodity data for Farm products, processed foods and feeds, seasonally adjusted', 'footnote_codes': None, 'begin_year': '1967', 'begin_period': 'M01', 'end_year': '1974', 'end_period': 'M12'}"
+      },
+      "failure": {
+        "stage": "native_parser",
+        "error": "<TEMP>/wp/attempt-1/read-1/wp.series: invalid series_id for requested program 'wp' at data row {'series_id': 'WPS01PLUS02', 'group_code': 'PFF', 'item_code': 'PLUS02', 'seasonal': 'S', 'base_date': '198200', 'series_title': 'PPI Commodity data for Farm products, processed foods and feeds, seasonally adjusted', 'footnote_codes': None, 'begin_year': '1967', 'begin_period': 'M01', 'end_year': '1974', 'end_period': 'M12'}",
+        "first_failure_row_or_first_data_row": {
+          "source_line_1based": 61,
+          "raw_fields": [
+            "WPS01PLUS02                   ",
+            "PFF",
+            "PLUS02",
+            "S",
+            "198200",
+            "PPI Commodity data for Farm products, processed foods and feeds, seasonally adjusted",
+            "",
+            "1967",
+            "M01",
+            "1974",
+            "M12"
+          ],
+          "row_role": "parser_identified_invalid_series_id"
+        }
+      }
+    },
+    "mp": {
+      "url": "https://download.bls.gov/pub/time.series/mp/mp.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/mp/mp.series",
+          "status": 200,
+          "bytes": 739749,
+          "sha256": "3d82002573f69e5f6df34fd10a303e85fde32f59611d63e94025a2ea88e3d9e7",
+          "date": "Tue, 13 Oct 2026 00:35:13 GMT",
+          "last_modified": "Thu, 19 Mar 2026 14:00:00 GMT",
+          "etag": "\"070dada8b7dc1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/mp/mp.series",
+          "status": 200,
+          "bytes": 739749,
+          "sha256": "3d82002573f69e5f6df34fd10a303e85fde32f59611d63e94025a2ea88e3d9e7",
+          "date": "Tue, 13 Oct 2026 00:35:15 GMT",
+          "last_modified": "Thu, 19 Mar 2026 14:00:00 GMT",
+          "etag": "\"070dada8b7dc1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 4683,
+        "series_id_length_min": 10,
+        "series_id_length_max": 10,
+        "series_id_length_counts": {
+          "10": 4683
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 4683,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "pc": {
+      "url": "https://download.bls.gov/pub/time.series/pc/pc.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/pc/pc.series",
+          "status": 200,
+          "bytes": 853221,
+          "sha256": "911f881136037963018f92a0c1e4f7f48452ab53ccf303d724eaa609f8845715",
+          "date": "Tue, 13 Oct 2026 00:35:16 GMT",
+          "last_modified": "Thu, 10 Sep 2026 12:30:00 GMT",
+          "etag": "\"014b1182041dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/pc/pc.series",
+          "status": 200,
+          "bytes": 853221,
+          "sha256": "911f881136037963018f92a0c1e4f7f48452ab53ccf303d724eaa609f8845715",
+          "date": "Tue, 13 Oct 2026 00:35:17 GMT",
+          "last_modified": "Thu, 10 Sep 2026 12:30:00 GMT",
+          "etag": "\"014b1182041dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 4510,
+        "series_id_length_min": 15,
+        "series_id_length_max": 21,
+        "series_id_length_counts": {
+          "15": 997,
+          "16": 2110,
+          "17": 942,
+          "18": 265,
+          "19": 143,
+          "20": 45,
+          "21": 8
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 4510,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "fm": {
+      "url": "https://download.bls.gov/pub/time.series/fm/fm.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/fm/fm.series",
+          "status": 200,
+          "bytes": 634277,
+          "sha256": "f1362ac6a77381c5048e013e60e767cb28db87c24df6dcaba06bd1690f321d3d",
+          "date": "Tue, 13 Oct 2026 00:35:18 GMT",
+          "last_modified": "Thu, 23 Apr 2026 14:00:00 GMT",
+          "etag": "\"0b0827929d3dc1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/fm/fm.series",
+          "status": 200,
+          "bytes": 634277,
+          "sha256": "f1362ac6a77381c5048e013e60e767cb28db87c24df6dcaba06bd1690f321d3d",
+          "date": "Tue, 13 Oct 2026 00:35:19 GMT",
+          "last_modified": "Thu, 23 Apr 2026 14:00:00 GMT",
+          "etag": "\"0b0827929d3dc1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 3144,
+        "series_id_length_min": 7,
+        "series_id_length_max": 11,
+        "series_id_length_counts": {
+          "7": 41,
+          "8": 301,
+          "9": 632,
+          "11": 2170
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 3144,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "ci": {
+      "url": "https://download.bls.gov/pub/time.series/ci/ci.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/ci/ci.series",
+          "status": 200,
+          "bytes": 487191,
+          "sha256": "e6dbe9438d6981a2fc831f6438c2d318049ff12840d6768324eb9b55eb51bd52",
+          "date": "Tue, 13 Oct 2026 00:35:20 GMT",
+          "last_modified": "Fri, 31 Jul 2026 12:30:00 GMT",
+          "etag": "\"054c14de820dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/ci/ci.series",
+          "status": 200,
+          "bytes": 487191,
+          "sha256": "e6dbe9438d6981a2fc831f6438c2d318049ff12840d6768324eb9b55eb51bd52",
+          "date": "Tue, 13 Oct 2026 00:35:21 GMT",
+          "last_modified": "Fri, 31 Jul 2026 12:30:00 GMT",
+          "etag": "\"054c14de820dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 2470,
+        "series_id_length_min": 17,
+        "series_id_length_max": 17,
+        "series_id_length_counts": {
+          "17": 2470
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "failed",
+        "error": "<TEMP>/ci/attempt-1/read-1/ci.series: invalid series_id for requested program 'ci' at data row {'series_id': 'CIS1016110000000I', 'seasonal': 'S', 'owner_code': '1', 'industry_code': '611100', 'occupation_code': '000000', 'subcell_code': '00', 'area_code': '99999', 'periodicity_code': 'I', 'estimate_code': '01', 'series_title': 'Total compensation for civilian workers in the elementary and secondary schools industry, current dollar index', 'footnote_codes': None, 'begin_year': '2003', 'begin_period': 'Q01', 'end_year': '2026', 'end_period': 'Q02'}"
+      },
+      "failure": {
+        "stage": "native_parser",
+        "error": "<TEMP>/ci/attempt-1/read-1/ci.series: invalid series_id for requested program 'ci' at data row {'series_id': 'CIS1016110000000I', 'seasonal': 'S', 'owner_code': '1', 'industry_code': '611100', 'occupation_code': '000000', 'subcell_code': '00', 'area_code': '99999', 'periodicity_code': 'I', 'estimate_code': '01', 'series_title': 'Total compensation for civilian workers in the elementary and secondary schools industry, current dollar index', 'footnote_codes': None, 'begin_year': '2003', 'begin_period': 'Q01', 'end_year': '2026', 'end_period': 'Q02'}",
+        "first_failure_row_or_first_data_row": {
+          "source_line_1based": 10,
+          "raw_fields": [
+            "CIS1016110000000I",
+            "S",
+            "1",
+            "611100",
+            "000000",
+            "00",
+            "99999",
+            "I",
+            "01",
+            "Total compensation for civilian workers in the elementary and secondary schools industry, current dollar index",
+            "",
+            "2003",
+            "Q01",
+            "2026",
+            "Q02"
+          ],
+          "row_role": "parser_identified_invalid_series_id"
+        }
+      }
+    },
+    "ei": {
+      "url": "https://download.bls.gov/pub/time.series/ei/ei.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/ei/ei.series",
+          "status": 200,
+          "bytes": 370909,
+          "sha256": "f316a22a3f449d692763745d7088c7f746ca2f535f7dcb1d9caacf173628c9da",
+          "date": "Tue, 13 Oct 2026 00:35:22 GMT",
+          "last_modified": "Wed, 16 Sep 2026 12:30:00 GMT",
+          "etag": "\"0942b17d745dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/ei/ei.series",
+          "status": 200,
+          "bytes": 370909,
+          "sha256": "f316a22a3f449d692763745d7088c7f746ca2f535f7dcb1d9caacf173628c9da",
+          "date": "Tue, 13 Oct 2026 00:35:23 GMT",
+          "last_modified": "Wed, 16 Sep 2026 12:30:00 GMT",
+          "etag": "\"0942b17d745dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 1593,
+        "series_id_length_min": 5,
+        "series_id_length_max": 15,
+        "series_id_length_counts": {
+          "5": 2,
+          "6": 16,
+          "7": 161,
+          "8": 131,
+          "9": 419,
+          "10": 379,
+          "11": 264,
+          "12": 89,
+          "13": 64,
+          "14": 50,
+          "15": 18
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "failed",
+        "error": "<TEMP>/ei/attempt-1/read-1/ei.series: invalid series_id for requested program 'ei' at data row {'series_id': 'EIUCOASEANZ3117', 'seasonal': 'U', 'index_code': 'CO', 'series_name': 'ASEAN-Seafood product preparation and packaging', 'base_period': 'December 2020=100', 'series_title': 'Monthly import price index by origin for NAICS 3117, Seafood product preparation and packaging, Association of Southeast Asian Nations, not seasonally adjusted', 'footnote_codes': None, 'begin_year': '2020', 'begin_period': 'M12', 'end_year': '2026', 'end_period': 'M08'}"
+      },
+      "failure": {
+        "stage": "native_parser",
+        "error": "<TEMP>/ei/attempt-1/read-1/ei.series: invalid series_id for requested program 'ei' at data row {'series_id': 'EIUCOASEANZ3117', 'seasonal': 'U', 'index_code': 'CO', 'series_name': 'ASEAN-Seafood product preparation and packaging', 'base_period': 'December 2020=100', 'series_title': 'Monthly import price index by origin for NAICS 3117, Seafood product preparation and packaging, Association of Southeast Asian Nations, not seasonally adjusted', 'footnote_codes': None, 'begin_year': '2020', 'begin_period': 'M12', 'end_year': '2026', 'end_period': 'M08'}",
+        "first_failure_row_or_first_data_row": {
+          "source_line_1based": 30,
+          "raw_fields": [
+            "EIUCOASEANZ3117               ",
+            "U",
+            "CO",
+            "ASEAN-Seafood product preparation and packaging",
+            "December 2020=100",
+            "Monthly import price index by origin for NAICS 3117, Seafood product preparation and packaging, Association of Southeast Asian Nations, not seasonally adjusted",
+            "",
+            "2020",
+            "M12",
+            "2026",
+            "M08"
+          ],
+          "row_role": "parser_identified_invalid_series_id"
+        }
+      }
+    },
+    "ap": {
+      "url": "https://download.bls.gov/pub/time.series/ap/ap.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/ap/ap.series",
+          "status": 200,
+          "bytes": 231046,
+          "sha256": "fc5a1536226a3c4cd5fd55210d9c56bc2ca8ec16b80dde5a7533cc956f360781",
+          "date": "Tue, 13 Oct 2026 00:35:24 GMT",
+          "last_modified": "Fri, 11 Sep 2026 12:30:00 GMT",
+          "etag": "\"0d41a43e941dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/ap/ap.series",
+          "status": 200,
+          "bytes": 231046,
+          "sha256": "fc5a1536226a3c4cd5fd55210d9c56bc2ca8ec16b80dde5a7533cc956f360781",
+          "date": "Tue, 13 Oct 2026 00:35:25 GMT",
+          "last_modified": "Fri, 11 Sep 2026 12:30:00 GMT",
+          "etag": "\"0d41a43e941dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 1483,
+        "series_id_length_min": 12,
+        "series_id_length_max": 13,
+        "series_id_length_counts": {
+          "12": 810,
+          "13": 673
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 1483,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "kv": {
+      "url": "https://download.bls.gov/pub/time.series/kv/kv.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/kv/kv.series",
+          "status": 200,
+          "bytes": 257114,
+          "sha256": "1054608b733b72be45e90cfd06ba66bfa4c5d9997d168075eb3187cb8d3338da",
+          "date": "Tue, 13 Oct 2026 00:35:26 GMT",
+          "last_modified": "Fri, 21 Aug 2026 18:42:26 GMT",
+          "etag": "\"015afcf9c31dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/kv/kv.series",
+          "status": 200,
+          "bytes": 257114,
+          "sha256": "1054608b733b72be45e90cfd06ba66bfa4c5d9997d168075eb3187cb8d3338da",
+          "date": "Tue, 13 Oct 2026 00:35:27 GMT",
+          "last_modified": "Fri, 21 Aug 2026 18:42:26 GMT",
+          "etag": "\"015afcf9c31dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 1371,
+        "series_id_length_min": 19,
+        "series_id_length_max": 19,
+        "series_id_length_counts": {
+          "19": 1371
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 1371,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "lu": {
+      "url": "https://download.bls.gov/pub/time.series/lu/lu.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/lu/lu.series",
+          "status": 200,
+          "bytes": 234464,
+          "sha256": "22e22bf4e406da50cef80c4e67cc243b78924ab1c9d2af36149f6770eb983ac8",
+          "date": "Tue, 13 Oct 2026 00:35:28 GMT",
+          "last_modified": "Wed, 18 Feb 2026 15:00:00 GMT",
+          "etag": "\"018d740e7a0dc1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/lu/lu.series",
+          "status": 200,
+          "bytes": 234464,
+          "sha256": "22e22bf4e406da50cef80c4e67cc243b78924ab1c9d2af36149f6770eb983ac8",
+          "date": "Tue, 13 Oct 2026 00:35:29 GMT",
+          "last_modified": "Wed, 18 Feb 2026 15:00:00 GMT",
+          "etag": "\"018d740e7a0dc1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 1241,
+        "series_id_length_min": 13,
+        "series_id_length_max": 13,
+        "series_id_length_counts": {
+          "13": 1241
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 1241,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "su": {
+      "url": "https://download.bls.gov/pub/time.series/su/su.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/su/su.series",
+          "status": 200,
+          "bytes": 4914,
+          "sha256": "7da3ac42aef524b2cc21fe2cb8f6ab71124ae808db699f2b4d5919b306bafbcc",
+          "date": "Tue, 13 Oct 2026 00:35:30 GMT",
+          "last_modified": "Fri, 11 Sep 2026 12:30:00 GMT",
+          "etag": "\"0d41a43e941dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/su/su.series",
+          "status": 200,
+          "bytes": 4914,
+          "sha256": "7da3ac42aef524b2cc21fe2cb8f6ab71124ae808db699f2b4d5919b306bafbcc",
+          "date": "Tue, 13 Oct 2026 00:35:31 GMT",
+          "last_modified": "Fri, 11 Sep 2026 12:30:00 GMT",
+          "etag": "\"0d41a43e941dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 29,
+        "series_id_length_min": 11,
+        "series_id_length_max": 14,
+        "series_id_length_counts": {
+          "11": 13,
+          "12": 12,
+          "13": 1,
+          "14": 3
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 29,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    },
+    "ws": {
+      "url": "https://download.bls.gov/pub/time.series/ws/ws.series",
+      "reads": [
+        {
+          "read": 1,
+          "url": "https://download.bls.gov/pub/time.series/ws/ws.series",
+          "status": 200,
+          "bytes": 887,
+          "sha256": "ada22764a544fb4a555977a54ba88252ef842ad3425d5f4c096082198f24d727",
+          "date": "Tue, 13 Oct 2026 00:35:32 GMT",
+          "last_modified": "Fri, 09 Oct 2026 14:00:00 GMT",
+          "etag": "\"0705279f657dd1:0\"",
+          "request_attempts": 1
+        },
+        {
+          "read": 2,
+          "url": "https://download.bls.gov/pub/time.series/ws/ws.series",
+          "status": 200,
+          "bytes": 887,
+          "sha256": "ada22764a544fb4a555977a54ba88252ef842ad3425d5f4c096082198f24d727",
+          "date": "Tue, 13 Oct 2026 00:35:33 GMT",
+          "last_modified": "Fri, 09 Oct 2026 14:00:00 GMT",
+          "etag": "\"0705279f657dd1:0\"",
+          "request_attempts": 1
+        }
+      ],
+      "two_reads_match": true,
+      "raw_source": {
+        "data_row_count": 6,
+        "series_id_length_min": 6,
+        "series_id_length_max": 6,
+        "series_id_length_counts": {
+          "6": 6
+        },
+        "invalid_utf8_id_lines": 0,
+        "histogram_method": "Polars String.strip_chars().len_chars() and group_by().len() over raw first fields"
+      },
+      "parser": {
+        "status": "ok",
+        "rows": 6,
+        "columns": 8,
+        "column_names": [
+          "program",
+          "series_id",
+          "series_title",
+          "title_source",
+          "seasonal",
+          "begin_year",
+          "end_year",
+          "end_period"
+        ]
+      },
+      "failure": null
+    }
+  },
+  "finished_at": "2026-10-13T00:35:34.011360+00:00",
+  "summary": {
+    "programs_requested": 30,
+    "programs_completed": 30,
+    "programs_failed": [
+      "nb",
+      "ln",
+      "wd",
+      "wp",
+      "ci",
+      "ei"
+    ],
+    "programs_parser_ok": [
+      "oe",
+      "is",
+      "wm",
+      "cx",
+      "ep",
+      "tu",
+      "or",
+      "bd",
+      "la",
+      "ce",
+      "ip",
+      "le",
+      "cu",
+      "cm",
+      "cw",
+      "nd",
+      "mp",
+      "pc",
+      "fm",
+      "ap",
+      "kv",
+      "lu",
+      "su",
+      "ws"
+    ],
+    "programs_parser_failed": [
+      "nb",
+      "ln",
+      "wd",
+      "wp",
+      "ci",
+      "ei"
+    ],
+    "programs_two_reads_match": [
+      "oe",
+      "is",
+      "wm",
+      "cx",
+      "ep",
+      "nb",
+      "tu",
+      "or",
+      "ln",
+      "bd",
+      "la",
+      "ce",
+      "ip",
+      "le",
+      "wd",
+      "cu",
+      "cm",
+      "cw",
+      "nd",
+      "wp",
+      "mp",
+      "pc",
+      "fm",
+      "ci",
+      "ei",
+      "ap",
+      "kv",
+      "lu",
+      "su",
+      "ws"
+    ],
+    "programs_with_unavailable_raw_histogram": [],
+    "all_requested_checks_passed": false,
+    "production_code_changed": false,
+    "commits_created": false
+  }
+}

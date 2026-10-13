@@ -1,0 +1,73 @@
+{
+  "retrieved_at": "2026-10-12T18:56:22.031271+00:00",
+  "source_url_pattern": "https://download.bls.gov/pub/time.series/{program}/{program}.series",
+  "user_agent_recorded": false,
+  "raw_source_files_committed": false,
+  "programs": [
+    "ap",
+    "bd",
+    "ce",
+    "ci",
+    "cm",
+    "cu",
+    "cw",
+    "cx",
+    "ei",
+    "ep",
+    "fm",
+    "ip",
+    "is",
+    "kv",
+    "la",
+    "le",
+    "ln",
+    "lu",
+    "mp",
+    "nb",
+    "nd",
+    "oe",
+    "or",
+    "pc",
+    "su",
+    "tu",
+    "wd",
+    "wm",
+    "wp",
+    "ws"
+  ],
+  "full_file_parse_failures_are_historical": true,
+  "full_file_parse_failures": [
+    {
+      "program": "cu",
+      "status": "error",
+      "error_type": "NativeSeriesError",
+      "error": "<temporary-source>/cu/attempt-1/read-1/cu.series: invalid period code 'S01'; expected a supported BLS period code"
+    },
+    {
+      "program": "cw",
+      "status": "error",
+      "error_type": "NativeSeriesError",
+      "error": "<temporary-source>/cw/attempt-1/read-1/cw.series: invalid period code 'S01'; expected a supported BLS period code"
+    }
+  ],
+  "current_full_file_revalidations": {
+    "cu": {
+      "verified_at": "2026-10-12T19:13:47.839541+00:00",
+      "url": "https://download.bls.gov/pub/time.series/cu/cu.series",
+      "sha256": "f7367ea7851338d4d9165061bfb14051030f07f073dc12d007cdff2becd2320d",
+      "recheck_sha256": "f7367ea7851338d4d9165061bfb14051030f07f073dc12d007cdff2becd2320d",
+      "bytes": 1339447,
+      "row_count": 8104,
+      "status": "ok"
+    },
+    "cw": {
+      "verified_at": "2026-10-12T19:13:52.145481+00:00",
+      "url": "https://download.bls.gov/pub/time.series/cw/cw.series",
+      "sha256": "75f7f0bb3b7bd9884a708301b9e86dbeae9c640e6dbf3509957cd3bf296ab1b9",
+      "recheck_sha256": "75f7f0bb3b7bd9884a708301b9e86dbeae9c640e6dbf3509957cd3bf296ab1b9",
+      "bytes": 1458285,
+      "row_count": 7868,
+      "status": "ok"
+    }
+  }
+}

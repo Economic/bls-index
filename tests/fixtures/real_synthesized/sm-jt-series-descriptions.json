@@ -1,0 +1,8 @@
+{
+  "checked_date": "2026-10-13",
+  "source": "Independent official BLS timeseries reports; excerpts are descriptive fields, not official synthesized titles",
+  "reports": [
+    {"program": "sm", "series_id": "SMS00000000000000021", "url": "https://data.bls.gov/timeseries/SMS00000000000000021", "extracted_at_display": "October 12, 2026 (10:26:43 PM)", "excerpt": "Series Id:SMS00000000000000021 Seasonally Adjusted State:All States Area:Statewide Supersector:Total Nonfarm Industry:Total Nonfarm Data Type:Diffusion Indexes, 1-month span, seasonally adjusted, total nonfarm", "title_fields": {"State": "All States", "Area": "Statewide", "Supersector": "Total Nonfarm", "Industry": "Total Nonfarm", "Data type": "Diffusion Indexes, 1-month span, seasonally adjusted, total nonfarm"}, "seasonal": "SA"},
+    {"program": "jt", "series_id": "JTS000000000000000HIR", "url": "https://data.bls.gov/timeseries/JTS000000000000000HIR", "extracted_at_display": "October 12, 2026 (10:26:36 PM)", "excerpt": "Series Id:JTS000000000000000HIR Seasonally adjusted Industry:Total nonfarm State/Region:Total US Area:All areas Data Element:Hires Size Class:All size classes Rate/Level:Rate", "title_fields": {"Industry": "Total nonfarm", "State": "Total US", "Area": "All areas", "Data element": "Hires", "Size class": "All size classes", "Rate/level": "Rate"}, "seasonal": "SA"}
+  ]
+}

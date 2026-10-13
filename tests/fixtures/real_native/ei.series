@@ -1,0 +1,4 @@
+series_id                     	seasonal	index_code	series_name	base_period	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+EIUCDCANMANU                  	U	CD	Canada-Manufacturing	December 2020=100	Monthly export price index by destination for NAICS, Manufacturing, Canada, not seasonally adjusted		2020	M12	2026	M08
+EIUIQ22010                    	U	IQ	Parts for civilian aircraft	2000=100	Monthly export price index for BEA End Use 22010, Parts - civilian aircraft, not seasonally adjusted		1980	M12	2026	M08
+EIUIZNONMANU                  	U	IZ	Nonmanufacturing	December 2005=100	Monthly import price index for NAICS, Nonmanufacturing, not seasonally adjusted		2005	M12	2026	M08

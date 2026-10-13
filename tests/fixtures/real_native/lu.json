@@ -1,0 +1,139 @@
+{
+  "program": "lu",
+  "url": "https://download.bls.gov/pub/time.series/lu/lu.series",
+  "sha256": "22e22bf4e406da50cef80c4e67cc243b78924ab1c9d2af36149f6770eb983ac8",
+  "recheck_sha256": "22e22bf4e406da50cef80c4e67cc243b78924ab1c9d2af36149f6770eb983ac8",
+  "two_read_sha256_match": true,
+  "source_bytes": 234464,
+  "fetched_at": "2026-10-12T18:52:58.006048+00:00",
+  "http_date": "Mon, 12 Oct 2026 18:52:57 GMT",
+  "last_modified": "Wed, 18 Feb 2026 15:00:00 GMT",
+  "source_row_count": 1241,
+  "selection": "header plus first, midpoint, and last data rows (deduplicated)",
+  "source_rows_1based": [
+    2,
+    622,
+    1242
+  ],
+  "sample_sha256": "5f325a6d8d9266f8167af8cf4ca6b341e02ef8dafeea82458bc97267f34f3407",
+  "sample_rows": [
+    {
+      "source_row_1based": 2,
+      "raw_fields": [
+        "LUU0201CEBE00    ",
+        "20",
+        "00",
+        "(unadj)- Percent of employed, Private wage and salary workers, Represented by unions, Broadcasting and content providers",
+        "01",
+        "05",
+        "00",
+        "17",
+        "2",
+        "6671",
+        "0000",
+        "00",
+        "00",
+        "00",
+        "00",
+        "0",
+        "U",
+        "",
+        "2025",
+        "A01",
+        "2025",
+        "A01"
+      ],
+      "expected_canonical": {
+        "program": "lu",
+        "series_id": "LUU0201CEBE00",
+        "series_title": "(unadj)- Percent of employed, Private wage and salary workers, Represented by unions, Broadcasting and content providers",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 2025,
+        "end_year": 2025,
+        "end_period": "A01"
+      },
+      "parse_status": "ok"
+    },
+    {
+      "source_row_1based": 622,
+      "raw_fields": [
+        "LUU0204905200    ",
+        "20",
+        "00",
+        "(unadj)- Percent of employed, Members of unions, Black or African American, Men",
+        "01",
+        "05",
+        "00",
+        "16",
+        "1",
+        "0000",
+        "0000",
+        "00",
+        "00",
+        "03",
+        "00",
+        "1",
+        "U",
+        "",
+        "2000",
+        "A01",
+        "2025",
+        "A01"
+      ],
+      "expected_canonical": {
+        "program": "lu",
+        "series_id": "LUU0204905200",
+        "series_title": "(unadj)- Percent of employed, Members of unions, Black or African American, Men",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 2000,
+        "end_year": 2025,
+        "end_period": "A01"
+      },
+      "parse_status": "ok"
+    },
+    {
+      "source_row_1based": 1242,
+      "raw_fields": [
+        "LUU0264899700    ",
+        "26",
+        "00",
+        "(unadj)- Percent of employed, Employed part time, Wage and salary workers, Represented by unions",
+        "01",
+        "05",
+        "00",
+        "16",
+        "2",
+        "0000",
+        "0000",
+        "00",
+        "00",
+        "00",
+        "00",
+        "0",
+        "U",
+        "",
+        "2000",
+        "A01",
+        "2025",
+        "A01"
+      ],
+      "expected_canonical": {
+        "program": "lu",
+        "series_id": "LUU0264899700",
+        "series_title": "(unadj)- Percent of employed, Employed part time, Wage and salary workers, Represented by unions",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 2000,
+        "end_year": 2025,
+        "end_period": "A01"
+      },
+      "parse_status": "ok"
+    }
+  ],
+  "full_file_parse": {
+    "status": "ok",
+    "row_count": 1241
+  }
+}

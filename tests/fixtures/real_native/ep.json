@@ -1,0 +1,124 @@
+{
+  "program": "ep",
+  "url": "https://download.bls.gov/pub/time.series/ep/ep.series",
+  "sha256": "be3dfa996dd5939a18c9dd45347d9f4033098c30a3cb06e2a94b5a68037f5975",
+  "recheck_sha256": "be3dfa996dd5939a18c9dd45347d9f4033098c30a3cb06e2a94b5a68037f5975",
+  "two_read_sha256_match": true,
+  "source_bytes": 18629320,
+  "fetched_at": "2026-10-12T18:52:24.576387+00:00",
+  "http_date": "Mon, 12 Oct 2026 18:52:24 GMT",
+  "last_modified": "Thu, 27 Aug 2026 14:00:00 GMT",
+  "source_row_count": 113898,
+  "selection": "header plus first, midpoint, and last data rows (deduplicated)",
+  "source_rows_1based": [
+    2,
+    56951,
+    113899
+  ],
+  "sample_sha256": "767b834f63d9b0df74c6c274a54a2f12bb23e93b483e55e3e47fc6b99fe1d08c",
+  "sample_rows": [
+    {
+      "source_row_1based": 2,
+      "raw_fields": [
+        "EPU000000110000               ",
+        "U",
+        "S",
+        "S",
+        "00-0000",
+        "110000",
+        "5",
+        "1",
+        "7",
+        "9",
+        "0",
+        "Total, all occupations in Agriculture, forestry, fishing, and hunting",
+        "",
+        "2025",
+        "A01",
+        "2025",
+        "A01"
+      ],
+      "expected_canonical": {
+        "program": "ep",
+        "series_id": "EPU000000110000",
+        "series_title": "Total, all occupations in Agriculture, forestry, fishing, and hunting",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 2025,
+        "end_year": 2025,
+        "end_period": "A01"
+      },
+      "parse_status": "ok"
+    },
+    {
+      "source_row_1based": 56951,
+      "raw_fields": [
+        "EPU350000337000               ",
+        "U",
+        "S",
+        "S",
+        "35-0000",
+        "337000",
+        "5",
+        "1",
+        "7",
+        "9",
+        "0",
+        "Food preparation and serving related occupations in Furniture and related product manufacturing",
+        "",
+        "2025",
+        "A01",
+        "2025",
+        "A01"
+      ],
+      "expected_canonical": {
+        "program": "ep",
+        "series_id": "EPU350000337000",
+        "series_title": "Food preparation and serving related occupations in Furniture and related product manufacturing",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 2025,
+        "end_year": 2025,
+        "end_period": "A01"
+      },
+      "parse_status": "ok"
+    },
+    {
+      "source_row_1based": 113899,
+      "raw_fields": [
+        "EPU537199TE1200               ",
+        "U",
+        "L",
+        "S",
+        "53-7199",
+        "TE1200",
+        "5",
+        "1",
+        "7",
+        "9",
+        "0",
+        "Material moving workers, all other in Total wage and salary employment",
+        "",
+        "2025",
+        "A01",
+        "2025",
+        "A01"
+      ],
+      "expected_canonical": {
+        "program": "ep",
+        "series_id": "EPU537199TE1200",
+        "series_title": "Material moving workers, all other in Total wage and salary employment",
+        "title_source": "native",
+        "seasonal": "NSA",
+        "begin_year": 2025,
+        "end_year": 2025,
+        "end_period": "A01"
+      },
+      "parse_status": "ok"
+    }
+  ],
+  "full_file_parse": {
+    "status": "ok",
+    "row_count": 113898
+  }
+}

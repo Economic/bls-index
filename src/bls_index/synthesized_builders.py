@@ -1,0 +1,529 @@
+"""Local, fixture-bounded builders for series without native source titles.
+
+This module implements only the observed PR source contract. It neither downloads
+inputs nor writes/publishes artifacts.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import re
+import tempfile
+import unicodedata
+from collections.abc import Mapping
+from pathlib import Path
+from urllib.parse import urlsplit
+
+import polars as pl
+
+from bls_index.http_source import DownloadRecord, InputSet
+from bls_index.native_builders import (
+    CANONICAL_SCHEMA,
+    SCHEMA_VERSION,
+    NativeSeriesError,
+    _copy_to_snapshot,
+    _sha256_file,
+    _validate_period,
+)
+
+PR_SERIES_HEADER = (
+    "series_id", "sector_code", "class_code", "measure_code", "duration_code",
+    "seasonal", "base_year", "footnote_codes", "begin_year", "begin_period",
+    "end_year", "end_period",
+)
+PR_LOOKUP_HEADERS: dict[str, tuple[str, ...]] = {
+    "pr.sector": ("sector_code", "sector_name", "display_level", "selectable", "sort_sequence"),
+    "pr.class": ("class_code", "class_text", "display_level", "selectable", "sort_sequence"),
+    "pr.measure": ("measure_code", "measure_text", "display_level", "selectable", "sort_sequence"),
+    "pr.duration": ("duration_code", "duration_text", "display_level", "selectable", "sort_sequence"),
+    "pr.seasonal": ("Seasonal_code", "Seasonal_text"),
+}
+PR_INPUT_NAMES = ("pr.series", *PR_LOOKUP_HEADERS)
+PR_TITLE_TEMPLATE = "Measure: {measure}; Sector: {sector}; Class: {class}; Duration: {duration}"
+SM_SERIES_HEADER = (
+    "series_id", "state_code", "area_code", "supersector_code", "industry_code",
+    "data_type_code", "seasonal", "benchmark_year", "footnote_codes", "begin_year",
+    "begin_period", "end_year", "end_period",
+)
+JT_SERIES_HEADER = (
+    "series_id", "seasonal", "industry_code", "state_code", "area_code",
+    "sizeclass_code", "dataelement_code", "ratelevel_code", "footnote_codes",
+    "begin_year", "begin_period", "end_year", "end_period",
+)
+SM_LOOKUP_HEADERS: dict[str, tuple[str, ...]] = {
+    "sm.state": ("state_code", "state_name"),
+    "sm.area": ("area_code", "area_name"),
+    "sm.supersector": ("supersector_code", "supersector_name"),
+    "sm.industry": ("industry_code", "industry_name"),
+    "sm.data_type": ("data_type_code", "data_type_text"),
+    "sm.seasonal": ("seasonal_code", "seasonal_text"),
+}
+JT_LOOKUP_HEADERS: dict[str, tuple[str, ...]] = {
+    "jt.industry": ("industry_code", "industry_text", "display_level", "selectable", "sort_sequence"),
+    "jt.state": ("state_code", "state_text", "display_level", "selectable", "sort_sequence"),
+    "jt.area": ("area_code", "area_text", "display_level", "selectable", "sort_sequence"),
+    "jt.sizeclass": ("sizeclass_code", "sizeclass_text", "display_level", "selectable", "sort_sequence"),
+    "jt.dataelement": ("dataelement_code", "dataelement_text", "display_level", "selectable", "sort_sequence"),
+    "jt.ratelevel": ("ratelevel_code", "ratelevel_text", "display_level", "selectable", "sort_sequence"),
+    "jt.seasonal": ("seasonal_code", "seasonal_text"),
+}
+SM_INPUT_NAMES = ("sm.series", *SM_LOOKUP_HEADERS)
+JT_INPUT_NAMES = ("jt.series", *JT_LOOKUP_HEADERS)
+SM_TITLE_TEMPLATE = "Data type: {data_type}; State: {state}; Area: {area}; Supersector: {supersector}; Industry: {industry}"
+JT_TITLE_TEMPLATE = "Data element: {dataelement}; Rate/level: {ratelevel}; Industry: {industry}; State: {state}; Area: {area}; Size class: {sizeclass}"
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_YEAR_RE = re.compile(r"^[0-9]{4}$")
+_PR_ID_RE = re.compile(r"^PR[SU][0-9]{8}$", re.IGNORECASE)
+_INDEX_BASE_RE = re.compile(r"Index\s*\(\s*([0-9]{4})\s*=\s*100\s*\)", re.IGNORECASE)
+_SEASONAL_CANONICAL = {"Seasonal Adjusted": "SA", "Not Seasonally Adjusted": "NSA"}
+
+
+class SynthesizedSeriesError(ValueError):
+    """A PR source file or verified PR input set violates its observed contract."""
+
+
+def _error(path: Path | str, message: str, line: int | None = None) -> SynthesizedSeriesError:
+    where = f" line {line}" if line is not None else ""
+    return SynthesizedSeriesError(f"{path}{where}: {message}")
+
+
+def _decode_table(path: Path, expected_header: tuple[str, ...], *, trailing_blank_rows: bool = False) -> list[dict[str, str]]:
+    """Read a strict UTF-8 tab-separated file with an exact ordered header and width."""
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        raise _error(path, f"cannot read source: {exc}") from exc
+    if not raw:
+        raise _error(path, "source is empty; expected a header")
+    try:
+        text = raw.decode("utf-8", errors="strict")
+    except UnicodeDecodeError as exc:
+        raise _error(path, "source is not valid UTF-8") from exc
+
+    # Accept LF and CRLF, but not bare carriage returns. A final line terminator is
+    # ordinary file framing; additional empty rows are rejected except for the
+    # observed trailing blank line in pr.seasonal.
+    if "\r" in text.replace("\r\n", ""):
+        raise _error(path, "bare carriage return is not a supported line ending")
+    lines = text.splitlines()
+    if trailing_blank_rows and lines and lines[-1] == "":
+        lines.pop()
+    if not lines:
+        raise _error(path, "source is empty; expected a header")
+
+    header = tuple(field.strip() for field in lines[0].split("\t"))
+    if header != expected_header:
+        raise _error(path, f"unexpected header; expected {expected_header!r}, got {header!r}", 1)
+    rows: list[dict[str, str]] = []
+    for line_number, line in enumerate(lines[1:], start=2):
+        if not line:
+            raise _error(path, "blank lines are not allowed", line_number)
+        fields = line.split("\t")
+        if len(fields) != len(expected_header):
+            raise _error(
+                path,
+                f"row has {len(fields)} tab-separated fields; expected {len(expected_header)}",
+                line_number,
+            )
+        if any(unicodedata.category(char) == "Cc" for field in fields for char in field):
+            raise _error(path, "control characters are not allowed in source fields", line_number)
+        rows.append(dict(zip(expected_header, fields, strict=True)))
+    if not rows:
+        raise _error(path, "source has a header but no data rows")
+    return rows
+
+
+def _lookup(path: Path, header: tuple[str, ...], key_column: str, label_column: str) -> dict[str, str]:
+    rows = _decode_table(path, header, trailing_blank_rows=path.name == "pr.seasonal")
+    result: dict[str, str] = {}
+    for line_number, row in enumerate(rows, start=2):
+        key = row[key_column].strip()
+        label = row[label_column].strip()
+        if not key:
+            raise _error(path, f"blank lookup key in {key_column!r}", line_number)
+        if key in result:
+            raise _error(path, f"duplicate trimmed lookup key {key!r} in {key_column!r}", line_number)
+        if not label:
+            raise _error(path, f"blank lookup label in {label_column!r} for key {key!r}", line_number)
+        result[key] = label
+    return result
+
+
+def _parse_pr_snapshot(snapshots: Mapping[str, Path], diagnostic: Path) -> pl.DataFrame:
+    series_rows = _decode_table(snapshots["pr.series"], PR_SERIES_HEADER)
+    lookups = {
+        "sector": _lookup(snapshots["pr.sector"], PR_LOOKUP_HEADERS["pr.sector"], "sector_code", "sector_name"),
+        "class": _lookup(snapshots["pr.class"], PR_LOOKUP_HEADERS["pr.class"], "class_code", "class_text"),
+        "measure": _lookup(snapshots["pr.measure"], PR_LOOKUP_HEADERS["pr.measure"], "measure_code", "measure_text"),
+        "duration": _lookup(snapshots["pr.duration"], PR_LOOKUP_HEADERS["pr.duration"], "duration_code", "duration_text"),
+        "seasonal": _lookup(snapshots["pr.seasonal"], PR_LOOKUP_HEADERS["pr.seasonal"], "Seasonal_code", "Seasonal_text"),
+    }
+    if set(lookups["seasonal"]) != {"S", "U"}:
+        raise _error(snapshots["pr.seasonal"], "seasonal lookup must contain exactly the observed S and U codes")
+    if lookups["seasonal"] != {"S": "Seasonal Adjusted", "U": "Not Seasonally Adjusted"}:
+        raise _error(snapshots["pr.seasonal"], "seasonal lookup labels are not the verified S/U mapping")
+
+    output: list[dict[str, object]] = []
+    seen_ids: set[str] = set()
+    for line_number, row in enumerate(series_rows, start=2):
+        series_id = row["series_id"].strip()
+        if not _PR_ID_RE.fullmatch(series_id):
+            raise _error(diagnostic, f"invalid PR series_id {series_id!r}; expected observed PR[SU] plus 8 digits", line_number)
+        if series_id in seen_ids:
+            raise _error(diagnostic, f"duplicate trimmed series_id {series_id!r}", line_number)
+        seen_ids.add(series_id)
+
+        codes = {
+            name: row[f"{name}_code"].strip()
+            for name in ("sector", "class", "measure", "duration")
+        }
+        seasonal_code = row["seasonal"].strip()
+        if not seasonal_code:
+            raise _error(diagnostic, "blank required seasonal key", line_number)
+        for name, code in (*codes.items(), ("seasonal", seasonal_code)):
+            if not code:
+                raise _error(diagnostic, f"blank required {name} lookup key", line_number)
+            if code not in lookups[name]:
+                if name == "seasonal":
+                    raise _error(diagnostic, f"invalid, blank, or missing seasonal source code {code!r}", line_number)
+                raise _error(diagnostic, f"missing {name} lookup key {code!r}", line_number)
+        expected_id = "PR" + seasonal_code + "".join(codes[name] for name in ("sector", "class", "measure", "duration"))
+        if series_id.upper() != expected_id.upper():
+            raise _error(diagnostic, f"invalid PR series_id {series_id!r}; does not match source components", line_number)
+
+        for name in ("begin_year", "end_year"):
+            value = row[name].strip()
+            if value and not _YEAR_RE.fullmatch(value):
+                raise _error(diagnostic, f"invalid {name} value {value!r}; expected a four-digit year", line_number)
+            if value == "0000":
+                raise _error(diagnostic, f"invalid {name} value '0000'; year must be positive", line_number)
+        begin = row["begin_year"].strip() or None
+        end = row["end_year"].strip() or None
+        if begin is not None and end is not None and int(begin) > int(end):
+            raise _error(diagnostic, f"begin_year exceeds end_year for series_id {series_id!r}", line_number)
+        begin_period = row["begin_period"].strip()
+        end_period = row["end_period"].strip()
+        try:
+            _validate_period(diagnostic, pl.Series("period", [begin_period], dtype=pl.String), "pr")
+            _validate_period(diagnostic, pl.Series("period", [end_period], dtype=pl.String), "pr")
+        except NativeSeriesError as exc:
+            raise SynthesizedSeriesError(str(exc)) from exc
+        if begin_period and begin is None:
+            raise _error(diagnostic, "begin_period is present while begin_year is missing", line_number)
+        if end_period and end is None:
+            raise _error(diagnostic, "end_period is present while end_year is missing", line_number)
+
+        duration_label = lookups["duration"][codes["duration"]]
+        index_base = _INDEX_BASE_RE.search(duration_label)
+        base_year = row["base_year"].strip()
+        if index_base is not None and base_year != index_base.group(1):
+            raise _error(
+                diagnostic,
+                f"base_year {base_year!r} does not match index duration base {index_base.group(1)!r}",
+                line_number,
+            )
+
+        title = PR_TITLE_TEMPLATE.format(
+            measure=lookups["measure"][codes["measure"]],
+            sector=lookups["sector"][codes["sector"]],
+            **{"class": lookups["class"][codes["class"]]},
+            duration=duration_label,
+        )
+        output.append({
+            "program": "pr",
+            "series_id": series_id,
+            "series_title": title,
+            "title_source": "synthesized",
+            "seasonal": _SEASONAL_CANONICAL[lookups["seasonal"][seasonal_code]],
+            "begin_year": int(begin) if begin is not None else None,
+            "end_year": int(end) if end is not None else None,
+            "end_period": end_period or None,
+        })
+
+    if len(output) != len(series_rows):
+        raise _error(diagnostic, "builder did not emit exactly one output row per source row")
+    return pl.DataFrame(output).cast(CANONICAL_SCHEMA)
+
+
+def _parse_sm_jt_snapshot(
+    program: str, snapshots: Mapping[str, Path], diagnostic: Path
+) -> pl.DataFrame:
+    if program == "sm":
+        series_header, lookup_headers = SM_SERIES_HEADER, SM_LOOKUP_HEADERS
+        input_names, id_pattern = SM_INPUT_NAMES, re.compile(r"^SM[SU][0-9]{17}$", re.IGNORECASE)
+        title_template = SM_TITLE_TEMPLATE
+        dimensions = {
+            "data_type": ("data_type_code", "sm.data_type", "data_type_text"),
+            "state": ("state_code", "sm.state", "state_name"),
+            "area": ("area_code", "sm.area", "area_name"),
+            "supersector": ("supersector_code", "sm.supersector", "supersector_name"),
+            "industry": ("industry_code", "sm.industry", "industry_name"),
+        }
+        id_dimensions = ("state_code", "area_code", "industry_code", "data_type_code")
+    elif program == "jt":
+        series_header, lookup_headers = JT_SERIES_HEADER, JT_LOOKUP_HEADERS
+        input_names, id_pattern = JT_INPUT_NAMES, re.compile(r"^JT[SU][A-Z0-9]{18}$", re.IGNORECASE)
+        title_template = JT_TITLE_TEMPLATE
+        dimensions = {
+            "dataelement": ("dataelement_code", "jt.dataelement", "dataelement_text"),
+            "ratelevel": ("ratelevel_code", "jt.ratelevel", "ratelevel_text"),
+            "industry": ("industry_code", "jt.industry", "industry_text"),
+            "state": ("state_code", "jt.state", "state_text"),
+            "area": ("area_code", "jt.area", "area_text"),
+            "sizeclass": ("sizeclass_code", "jt.sizeclass", "sizeclass_text"),
+        }
+        id_dimensions = (
+            "industry_code", "state_code", "area_code", "sizeclass_code",
+            "dataelement_code", "ratelevel_code",
+        )
+    else:
+        raise SynthesizedSeriesError(f"unsupported synthesized program {program!r}")
+
+    series_rows = _decode_table(snapshots[f"{program}.series"], series_header)
+    lookups: dict[str, dict[str, str]] = {}
+    for file_name, header in lookup_headers.items():
+        dimension = file_name.split(".", maxsplit=1)[1]
+        if dimension == "seasonal":
+            key_column, label_column = "seasonal_code", "seasonal_text"
+        else:
+            key_column = header[0]
+            label_column = header[1]
+        lookups[file_name] = _lookup(snapshots[file_name], header, key_column, label_column)
+
+    seasonal_lookup = lookups[f"{program}.seasonal"]
+    if seasonal_lookup != {"S": "Seasonally Adjusted", "U": "Not Seasonally Adjusted"}:
+        raise _error(snapshots[f"{program}.seasonal"], "seasonal lookup is not the verified S/U mapping")
+    canonical_seasonal = {"Seasonally Adjusted": "SA", "Not Seasonally Adjusted": "NSA"}
+
+    output: list[dict[str, object]] = []
+    seen_ids: set[str] = set()
+    for line_number, row in enumerate(series_rows, start=2):
+        series_id = row["series_id"].strip()
+        if not id_pattern.fullmatch(series_id):
+            raise _error(diagnostic, f"invalid {program.upper()} series_id {series_id!r}; unexpected observed ID layout", line_number)
+        if series_id in seen_ids:
+            raise _error(diagnostic, f"duplicate trimmed series_id {series_id!r}", line_number)
+        seen_ids.add(series_id)
+        codes: dict[str, str] = {}
+        if program == "sm" and row["supersector_code"].strip() != row["industry_code"].strip()[:2]:
+            raise _error(diagnostic, "SM supersector_code does not match the industry_code prefix", line_number)
+        for title_dimension, (source_column, file_name, _) in dimensions.items():
+            code = row[source_column].strip()
+            codes[source_column] = code
+            if not code:
+                raise _error(diagnostic, f"blank required {title_dimension} lookup key", line_number)
+            if code not in lookups[file_name]:
+                raise _error(diagnostic, f"missing {title_dimension} lookup key {code!r}", line_number)
+        seasonal_code = row["seasonal"].strip()
+        if seasonal_code not in seasonal_lookup:
+            raise _error(diagnostic, f"invalid, blank, or missing seasonal source code {seasonal_code!r}", line_number)
+        expected_id = program.upper() + seasonal_code + "".join(codes[column] for column in id_dimensions)
+        if series_id.upper() != expected_id.upper():
+            raise _error(diagnostic, f"invalid {program.upper()} series_id {series_id!r}; does not match source components", line_number)
+        year_values: dict[str, str | None] = {}
+        for name in ("begin_year", "end_year"):
+            value = row[name].strip()
+            if value and (not _YEAR_RE.fullmatch(value) or value == "0000"):
+                raise _error(diagnostic, f"invalid {name} value {value!r}; expected a positive four-digit year", line_number)
+            year_values[name] = value or None
+        begin, end = year_values["begin_year"], year_values["end_year"]
+        if begin is not None and end is not None and int(begin) > int(end):
+            raise _error(diagnostic, f"begin_year exceeds end_year for series_id {series_id!r}", line_number)
+        begin_period, end_period = row["begin_period"].strip(), row["end_period"].strip()
+        try:
+            _validate_period(diagnostic, pl.Series("period", [begin_period], dtype=pl.String), program)
+            _validate_period(diagnostic, pl.Series("period", [end_period], dtype=pl.String), program)
+        except NativeSeriesError as exc:
+            raise SynthesizedSeriesError(str(exc)) from exc
+        if begin_period and begin is None:
+            raise _error(diagnostic, "begin_period is present while begin_year is missing", line_number)
+        if end_period and end is None:
+            raise _error(diagnostic, "end_period is present while end_year is missing", line_number)
+
+        labels = {
+            name: lookups[file_name][codes[source_column]]
+            for name, (source_column, file_name, _) in dimensions.items()
+        }
+        title = title_template.format(**labels)
+        output.append({
+            "program": program,
+            "series_id": series_id,
+            "series_title": title,
+            "title_source": "synthesized",
+            "seasonal": canonical_seasonal[seasonal_lookup[seasonal_code]],
+            "begin_year": int(begin) if begin is not None else None,
+            "end_year": int(end) if end is not None else None,
+            "end_period": end_period or None,
+        })
+
+    if len(output) != len(series_rows):
+        raise _error(diagnostic, "builder did not emit exactly one output row per source row")
+    return pl.DataFrame(output).cast(CANONICAL_SCHEMA)
+
+
+def parse_pr_sources(sources: Mapping[str, str | Path]) -> pl.DataFrame:
+    """Parse explicit local PR files keyed by their exact names, for tests and local use.
+
+    This path-based API does not accept network URLs or fetch inputs. Each input is
+    snapshotted and hash-checked, and each source path is checked before and after parsing.
+    """
+    if set(sources) != set(PR_INPUT_NAMES):
+        raise SynthesizedSeriesError(f"PR sources must be exactly {PR_INPUT_NAMES!r}")
+    paths = {name: Path(sources[name]) for name in PR_INPUT_NAMES}
+    try:
+        with tempfile.TemporaryDirectory(prefix="bls-index-pr-") as staging:
+            root = Path(staging)
+            snapshots: dict[str, Path] = {}
+            digests: dict[str, str] = {}
+            for name, source in paths.items():
+                snapshot = root / name
+                digests[name] = _copy_to_snapshot(source, snapshot)
+                snapshots[name] = snapshot
+                if _sha256_file(source) != digests[name]:
+                    raise _error(source, "source changed while staging")
+            frame = _parse_pr_snapshot(snapshots, paths["pr.series"])
+            for name, source in paths.items():
+                if _sha256_file(source) != digests[name]:
+                    raise _error(source, "source changed while parsing")
+            return frame
+    except NativeSeriesError as exc:
+        raise SynthesizedSeriesError(str(exc)) from exc
+    except OSError as exc:
+        raise _error("PR input set", f"cannot stage or clean up sources: {exc}") from exc
+
+
+def _validate_program_input_set(
+    input_set: InputSet, program: str, input_names: tuple[str, ...]
+) -> dict[str, DownloadRecord]:
+    if input_set.program != program:
+        raise SynthesizedSeriesError(f"InputSet program must be {program!r}, got {input_set.program!r}")
+    if not isinstance(input_set.attempts, int) or isinstance(input_set.attempts, bool) or input_set.attempts < 1:
+        raise SynthesizedSeriesError("InputSet must record at least one verification attempt")
+    if len(input_set.files) != len(input_names) or len(input_set.rechecks) != len(input_names):
+        raise SynthesizedSeriesError(f"{program.upper()} InputSet must contain exactly these inputs: {input_names!r}")
+    records: dict[str, DownloadRecord] = {}
+    rechecks: dict[str, DownloadRecord] = {}
+    for record in input_set.files:
+        parts = [part for part in urlsplit(record.url).path.split("/") if part]
+        if len(parts) < 2 or parts[-2] != program or parts[-1] not in input_names:
+            raise SynthesizedSeriesError(f"unexpected {program.upper()} input URL {record.url!r}")
+        name = parts[-1]
+        if name in records:
+            raise SynthesizedSeriesError(f"duplicate {program.upper()} input record for {name!r}")
+        if urlsplit(record.url).scheme not in {"http", "https"} or not urlsplit(record.url).netloc:
+            raise SynthesizedSeriesError(f"input record URL must be HTTP(S): {record.url!r}")
+        if record.status != 200 or not isinstance(record.bytes, int) or isinstance(record.bytes, bool) or record.bytes < 0:
+            raise SynthesizedSeriesError(f"invalid successful response metadata for {record.url!r}")
+        if not isinstance(record.sha256, str) or not _SHA256_RE.fullmatch(record.sha256):
+            raise SynthesizedSeriesError(f"invalid SHA-256 for {record.url!r}")
+        if record.path is None:
+            raise SynthesizedSeriesError(f"{program.upper()} input {name!r} has no local downloaded path")
+        records[name] = record
+    for record in input_set.rechecks:
+        parts = [part for part in urlsplit(record.url).path.split("/") if part]
+        name = parts[-1] if len(parts) >= 2 and parts[-2] == program else ""
+        if name not in input_names or name in rechecks:
+            raise SynthesizedSeriesError(f"unexpected or duplicate {program.upper()} recheck URL {record.url!r}")
+        if record.status != 200 or not isinstance(record.bytes, int) or isinstance(record.bytes, bool) or record.bytes < 0:
+            raise SynthesizedSeriesError(f"invalid successful recheck metadata for {record.url!r}")
+        if not isinstance(record.sha256, str) or not _SHA256_RE.fullmatch(record.sha256):
+            raise SynthesizedSeriesError(f"invalid recheck SHA-256 for {record.url!r}")
+        rechecks[name] = record
+    if set(records) != set(input_names) or set(rechecks) != set(input_names):
+        raise SynthesizedSeriesError(f"{program.upper()} InputSet names must be exactly {input_names!r}")
+    for name in input_names:
+        record, recheck = records[name], rechecks[name]
+        if record.url != recheck.url or record.sha256 != recheck.sha256 or record.bytes != recheck.bytes:
+            raise SynthesizedSeriesError(f"download recheck does not match input record for {name!r}")
+    return records
+
+
+def parse_pr_input_set(input_set: InputSet) -> pl.DataFrame:
+    """Build canonical PR rows from one previously verified HTTP ``InputSet`` without fetching."""
+    return _parse_program_input_set(input_set, "pr", PR_INPUT_NAMES)
+
+
+def parse_sm_input_set(input_set: InputSet) -> pl.DataFrame:
+    """Build canonical SM rows from a previously verified HTTP ``InputSet`` without fetching."""
+    return _parse_program_input_set(input_set, "sm", SM_INPUT_NAMES)
+
+
+def parse_jt_input_set(input_set: InputSet) -> pl.DataFrame:
+    """Build canonical JT rows from a previously verified HTTP ``InputSet`` without fetching."""
+    return _parse_program_input_set(input_set, "jt", JT_INPUT_NAMES)
+
+
+def _parse_program_input_set(input_set: InputSet, program: str, names: tuple[str, ...]) -> pl.DataFrame:
+    records = _validate_program_input_set(input_set, program, names)
+    paths = {name: Path(record.path) for name, record in records.items() if record.path is not None}
+    series_header = {"pr": PR_SERIES_HEADER, "sm": SM_SERIES_HEADER, "jt": JT_SERIES_HEADER}[program]
+    try:
+        with tempfile.TemporaryDirectory(prefix=f"bls-index-{program}-verified-") as staging:
+            root = Path(staging)
+            snapshots: dict[str, Path] = {}
+            digests: dict[str, str] = {}
+            for name in names:
+                record = records[name]
+                source = paths[name]
+                snapshot = root / name
+                digest = _copy_to_snapshot(source, snapshot)
+                size = snapshot.stat().st_size
+                if digest != record.sha256 or size != record.bytes:
+                    raise _error(source, "input snapshot changed or disagrees with verified provenance")
+                if _sha256_file(source) != record.sha256:
+                    raise _error(source, "input changed while staging")
+                snapshots[name] = snapshot
+                digests[name] = digest
+            diagnostic = paths[f"{program}.series"]
+            if program == "pr":
+                frame = _parse_pr_snapshot(snapshots, diagnostic)
+            else:
+                frame = _parse_sm_jt_snapshot(program, snapshots, diagnostic)
+            for name, source in paths.items():
+                actual = _sha256_file(source)
+                if actual != digests[name] or source.stat().st_size != records[name].bytes:
+                    raise _error(source, "input changed while parsing")
+            source_count = len(_decode_table(snapshots[f"{program}.series"], series_header))
+            if frame.schema != CANONICAL_SCHEMA or frame.height != source_count:
+                raise _error(diagnostic, f"builder output violates canonical schema v{SCHEMA_VERSION} or row count")
+            return frame
+    except NativeSeriesError as exc:
+        raise SynthesizedSeriesError(str(exc)) from exc
+    except OSError as exc:
+        raise _error(f"{program.upper()} InputSet", f"cannot stage or clean up sources: {exc}") from exc
+
+
+def _parse_local_sources(program: str, sources: Mapping[str, str | Path], names: tuple[str, ...]) -> pl.DataFrame:
+    if set(sources) != set(names):
+        raise SynthesizedSeriesError(f"{program.upper()} sources must be exactly {names!r}")
+    paths = {name: Path(sources[name]) for name in names}
+    try:
+        with tempfile.TemporaryDirectory(prefix=f"bls-index-{program}-") as staging:
+            root = Path(staging)
+            snapshots: dict[str, Path] = {}
+            digests: dict[str, str] = {}
+            for name, source in paths.items():
+                snapshot = root / name
+                digests[name] = _copy_to_snapshot(source, snapshot)
+                snapshots[name] = snapshot
+                if _sha256_file(source) != digests[name]:
+                    raise _error(source, "source changed while staging")
+            frame = _parse_sm_jt_snapshot(program, snapshots, paths[f"{program}.series"])
+            for name, source in paths.items():
+                if _sha256_file(source) != digests[name]:
+                    raise _error(source, "source changed while parsing")
+            return frame
+    except NativeSeriesError as exc:
+        raise SynthesizedSeriesError(str(exc)) from exc
+    except OSError as exc:
+        raise _error(f"{program.upper()} input set", f"cannot stage or clean up sources: {exc}") from exc
+
+
+def parse_sm_sources(sources: Mapping[str, str | Path]) -> pl.DataFrame:
+    """Parse exact local SM source paths; no network requests are made."""
+    return _parse_local_sources("sm", sources, SM_INPUT_NAMES)
+
+
+def parse_jt_sources(sources: Mapping[str, str | Path]) -> pl.DataFrame:
+    """Parse exact local JT source paths; no network requests are made."""
+    return _parse_local_sources("jt", sources, JT_INPUT_NAMES)

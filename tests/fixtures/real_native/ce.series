@@ -1,0 +1,4 @@
+series_id        	supersector_code	industry_code	data_type_code	seasonal	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+CES0000000001    	00	00000000	01	S	All employees, thousands, total nonfarm, seasonally adjusted		1939	M01	2026	M09
+CES9093292010    	90	90932920	10	S	Women employees, thousands, local government general administration, seasonally adjusted	I	1990	M01	2026	M08
+CEU9093299910    	90	90932999	10	U	Women employees, thousands, other local government, not seasonally adjusted		1990	M01	2026	M08

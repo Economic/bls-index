@@ -1,0 +1,4 @@
+series_id                     	seasonal	ownership_code	estimate_code	industry_code	occupation_code	subcell_code	datatype_code	provision_code	survey_code	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+NBU10000000000000028007       	U	1	00	000000	000000	00	28	007	IP	Percent of civilian workers with access to both medical care and retirement benefits		2010	A01	2026	A01
+NBU21600000000000422275       	U	2	16	000000	000000	04	22	275	IP	Weekly maximum benefit dollar amount for fixed percent of annual earnings short-term disability plans (25th percentile) for private industry workers in establishments with 50-99 workers		2010	A01	2024	A01
+NBU59800000000000033968       	U	5	98	000000	000000	00	33	968	IP	Percent of local government workers with access to flexible work schedule		2020	A01	2026	A01

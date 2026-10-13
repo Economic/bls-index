@@ -1,0 +1,4 @@
+series_id                     	seasonal	occ_type	ind_type	occ_code	ind_code	wkex_code	rank_code	otjt_code	eductrn_code	disp_code	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+EPU000000110000               	U	S	S	00-0000	110000	5	1	7	9	0	Total, all occupations in Agriculture, forestry, fishing, and hunting		2025	A01	2025	A01
+EPU350000337000               	U	S	S	35-0000	337000	5	1	7	9	0	Food preparation and serving related occupations in Furniture and related product manufacturing		2025	A01	2025	A01
+EPU537199TE1200               	U	L	S	53-7199	TE1200	5	1	7	9	0	Material moving workers, all other in Total wage and salary employment		2025	A01	2025	A01

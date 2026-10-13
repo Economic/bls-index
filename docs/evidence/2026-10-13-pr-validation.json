@@ -1,0 +1,80 @@
+{
+  "verified_at": "2026-10-13T02:13:05.126472+00:00",
+  "base_git_revision": "854278d8f2c5e75445761a5c2e34e54812074af5",
+  "parser_sha256": "741caf1c43996a236f6d683d7dc8d050b080cedc343ed3e43baea0627ee24a0d",
+  "program": "pr",
+  "rows": 282,
+  "status": "ok",
+  "download_seconds": 11.516701868000382,
+  "parse_seconds": 0.34819177899771603,
+  "sample_rows": [
+    {
+      "program": "pr",
+      "series_id": "PRS30006011",
+      "series_title": "Measure: Employment; Sector: Manufacturing; Class: All workers; Duration: % Change same quarter 1 year ago",
+      "title_source": "synthesized",
+      "seasonal": "SA",
+      "begin_year": 1988,
+      "end_year": 2026,
+      "end_period": "Q02"
+    },
+    {
+      "program": "pr",
+      "series_id": "PRS30006012",
+      "series_title": "Measure: Employment; Sector: Manufacturing; Class: All workers; Duration: % Change from previous quarter",
+      "title_source": "synthesized",
+      "seasonal": "SA",
+      "begin_year": 1987,
+      "end_year": 2026,
+      "end_period": "Q02"
+    },
+    {
+      "program": "pr",
+      "series_id": "PRS30006013",
+      "series_title": "Measure: Employment; Sector: Manufacturing; Class: All workers; Duration: Index (2017=100)",
+      "title_source": "synthesized",
+      "seasonal": "SA",
+      "begin_year": 1987,
+      "end_year": 2026,
+      "end_period": "Q02"
+    }
+  ],
+  "inputs": [
+    {
+      "url": "https://download.bls.gov/pub/time.series/pr/pr.series",
+      "bytes": 15657,
+      "sha256": "fe94825be4ce9c418b07180cb745b69f4e93f08636b27e7583d2fb5094ffb3b6",
+      "recheck_sha256": "fe94825be4ce9c418b07180cb745b69f4e93f08636b27e7583d2fb5094ffb3b6"
+    },
+    {
+      "url": "https://download.bls.gov/pub/time.series/pr/pr.sector",
+      "bytes": 263,
+      "sha256": "1eaef7fb47ac5accc468ff39c4e8916f575a644a009ee66ef8dbd188fe54e369",
+      "recheck_sha256": "1eaef7fb47ac5accc468ff39c4e8916f575a644a009ee66ef8dbd188fe54e369"
+    },
+    {
+      "url": "https://download.bls.gov/pub/time.series/pr/pr.class",
+      "bytes": 102,
+      "sha256": "ed5e7641b5b990460f02a3189b22b48535abcdf3eb505ebfe820ef4c7a288bc9",
+      "recheck_sha256": "ed5e7641b5b990460f02a3189b22b48535abcdf3eb505ebfe820ef4c7a288bc9"
+    },
+    {
+      "url": "https://download.bls.gov/pub/time.series/pr/pr.measure",
+      "bytes": 745,
+      "sha256": "459c07d625b60430028569cf37f20c4b618f3de0ece5756ef6fa034cbeb594c6",
+      "recheck_sha256": "459c07d625b60430028569cf37f20c4b618f3de0ece5756ef6fa034cbeb594c6"
+    },
+    {
+      "url": "https://download.bls.gov/pub/time.series/pr/pr.duration",
+      "bytes": 176,
+      "sha256": "d1132a2ac0a27c12a1bb82538be3cb5ba1dfaa3eb6951feb8caba5d99202e97f",
+      "recheck_sha256": "d1132a2ac0a27c12a1bb82538be3cb5ba1dfaa3eb6951feb8caba5d99202e97f"
+    },
+    {
+      "url": "https://download.bls.gov/pub/time.series/pr/pr.seasonal",
+      "bytes": 79,
+      "sha256": "5ebe468ab3cbcfdd6b19b81f34af9281dd4728e891d78192f35de3a5bd9d7b24",
+      "recheck_sha256": "5ebe468ab3cbcfdd6b19b81f34af9281dd4728e891d78192f35de3a5bd9d7b24"
+    }
+  ]
+}

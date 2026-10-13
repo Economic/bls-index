@@ -1,0 +1,4 @@
+dataelement_code	dataelement_text	display_level	selectable	sort_sequence
+HI	Hires	0	T	2
+R1	First closing response rate	0	T	8
+TS	Total separations	0	T	3

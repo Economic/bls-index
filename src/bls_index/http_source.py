@@ -231,6 +231,14 @@ class HttpSource:
         self._clock = clock
         self._sleep = sleep
         self._pacer = pacer or RequestPacer(config.min_request_interval)
+        self._transfer_metrics_lock = threading.Lock()
+        self._received_body_bytes = 0
+        self._verification_body_bytes = 0
+        self._retry_body_bytes = 0
+        self._request_attempts = 0
+        self._verification_request_attempts = 0
+        self._request_retry_attempts = 0
+        self._input_set_retries = 0
         self._client = httpx.Client(
             headers={
                 "User-Agent": validate_user_agent(config.user_agent),
@@ -241,6 +249,61 @@ class HttpSource:
             limits=httpx.Limits(max_connections=config.max_concurrency),
             follow_redirects=False,
         )
+
+    @property
+    def received_body_bytes(self) -> int:
+        """Cumulative HTTP application-body bytes yielded by response iterators.
+
+        This excludes headers, framing, and wire bytes; bytes buffered below HTTPX but
+        never yielded to ``iter_raw`` cannot be observed. Partial bodies count as received.
+        """
+        with self._transfer_metrics_lock:
+            return self._received_body_bytes
+
+    @property
+    def verification_body_bytes(self) -> int:
+        """Cumulative yielded HTTP body bytes from input-set verification reads.
+
+        Includes partial bodies, per-request retries, and reads from discarded input-set
+        attempts; it is a traffic counter, not the size of the final verified inputs.
+        """
+        with self._transfer_metrics_lock:
+            return self._verification_body_bytes
+
+    @property
+    def retry_body_bytes(self) -> int:
+        """Cumulative yielded bytes from retry requests, counted once per body chunk.
+
+        A request is a retry if it repeats a GET after a failed request, or if it belongs
+        to a repeated input-set attempt. The latter includes both first reads and
+        verification reads in that repeated attempt.
+        """
+        with self._transfer_metrics_lock:
+            return self._retry_body_bytes
+
+    @property
+    def request_attempts(self) -> int:
+        """Cumulative number of GET send attempts, including retries and rechecks."""
+        with self._transfer_metrics_lock:
+            return self._request_attempts
+
+    @property
+    def verification_request_attempts(self) -> int:
+        """Cumulative GET attempts made for input-set verification reads."""
+        with self._transfer_metrics_lock:
+            return self._verification_request_attempts
+
+    @property
+    def request_retry_attempts(self) -> int:
+        """Cumulative GET attempts after the initial request for a single download."""
+        with self._transfer_metrics_lock:
+            return self._request_retry_attempts
+
+    @property
+    def input_set_retries(self) -> int:
+        """Cumulative repeated input-set attempts, excluding each program's first."""
+        with self._transfer_metrics_lock:
+            return self._input_set_retries
 
     def close(self) -> None:
         self._client.close()
@@ -259,12 +322,27 @@ class HttpSource:
         Incomplete bodies are not retried here; they fail the attempt so the caller
         retries the whole program input set.
         """
+        return self._download_classified(rel_path, dest)
+
+    def _download_classified(
+        self,
+        rel_path: str,
+        dest: Path,
+        *,
+        verification: bool = False,
+        input_set_retry: bool = False,
+    ) -> DownloadRecord:
+        """Download one file with per-call instrumentation labels."""
         url = self.config.base_url + rel_path
         dest.parent.mkdir(parents=True, exist_ok=True)
         attempt = 1
         while True:
             try:
-                return self._download_once(url, dest, attempt)
+                return self._download_once(
+                    url, dest, attempt,
+                    verification=verification,
+                    input_set_retry=input_set_retry,
+                )
             except SourceError as exc:
                 if (
                     not exc.retryable
@@ -300,7 +378,15 @@ class HttpSource:
             delay = max(delay, retry_after)
         return delay
 
-    def _download_once(self, url: str, dest: Path, attempt: int) -> DownloadRecord:
+    def _download_once(
+        self,
+        url: str,
+        dest: Path,
+        attempt: int,
+        *,
+        verification: bool = False,
+        input_set_retry: bool = False,
+    ) -> DownloadRecord:
         body_started = False
         digest = hashlib.sha256()
         size = 0
@@ -312,6 +398,12 @@ class HttpSource:
                     paced_seconds=round(paced, 3),
                 )  # fmt: skip
                 started = self._clock.now()
+                with self._transfer_metrics_lock:
+                    self._request_attempts += 1
+                    if verification:
+                        self._verification_request_attempts += 1
+                    if attempt > 1:
+                        self._request_retry_attempts += 1
                 resp = self._client.send(request, stream=True)
             try:
                 status = resp.status_code
@@ -333,6 +425,15 @@ class HttpSource:
                 with dest.open("wb") as fh:
                     body_started = True
                     for chunk in resp.iter_raw(1 << 20):
+                        # Count bytes as HTTPX yields them, before local disk writes. If a
+                        # later read or write fails, the already received body stays counted.
+                        with self._transfer_metrics_lock:
+                            chunk_bytes = len(chunk)
+                            self._received_body_bytes += chunk_bytes
+                            if verification:
+                                self._verification_body_bytes += chunk_bytes
+                            if input_set_retry or attempt > 1:
+                                self._retry_body_bytes += chunk_bytes
                         digest.update(chunk)
                         fh.write(chunk)
                         size += len(chunk)
@@ -377,14 +478,24 @@ class HttpSource:
         last_error: SourceError | None = None
         for attempt in range(1, self.config.max_input_set_attempts + 1):
             attempt_dir = workdir / program / f"attempt-{attempt}"
+            if attempt > 1:
+                with self._transfer_metrics_lock:
+                    self._input_set_retries += 1
             self._events.record("input_set.attempt", program=program, attempt=attempt)
             try:
                 first = [
-                    self.download(source_path(program, n), attempt_dir / "read-1" / n)
+                    self._download_classified(
+                        source_path(program, n), attempt_dir / "read-1" / n,
+                        input_set_retry=attempt > 1,
+                    )
                     for n in names
                 ]
                 second = [
-                    self.download(source_path(program, n), attempt_dir / "read-2" / n)
+                    self._download_classified(
+                        source_path(program, n), attempt_dir / "read-2" / n,
+                        verification=True,
+                        input_set_retry=attempt > 1,
+                    )
                     for n in names
                 ]
             except SourceError as exc:

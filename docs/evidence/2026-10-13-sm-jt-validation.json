@@ -1,0 +1,138 @@
+{
+  "verified_at": "2026-10-13T02:40:27.903399+00:00",
+  "base_git_revision": "6f5ba106ad88f8aff8bd12733e55a0e3b32e8c98",
+  "parser_sha256": "43d7093ca3f8a39dfdc09ce0e85654de06495393037cc94225b2f39da7f2cb08",
+  "scope": "Full fresh-source SM/JT parsing, not combined validation",
+  "programs": {
+    "sm": {
+      "status": "ok",
+      "rows": 22927,
+      "download_seconds": 14.251,
+      "parse_seconds": 29.308,
+      "sample_rows": [
+        {
+          "program": "sm",
+          "series_id": "SMS00000000000000021",
+          "series_title": "Data type: Diffusion Indexes, 1-month span, seasonally adjusted, total nonfarm; State: All States; Area: Statewide; Supersector: Total Nonfarm; Industry: Total Nonfarm",
+          "title_source": "synthesized",
+          "seasonal": "SA",
+          "begin_year": 1991,
+          "end_year": 2026,
+          "end_period": "M08"
+        }
+      ],
+      "inputs": [
+        {
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.series",
+          "bytes": 1880196,
+          "sha256": "d237d823584aa90595cc073c5a84569c61bfbc9ac3f8f817a5f58b21790fb171",
+          "recheck_sha256": "d237d823584aa90595cc073c5a84569c61bfbc9ac3f8f817a5f58b21790fb171"
+        },
+        {
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.state",
+          "bytes": 809,
+          "sha256": "147cc20c91412cc8d70dd7003ea70453c20b68b396735bcc55159fd14b74b926",
+          "recheck_sha256": "147cc20c91412cc8d70dd7003ea70453c20b68b396735bcc55159fd14b74b926"
+        },
+        {
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.area",
+          "bytes": 12644,
+          "sha256": "357930421d05d7883c8ddb7657d0046e55e10e48840de2cb63e106d2d66e5649",
+          "recheck_sha256": "357930421d05d7883c8ddb7657d0046e55e10e48840de2cb63e106d2d66e5649"
+        },
+        {
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.supersector",
+          "bytes": 566,
+          "sha256": "b5b2c911026606e401458bc3ec960ebda32878eb3976908b3475204470df96b6",
+          "recheck_sha256": "b5b2c911026606e401458bc3ec960ebda32878eb3976908b3475204470df96b6"
+        },
+        {
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.industry",
+          "bytes": 14684,
+          "sha256": "63562d3efc25f54bc6163fc4282df1abb7c0653d24add398a685f3b4e836dbb9",
+          "recheck_sha256": "63562d3efc25f54bc6163fc4282df1abb7c0653d24add398a685f3b4e836dbb9"
+        },
+        {
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.data_type",
+          "bytes": 819,
+          "sha256": "3b14101486303537f41bcfbd187dcdb7cc5dd6d949830f7d4c9ab4a7f499b2dc",
+          "recheck_sha256": "3b14101486303537f41bcfbd187dcdb7cc5dd6d949830f7d4c9ab4a7f499b2dc"
+        },
+        {
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.seasonal",
+          "bytes": 79,
+          "sha256": "801baddf3511b8d9b03c0dbd1a9d9365c668b911a2228c6c594ea8a684ace5d7",
+          "recheck_sha256": "801baddf3511b8d9b03c0dbd1a9d9365c668b911a2228c6c594ea8a684ace5d7"
+        }
+      ]
+    },
+    "jt": {
+      "status": "ok",
+      "rows": 2060,
+      "download_seconds": 16.718,
+      "parse_seconds": 2.885,
+      "sample_rows": [
+        {
+          "program": "jt",
+          "series_id": "JTS000000000000000HIL",
+          "series_title": "Data element: Hires; Rate/level: Level - In Thousands; Industry: Total nonfarm; State: Total US; Area: All areas; Size class: All size classes",
+          "title_source": "synthesized",
+          "seasonal": "SA",
+          "begin_year": 2000,
+          "end_year": 2026,
+          "end_period": "M08"
+        }
+      ],
+      "inputs": [
+        {
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.series",
+          "bytes": 158802,
+          "sha256": "e0de35550b3925c6564f9e61fbd14153f5853f3b9049a351cc1b811e84e5d976",
+          "recheck_sha256": "e0de35550b3925c6564f9e61fbd14153f5853f3b9049a351cc1b811e84e5d976"
+        },
+        {
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.industry",
+          "bytes": 1174,
+          "sha256": "94c0c48daa6c3e93d898367a944c8357faba6be22c4bf034d99ad587713d3b50",
+          "recheck_sha256": "94c0c48daa6c3e93d898367a944c8357faba6be22c4bf034d99ad587713d3b50"
+        },
+        {
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.state",
+          "bytes": 1228,
+          "sha256": "9abe706a9638003324046af1525eaebc2bdda9c9da715b1a9dd9700beefabecb",
+          "recheck_sha256": "9abe706a9638003324046af1525eaebc2bdda9c9da715b1a9dd9700beefabecb"
+        },
+        {
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.area",
+          "bytes": 83,
+          "sha256": "3e5194de6be507a9f7096adb94df6a1816413584713aa5c8da6c37a72e9e2a2a",
+          "recheck_sha256": "3e5194de6be507a9f7096adb94df6a1816413584713aa5c8da6c37a72e9e2a2a"
+        },
+        {
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.sizeclass",
+          "bytes": 283,
+          "sha256": "f7a4904fb45d2f7c5f9e3978a1e2207e7b7ada9d04325a2284ae95c0a2cbd348",
+          "recheck_sha256": "f7a4904fb45d2f7c5f9e3978a1e2207e7b7ada9d04325a2284ae95c0a2cbd348"
+        },
+        {
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.dataelement",
+          "bytes": 375,
+          "sha256": "32e1f1a79b1d207e70aff5988d574d40930d38f30dbab2b5a8e3f52d68890e59",
+          "recheck_sha256": "32e1f1a79b1d207e70aff5988d574d40930d38f30dbab2b5a8e3f52d68890e59"
+        },
+        {
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.ratelevel",
+          "bytes": 114,
+          "sha256": "f2a945018a56d5e5b8940a076fbf50242e1d942d0faee93f9a6cf2e0092952e1",
+          "recheck_sha256": "f2a945018a56d5e5b8940a076fbf50242e1d942d0faee93f9a6cf2e0092952e1"
+        },
+        {
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.seasonal",
+          "bytes": 79,
+          "sha256": "801baddf3511b8d9b03c0dbd1a9d9365c668b911a2228c6c594ea8a684ace5d7",
+          "recheck_sha256": "801baddf3511b8d9b03c0dbd1a9d9365c668b911a2228c6c594ea8a684ace5d7"
+        }
+      ]
+    }
+  }
+}

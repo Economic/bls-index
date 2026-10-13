@@ -1,0 +1,4 @@
+series_id        	seasonal	owner_code	industry_code	occupation_code	subcell_code	area_code	periodicity_code	estimate_code	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+CIS1010000000000I	S	1	000000	000000	00	99999	I	01	Total compensation for all civilian workers, current dollar index	B,C	2001	Q01	2026	Q02
+CIU2016100000000Z	U	2	610000	000000	00	99999	Z	01	Total compensation for private industry workers in the educational services industry, 12-month percent change, constant dollars	J	2001	Q01	2026	Q02
+CIU3030000000000Z	U	3	000000	000000	00	99999	Z	03	Total benefits for all state and local government workers, 12-month percent change, constant dollars	J	2001	Q01	2026	Q02

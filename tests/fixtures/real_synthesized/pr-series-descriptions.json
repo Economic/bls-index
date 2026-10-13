@@ -1,0 +1,10 @@
+{
+  "source": "Official BLS Major Sector Productivity and Costs series reports, independently fetched apart from flat-file lookups and parser output",
+  "checked_date": "2026-10-13",
+  "scope": "Reports verify series ID, sector, measure, duration and base year. They do not expose class; All workers remains supported only by the PR class lookup fixture. These excerpts are not official full synthesized titles.",
+  "reports": [
+    {"url": "https://data.bls.gov/timeseries/PRS30006011", "extracted_at_display": "October 12, 2026 (10:16:05 PM)", "excerpt": "Series Id:PRS30006011 Sector:Manufacturing Measure:Employment Duration:% Change same quarter 1 year ago Base Year:-", "series_id": "PRS30006011", "sector": "Manufacturing", "measure": "Employment", "duration": "% Change same quarter 1 year ago", "base_year": "-"},
+    {"url": "https://data.bls.gov/timeseries/PRS30006012", "extracted_at_display": "October 12, 2026 (10:16:07 PM)", "excerpt": "Series Id:PRS30006012 Sector:Manufacturing Measure:Employment Duration:% Change from previous quarter Base Year:-", "series_id": "PRS30006012", "sector": "Manufacturing", "measure": "Employment", "duration": "% Change from previous quarter", "base_year": "-"},
+    {"url": "https://data.bls.gov/timeseries/PRS30006013", "extracted_at_display": "October 12, 2026 (10:16:11 PM)", "excerpt": "Series Id:PRS30006013 Sector:Manufacturing Measure:Employment Duration:Index (2017=100) Base Year:2017", "series_id": "PRS30006013", "sector": "Manufacturing", "measure": "Employment", "duration": "Index (2017=100)", "base_year": "2017"}
+  ]
+}

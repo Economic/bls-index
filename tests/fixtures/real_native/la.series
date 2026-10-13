@@ -1,0 +1,4 @@
+series_id                     	area_type_code	area_code	measure_code	seasonal	srd_code	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+LASBS060000000000003          	L	BS0600000000000	03	S	06	Unemployment Rate: Balance of California, state less Los Angeles-Long Beach-Glendale MD (S)		1976	M01	2026	M08
+LAUCS252310500000005          	G	CS2523105000000	05	U	25	Employment: Falmouth town, MA (U)		1990	M01	2026	M08
+LAUST720000000000006          	A	ST7200000000000	06	U	72	Labor Force: Puerto Rico (U)		1976	M01	2026	M08

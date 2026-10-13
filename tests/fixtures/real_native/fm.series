@@ -1,0 +1,4 @@
+series_id        	seasonal	series_title	fchld_code	fdat_code	fhlf_code	fnmatwk_code	fnme_code	fnmlf_code	fnmu_code	fnmws_code	forig_code	frace_code	ftpt_code	ftyp_code	hhlf_code	misclf_code	mwlf_code	prlf_code	chld_code	lfst_code	mari_code	orig_code	race_code	sexs_code	tdat_code	wkst_code	footnote_codes	begin_year	begin_period	end_year	end_period
+FMUF011          	U	Total families - total	00	00	00	00	00	00	00	00	00	00	00	01	00	00	00	00	00	99	00	00	00	0	00	00		2009	A01	2025	A01
+FMUP1394651      	U	Labor force participation rate - Women, Married, spouse present, with own children 6 to 17 years, none younger	00	00	00	00	00	00	00	00	00	00	00	00	00	00	00	00	02	13	02	00	00	2	01	00		2015	A01	2025	A01
+FMUP4094782      	U	Unemployment rate - Hispanic or Latino Ethnicity, Women, Other marital status, youngest child under 1 year old	00	00	00	00	00	00	00	00	00	00	00	00	00	00	00	00	20	40	11	01	00	2	01	00		2015	A01	2025	A01

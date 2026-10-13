@@ -1,0 +1,7 @@
+series_id        	area_code	item_code	seasonal	periodicity_code	base_code	base_period	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
+CWSR0000SA0      	0000	SA0	S	R	S	1982-84=100	All items in U.S. city average, urban wage earners and clerical workers, seasonally adjusted		1947	M01	2026	M08
+CWURS49FSA0L1E   	S49F	SA0L1E	U	R	S	1982-84=100	All items less food and energy in Urban Hawaii, urban wage earners and clerical workers, not seasonally adjusted		1982	M02	2026	M07
+CWUSS49GSS47016  	S49G	SS47016	U	S	S	1982-84=100	Gasoline, unleaded premium in Urban Alaska, urban wage earners and clerical workers, not seasonally adjusted		1984	S01	2026	S01
+CWUS0000AA0      	0000	AA0	U	S	A	1967=100	All items - old base in U.S. city average, urban wage earners and clerical workers, not seasonally adjusted		1984	S01	2026	S01
+CWUS0100SAF111   	0100	SAF111	U	S	S	1982-84=100	Cereals and bakery products in Northeast urban, urban wage earners and clerical workers, not seasonally adjusted		2017	S02	2026	S01
+CWUS0000SEEC02   	0000	SEEC02	U	S	S	DECEMBER 1997=100	Delivery services in U.S. city average, urban wage earners and clerical workers, not seasonally adjusted		2018	S01	2025	S03

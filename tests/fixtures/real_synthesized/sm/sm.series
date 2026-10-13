@@ -1,0 +1,4 @@
+series_id                     	state_code	area_code	supersector_code	industry_code	data_type_code	seasonal	benchmark_year	footnote_codes	begin_year	begin_period	end_year	end_period
+SMS00000000000000021          	00	00000	00	00000000	21	S	2025		1991	M01	2026	M08
+SMU25127006000000001          	25	12700	60	60000000	01	U	2025		1990	M01	2026	M08
+SMU78000009092000001          	78	00000	90	90920000	01	U	2025		1990	M01	2026	M08
