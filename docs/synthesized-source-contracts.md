@@ -1,10 +1,53 @@
 # Synthesized source contracts (bounded local parsing)
 
-This document describes the implemented PR-only local parser. It does not initiate downloads,
-write Parquet or provenance bundles, create commits, publish artifacts, or contact GitHub. The
-`synthesized_builders` module accepts either explicit local paths (useful for tests) or an
-already fetched `HttpSource` `InputSet`; the latter is integrity-checked and never triggers a
-request.
+This document describes bounded local parsers for SM, JT, and PR. They do not initiate downloads,
+write Parquet or provenance bundles, create commits, publish artifacts, or contact GitHub. Each
+program accepts exact explicit local paths or an already fetched `HttpSource` `InputSet`; the latter
+is integrity-checked and never triggers a request. The parsers construct canonical rows only; no
+per-program artifact integration is included.
+
+The SM/JT full-input headers, row counts, source response hashes, and report excerpts were supplied
+by a fresh double-read scan recorded in `tests/fixtures/real_synthesized/sm-jt-source-fixtures.json`
+and `tests/fixtures/real_synthesized/sm-jt-series-descriptions.json`. Checked-in SM/JT parser
+fixtures are compact subsets selected from that local source read, with their own hashes and
+selection notes. They do not demonstrate that this parser has processed the complete double-read
+inputs. A parent-run live parse remains separate verification work.
+
+## SM inputs and observed evidence
+
+The supplied source scan observed 22,927 `sm.series` rows and 20-character trimmed IDs. Its exact
+ordered headers were:
+
+- `sm.series`: `series_id, state_code, area_code, supersector_code, industry_code, data_type_code, seasonal, benchmark_year, footnote_codes, begin_year, begin_period, end_year, end_period`
+- `sm.state`: `state_code, state_name`; `sm.area`: `area_code, area_name`
+- `sm.supersector`: `supersector_code, supersector_name`; `sm.industry`: `industry_code, industry_name`
+- `sm.data_type`: `data_type_code, data_type_text`; `sm.seasonal`: `seasonal_code, seasonal_text`
+
+The parser trims lookup keys and labels, checks unique keys and nonblank labels across all rows,
+and joins each series row to all title dimensions. It checks the trimmed ID against the observed
+SM prefix, seasonal code, and the source state, area, industry, and data-type codes. It also checks
+that `supersector_code` agrees with the first two characters of `industry_code`; this is an observed
+cross-check, not a claim of a universal SM identifier rule. This saved scan observed all IDs
+following that concatenation and the supersector prefix match across its rows. Seasonal lookup
+text is required to match `S` → `Seasonally Adjusted` and `U` → `Not Seasonally Adjusted`, which
+normalize to canonical `SA` and `NSA`. Dates use the bounded year/period validation described
+below. `benchmark_year` and `footnote_codes` are not canonical output or title fields.
+
+## JT inputs and observed evidence
+
+The supplied source scan observed 2,060 `jt.series` rows and 21-character trimmed IDs. Its exact
+ordered headers were:
+
+- `jt.series`: `series_id, seasonal, industry_code, state_code, area_code, sizeclass_code, dataelement_code, ratelevel_code, footnote_codes, begin_year, begin_period, end_year, end_period`
+- `jt.industry`, `jt.state`, `jt.area`, `jt.sizeclass`, `jt.dataelement`, and `jt.ratelevel` each have their `<dimension>_code, <dimension>_text, display_level, selectable, sort_sequence` headers.
+- `jt.seasonal`: `seasonal_code, seasonal_text`
+
+The parser validates the full ordered headers and row widths, every trimmed lookup key and label
+(including unused lookup rows), required joins, unique trimmed IDs, and the observed JT ID layout and
+component concatenation. This layout is observed in the supplied file, not asserted as a universal
+official JT rule. JT seasonal text uses the same explicitly checked `S`/`U` mapping as SM and
+normalizes separately to canonical `SA`/`NSA`. Date validation is bounded as described below;
+`footnote_codes` is not emitted.
 
 ## PR inputs and evidence limits
 
@@ -87,5 +130,5 @@ snapshots; it checks source files again after parsing. This reuses the native sn
 helpers and makes no weaker concurrent-mutation assumption.
 
 This phase does not integrate a synthesized Parquet/provenance bundle, alter the live fetcher,
-implement `sm` or `jt`, or perform any publication or remote operation. Broader source-domain
-verification beyond the checked-in fixture evidence remains deferred.
+or perform any publication or remote operation. Broader source-domain verification beyond the
+checked-in fixture evidence remains deferred.

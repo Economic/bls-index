@@ -10,10 +10,16 @@ import pytest
 from bls_index.http_source import DownloadRecord, InputSet
 from bls_index.native_builders import CANONICAL_SCHEMA
 from bls_index.synthesized_builders import (
+    JT_INPUT_NAMES,
     PR_INPUT_NAMES,
+    SM_INPUT_NAMES,
     SynthesizedSeriesError,
+    parse_jt_input_set,
+    parse_jt_sources,
     parse_pr_input_set,
     parse_pr_sources,
+    parse_sm_input_set,
+    parse_sm_sources,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures" / "two_program" / "pr"
@@ -275,3 +281,138 @@ def test_invalid_verified_input_set_rejected_before_parse(tmp_path):
             bad[0].finished_at, 1,
         )
         parse_pr_input_set(InputSet("pr", valid.files, tuple(bad), 1))
+
+
+REAL_FIXTURES = Path(__file__).parent / "fixtures" / "real_synthesized"
+SM_JT_REPORTS = REAL_FIXTURES / "sm-jt-series-descriptions.json"
+
+
+def _program_sources(tmp_path: Path, program: str, names: tuple[str, ...]) -> dict[str, Path]:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    fixture_dir = REAL_FIXTURES / program
+    result = {}
+    for name in names:
+        path = tmp_path / name
+        path.write_bytes((fixture_dir / name).read_bytes())
+        result[name] = path
+    return result
+
+
+def _verified_program_input_set(program: str, sources: dict[str, Path], names: tuple[str, ...]) -> InputSet:
+    records = []
+    rechecks = []
+    now = datetime.now(UTC)
+    for name in names:
+        body = sources[name].read_bytes()
+        digest = hashlib.sha256(body).hexdigest()
+        url = f"https://download.bls.gov/pub/time.series/{program}/{name}"
+        records.append(DownloadRecord(url, sources[name], 200, len(body), digest, {}, now, now, 1))
+        rechecks.append(DownloadRecord(url, None, 200, len(body), digest, {}, now, now, 1))
+    return InputSet(program, tuple(records), tuple(rechecks), 1)
+
+
+def test_sm_jt_real_fixture_templates_and_report_fields(tmp_path):
+    reports = json.loads(SM_JT_REPORTS.read_text(encoding="utf-8"))["reports"]
+    for program, names, parser, report_id in (
+        ("sm", SM_INPUT_NAMES, parse_sm_sources, "SMS00000000000000021"),
+        ("jt", JT_INPUT_NAMES, parse_jt_sources, "JTS000000000000000HIR"),
+    ):
+        frame = parser(_program_sources(tmp_path / program, program, names))
+        assert frame.schema == CANONICAL_SCHEMA
+        assert frame.height == (3 if program == "sm" else 4)
+        assert frame.get_column("title_source").unique().to_list() == ["synthesized"]
+        report = next(item for item in reports if item["series_id"] == report_id)
+        index = frame.get_column("series_id").to_list().index(report_id)
+        assert frame.get_column("seasonal").item(index) == report["seasonal"]
+        components = dict(
+            part.split(": ", maxsplit=1)
+            for part in frame.get_column("series_title").item(index).split("; ")
+        )
+        assert components == report["title_fields"]
+
+    sm_sources = _program_sources(tmp_path / "sm-exact", "sm", SM_INPUT_NAMES)
+    sm_frame = parse_sm_sources(sm_sources)
+    assert sm_frame.get_column("series_title").item(0) == (
+        "Data type: Diffusion Indexes, 1-month span, seasonally adjusted, total nonfarm; "
+        "State: All States; Area: Statewide; Supersector: Total Nonfarm; Industry: Total Nonfarm"
+    )
+    jt_sources = _program_sources(tmp_path / "jt-exact", "jt", JT_INPUT_NAMES)
+    jt_frame = parse_jt_sources(jt_sources)
+    assert jt_frame.get_column("series_title").item(0) == (
+        "Data element: Hires; Rate/level: Level - In Thousands; Industry: Total nonfarm; "
+        "State: Total US; Area: All areas; Size class: All size classes"
+    )
+
+
+@pytest.mark.parametrize(("program", "names", "parser"), [
+    ("sm", SM_INPUT_NAMES, parse_sm_sources), ("jt", JT_INPUT_NAMES, parse_jt_sources),
+])
+def test_sm_jt_verified_input_set_rechecks_and_cardinality(tmp_path, program, names, parser):
+    sources = _program_sources(tmp_path, program, names)
+    verified = _verified_program_input_set(program, sources, names)
+    input_parser = parse_sm_input_set if program == "sm" else parse_jt_input_set
+    frame = input_parser(verified)
+    assert frame.schema == CANONICAL_SCHEMA
+    assert frame.height == len(sources[f"{program}.series"].read_text(encoding="utf-8").splitlines()) - 1
+
+    changed = list(verified.rechecks)
+    item = changed[0]
+    changed[0] = DownloadRecord(item.url, None, item.status, item.bytes, "0" * 64, {}, item.started_at, item.finished_at, 1)
+    with pytest.raises(SynthesizedSeriesError, match="does not match input record"):
+        input_parser(InputSet(program, verified.files, tuple(changed), verified.attempts))
+
+
+@pytest.mark.parametrize(("program", "names", "parser", "dimension", "old", "new", "error"), [
+    ("sm", SM_INPUT_NAMES, parse_sm_sources, "state", "state_code", "STATE", "unexpected header"),
+    ("jt", JT_INPUT_NAMES, parse_jt_sources, "industry", "industry_code", "INDUSTRY", "unexpected header"),
+])
+def test_sm_jt_exact_headers_and_lookup_required(tmp_path, program, names, parser, dimension, old, new, error):
+    sources = _program_sources(tmp_path, program, names)
+    _replace(sources, f"{program}.{dimension}", old, new)
+    with pytest.raises(SynthesizedSeriesError, match=error):
+        parser(sources)
+
+
+@pytest.mark.parametrize(("program", "names", "parser", "name", "old", "new", "error"), [
+    ("sm", SM_INPUT_NAMES, parse_sm_sources, "sm.state", "00\tAll States", "00\t ", "blank lookup label"),
+    ("jt", JT_INPUT_NAMES, parse_jt_sources, "jt.industry", "000000\tTotal nonfarm", "000000\t ", "blank lookup label"),
+    ("sm", SM_INPUT_NAMES, parse_sm_sources, "sm.industry", "00000000\tTotal Nonfarm", "00000000\tTotal Nonfarm\n00000000\tDuplicate", "duplicate trimmed lookup key"),
+    ("jt", JT_INPUT_NAMES, parse_jt_sources, "jt.ratelevel", "L\tLevel - In Thousands", "X\tLevel - In Thousands", "missing ratelevel lookup key"),
+])
+def test_sm_jt_duplicate_blank_and_missing_lookup_errors(tmp_path, program, names, parser, name, old, new, error):
+    sources = _program_sources(tmp_path, program, names)
+    _replace(sources, name, old, new)
+    with pytest.raises(SynthesizedSeriesError, match=error):
+        parser(sources)
+
+
+@pytest.mark.parametrize(("program", "names", "parser", "column", "new", "error"), [
+    ("sm", SM_INPUT_NAMES, parse_sm_sources, "state_code", "25", "does not match source components"),
+    ("sm", SM_INPUT_NAMES, parse_sm_sources, "supersector_code", "06", "supersector_code does not match"),
+    ("sm", SM_INPUT_NAMES, parse_sm_sources, "data_type_code", "99", "missing data_type lookup key"),
+    ("jt", JT_INPUT_NAMES, parse_jt_sources, "ratelevel_code", "X", "missing ratelevel lookup key"),
+    ("jt", JT_INPUT_NAMES, parse_jt_sources, "sizeclass_code", "99", "missing sizeclass lookup key"),
+])
+def test_sm_jt_source_id_dimension_and_supersector_validation(tmp_path, program, names, parser, column, new, error):
+    sources = _program_sources(tmp_path, program, names)
+    lines = sources[f"{program}.series"].read_text(encoding="utf-8").splitlines()
+    header = [field.strip() for field in lines[0].split("\t")]
+    row = lines[1].split("\t")
+    row[header.index(column)] = new
+    lines[1] = "\t".join(row)
+    sources[f"{program}.series"].write_text("\n".join(lines) + "\n", encoding="utf-8")
+    with pytest.raises(SynthesizedSeriesError, match=error):
+        parser(sources)
+
+
+@pytest.mark.parametrize(("program", "names", "parser", "old", "new", "error"), [
+    ("sm", SM_INPUT_NAMES, parse_sm_sources, "\tS\t2025\t", "\tX\t2025\t", "invalid, blank, or missing seasonal"),
+    ("jt", JT_INPUT_NAMES, parse_jt_sources, "\tS\t000000\t", "\tX\t000000\t", "invalid, blank, or missing seasonal"),
+    ("sm", SM_INPUT_NAMES, parse_sm_sources, "\t1991\tM01\t2026\tM08", "\t0000\tM01\t2026\tM08", "invalid begin_year"),
+    ("jt", JT_INPUT_NAMES, parse_jt_sources, "\t2000\tM12\t2026\tM08", "\t2000\tM99\t2026\tM08", "invalid period code"),
+])
+def test_sm_jt_seasonal_and_date_validation(tmp_path, program, names, parser, old, new, error):
+    sources = _program_sources(tmp_path, program, names)
+    _replace(sources, f"{program}.series", old, new)
+    with pytest.raises(SynthesizedSeriesError, match=error):
+        parser(sources)

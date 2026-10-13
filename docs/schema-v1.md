@@ -1,9 +1,9 @@
 # Catalog schema v1
 
 Schema version 1 is the canonical row format for series records. Local native-title parsing
-is implemented for all 30 fixed native-title programs. A bounded local synthesized-title parser
-is implemented for `pr`; `sm` and `jt` remain deferred. These parsers do not build a combined
-catalog or publish anything.
+is implemented for all 30 fixed native-title programs. Bounded local synthesized-title parsers
+are implemented for `pr`, `sm`, and `jt`. These parsers do not build a combined catalog or
+publish anything.
 
 ## Columns
 
@@ -11,8 +11,8 @@ catalog or publish anything.
 |---|---|---:|---|
 | `program` | string | no | The explicit BLS flat-file directory/program code passed to the builder. It is not inferred from the series ID. |
 | `series_id` | string | no | BLS series identifier with source padding removed from both ends. IDs remain strings and must be nonempty and unique within a program; native builders apply their documented source checks. |
-| `series_title` | string | no | Native builders preserve the source title, including surrounding spaces. PR uses a synthesized title from trimmed lookup labels. A title containing only whitespace is invalid. Titles need not be unique. |
-| `title_source` | string | no | `native` for native-title programs; `synthesized` for PR in this bounded local parser. |
+| `series_title` | string | no | Native builders preserve the source title, including surrounding spaces. PR, SM, and JT use synthesized titles from trimmed lookup labels. A title containing only whitespace is invalid. Titles need not be unique. |
+| `title_source` | string | no | `native` for native-title programs; `synthesized` for bounded local PR, SM, and JT parsers. |
 | `seasonal` | string | no | `SA`, `NSA`, or `unknown`. Observed source code `S` maps to `SA`; `U` maps to `NSA`. A source with no seasonal field (such as `ap`) maps to `unknown`. |
 | `begin_year` | int32 | yes | Four-digit positive year from the source, or null when the source field is blank. Descriptive metadata only, not a claim of current activity. |
 | `end_year` | int32 | yes | Four-digit positive year from the source, or null when the source field is blank. Descriptive metadata only, not a claim of current activity. |
@@ -73,11 +73,11 @@ cross-program uniqueness check, combined catalog build, or publication integrati
 liveness from year or period fields. `survey_name` and `begin_period` are intentionally deferred
 from schema v1 until their normalization and verification are explicitly approved.
 
-## Bounded synthesized PR parser
+## Bounded synthesized parsers
 
-The PR-only local parser and its explicit lookup, title, ID, and evidence limits are documented
-in [`synthesized-source-contracts.md`](synthesized-source-contracts.md). It returns canonical
-rows but does not currently build a Parquet/provenance bundle.
+The local PR, SM, and JT parsers and their explicit lookup, title, ID, and evidence limits are
+documented in [`synthesized-source-contracts.md`](synthesized-source-contracts.md). They return
+canonical rows but do not currently build a Parquet/provenance bundle.
 
 ## Local native Parquet build provenance
 
