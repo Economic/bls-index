@@ -27,12 +27,13 @@ One full catalog read transfers ~47.1 MB; 1,000 full uncached reads ~47.1 GB, an
 ## Gate 1 status
 
 Gate 1 remains pending the [explicit outstanding checks](2026-10-13-phase1-open-checks.md):
-immutable-object read-back/checksum timing, completion of the applicable usage assessment,
-and operator-approved count-change investigation behavior. The measurements below support
+immutable-object read-back/checksum timing and completion of the applicable usage assessment.
+The count-change policy was resolved by operator decision: diagnostic counts only, without
+automated thresholds or persistent warnings. The measurements below support
 runner feasibility only; they do not close those prerequisites.
 
 ## Architecture and remaining decisions
 
 A sequential builder with one compressed combined file is feasible on this intended runner for the measured initial scope; no streaming or concurrent parser rewrite is required for Phase 1. OE dominates program builds (96.03 s), followed by SM (17.81 s); optimization is optional rather than a completion blocker. This single successful run demonstrates feasibility, not a reliability distribution or a maximum-resource guarantee.
 
-Publication, fallback, manifest transitions, rollback, delivery checks, and daily count-change alerts remain later work. Row counts alone must not prove liveness. An operator-approved count-change policy should flag unusual changes without treating valid disappearance as parser failure; no policy is silently chosen here.
+Publication, fallback, manifest transitions, rollback, and delivery checks remain later work. Row counts alone must not prove liveness. The operator-approved policy retains counts in diagnostic reports without automated count-change alerts or persistent warning tracking. Valid source additions and removals are accepted when structural checks pass; a future change-comparison report is deferred.
