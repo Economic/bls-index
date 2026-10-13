@@ -1,0 +1,108 @@
+{
+  "validation": "bounded native ID component mapping revalidation",
+  "validated_at": "2026-10-12T23:35:18.183475+00:00",
+  "finished_at": "2026-10-12T23:36:05.250002+00:00",
+  "commit_sha": "bf9d0275d5564ecf6b1df40c46fabd5f259a2e1c",
+  "native_builders_sha256": "5b15bb445b6010bffac7b790985d7e5527f5cfbb92a01eb32b38927331f52c75",
+  "parser": "bls_index.native_builders.parse_native_series",
+  "source": {
+    "method": "HttpSource.fetch_input_set(program, workdir, files=(program + '.series',))",
+    "reads_per_program": 2,
+    "input_set_attempts": 1,
+    "user_agent": "bls_index catalog builder (+https://www.epi.org/)",
+    "raw_source_files_retained": false,
+    "selected_programs": ["ep", "is", "mp", "ws", "cx"]
+  },
+  "programs": {
+    "ep": {
+      "url": "https://download.bls.gov/pub/time.series/ep/ep.series",
+      "reads": [
+        {"status": 200, "bytes": 18629320, "sha256": "be3dfa996dd5939a18c9dd45347d9f4033098c30a3cb06e2a94b5a68037f5975", "date": "Mon, 12 Oct 2026 23:35:18 GMT", "last_modified": "Thu, 27 Aug 2026 14:00:00 GMT", "etag": "\"0308f592c36dd1:0\""},
+        {"status": 200, "bytes": 18629320, "sha256": "be3dfa996dd5939a18c9dd45347d9f4033098c30a3cb06e2a94b5a68037f5975", "date": "Mon, 12 Oct 2026 23:35:20 GMT", "last_modified": "Thu, 27 Aug 2026 14:00:00 GMT", "etag": "\"0308f592c36dd1:0\""}
+      ],
+      "two_read_hashes_match": true,
+      "two_read_lengths_match": true,
+      "data_row_count": 113898,
+      "series_id_length_min": 14,
+      "series_id_length_max": 15,
+      "series_id_length_counts": {"14": 5310, "15": 108588},
+      "parser": {"status": "ok", "rows": 113898, "columns": 8},
+      "failure": null
+    },
+    "is": {
+      "url": "https://download.bls.gov/pub/time.series/is/is.series",
+      "reads": [
+        {"status": 200, "bytes": 125676855, "sha256": "328f27086170383521c32d5c960124751130691e275788bcda785a1dbf9e6b0a", "date": "Mon, 12 Oct 2026 23:35:23 GMT", "last_modified": "Thu, 22 Jan 2026 15:00:00 GMT", "etag": "\"0d8afc7af8bdc1:0\""},
+        {"status": 200, "bytes": 125676855, "sha256": "328f27086170383521c32d5c960124751130691e275788bcda785a1dbf9e6b0a", "date": "Mon, 12 Oct 2026 23:35:34 GMT", "last_modified": "Thu, 22 Jan 2026 15:00:00 GMT", "etag": "\"0d8afc7af8bdc1:0\""}
+      ],
+      "two_read_hashes_match": true,
+      "two_read_lengths_match": true,
+      "data_row_count": 891324,
+      "series_id_length_min": 17,
+      "series_id_length_max": 17,
+      "series_id_length_counts": {"17": 891324},
+      "parser": {"status": "ok", "rows": 891324, "columns": 8},
+      "failure": null
+    },
+    "mp": {
+      "url": "https://download.bls.gov/pub/time.series/mp/mp.series",
+      "reads": [
+        {"status": 200, "bytes": 739749, "sha256": "3d82002573f69e5f6df34fd10a303e85fde32f59611d63e94025a2ea88e3d9e7", "date": "Mon, 12 Oct 2026 23:35:54 GMT", "last_modified": "Thu, 19 Mar 2026 14:00:00 GMT", "etag": "\"070dada8b7dc1:0\""},
+        {"status": 200, "bytes": 739749, "sha256": "3d82002573f69e5f6df34fd10a303e85fde32f59611d63e94025a2ea88e3d9e7", "date": "Mon, 12 Oct 2026 23:35:55 GMT", "last_modified": "Thu, 19 Mar 2026 14:00:00 GMT", "etag": "\"070dada8b7dc1:0\""}
+      ],
+      "two_read_hashes_match": true,
+      "two_read_lengths_match": true,
+      "data_row_count": 4683,
+      "series_id_length_min": 10,
+      "series_id_length_max": 10,
+      "series_id_length_counts": {"10": 4683},
+      "parser": {"status": "ok", "rows": 4683, "columns": 8},
+      "failure": null
+    },
+    "ws": {
+      "url": "https://download.bls.gov/pub/time.series/ws/ws.series",
+      "reads": [
+        {"status": 200, "bytes": 887, "sha256": "ada22764a544fb4a555977a54ba88252ef842ad3425d5f4c096082198f24d727", "date": "Mon, 12 Oct 2026 23:35:56 GMT", "last_modified": "Fri, 09 Oct 2026 14:00:00 GMT", "etag": "\"0705279f657dd1:0\""},
+        {"status": 200, "bytes": 887, "sha256": "ada22764a544fb4a555977a54ba88252ef842ad3425d5f4c096082198f24d727", "date": "Mon, 12 Oct 2026 23:35:58 GMT", "last_modified": "Fri, 09 Oct 2026 14:00:00 GMT", "etag": "\"0705279f657dd1:0\""}
+      ],
+      "two_read_hashes_match": true,
+      "two_read_lengths_match": true,
+      "data_row_count": 6,
+      "series_id_length_min": 6,
+      "series_id_length_max": 6,
+      "series_id_length_counts": {"6": 6},
+      "parser": {"status": "ok", "rows": 6, "columns": 8},
+      "failure": null
+    },
+    "cx": {
+      "url": "https://download.bls.gov/pub/time.series/cx/cx.series",
+      "reads": [
+        {"status": 200, "bytes": 31109497, "sha256": "9755a92a6605d05bae92ca34080b4214500603dd487c37090e0e1ed95b8432f2", "date": "Mon, 12 Oct 2026 23:35:59 GMT", "last_modified": "Fri, 19 Dec 2025 15:00:00 GMT", "etag": "\"058a425f870dc1:0\""},
+        {"status": 200, "bytes": 31109497, "sha256": "9755a92a6605d05bae92ca34080b4214500603dd487c37090e0e1ed95b8432f2", "date": "Mon, 12 Oct 2026 23:36:00 GMT", "last_modified": "Fri, 19 Dec 2025 15:00:00 GMT", "etag": "\"058a425f870dc1:0\""}
+      ],
+      "two_read_hashes_match": true,
+      "two_read_lengths_match": true,
+      "data_row_count": 183935,
+      "series_id_length_min": 13,
+      "series_id_length_max": 18,
+      "series_id_length_counts": {"13": 158, "14": 1443, "15": 2096, "16": 152601, "17": 6727, "18": 20910},
+      "boundary_rows": {
+        "13": {"source_row_1based": 162463, "series_id": "CXUHAMLB0101M", "component_mapping": "CXUHAMLB0101M", "raw_row_sha256": "82af662fb1131722b1500b0a3dafa69779fa9f02fe560146c648a8e8da15d1ff", "raw_fields": ["CXUHAMLB0101M              ", "U", "EXPEND", "FOODTOTL", "HAM", "LB01", "01", "M", "Ham by Income Quintiles: All Consumer Units", "", "2010", "A01", "2022", "A01"]},
+        "18": {"source_row_1based": 151640, "series_id": "CXUBEERNALELB0101M", "component_mapping": "CXUBEERNALELB0101M", "raw_row_sha256": "3f3b525fce0770db5bbf08a7492123ef910e51692775d7baad42bf8fb496f833", "raw_fields": ["CXUBEERNALELB0101M              ", "U", "EXPEND", "ALCBEVG", "BEERNALE", "LB01", "01", "M", "Beer and ale by Income Quintiles: All Consumer Units", "", "2010", "A01", "2021", "A01"]}
+      },
+      "parser": {"status": "ok", "rows": 183935, "columns": 8},
+      "focused_fixture": {"path": "tests/fixtures/native/cx-boundary.series", "sha256": "8ae3ca1efe7776e5cd7c9f7f3446f52e9e4166138f8dfafba19d115a33cd449e", "bytes": 473},
+      "failure": null
+    }
+  },
+  "summary": {
+    "programs_checked": ["ep", "is", "mp", "ws"],
+    "programs_with_parser_failures": [],
+    "fetch_failures": [],
+    "component_mismatch_failures": [],
+    "all_requested_checks_passed": true,
+    "scope_note": "This run validated only EP, IS, MP, WS, and the explicitly requested conditional CX boundary check. It does not assert that unrelated mappings or files were unmodified before this run.",
+    "production_code_changed": false,
+    "commits_created": false
+  }
+}
