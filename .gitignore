@@ -9,3 +9,6 @@ __pycache__/
 # Raw BLS downloads and local probe scratch never belong in Git
 /raw/
 /probe-work/
+
+# Local research inputs, scripts, and downloaded diagnostics
+tmp/

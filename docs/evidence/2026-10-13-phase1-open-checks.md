@@ -1,5 +1,7 @@
 # Outstanding Gate 1 checks
 
+> **Historical (2026-10-13).** Superseded by the rewritten [`design.md`](../../design.md) and [`plans/2026-10-13-simplification-implementation.md`](../../plans/2026-10-13-simplification-implementation.md). Gate 1 is closed by decision; remote read-back timing moves to the Phase 2 staging run.
+
 The successful full-33 dry build is not a declaration that Gate 1 is closed.
 
 1. **Immutable-object read-back/checksum timing:** the local build checks bundle checksums, but the recorded runner report does not time remote immutable-object upload/read-back. No production write is authorized by Phase 1. Any staging measurement must use the separately scoped private staging gate and record storage/read latency; otherwise this acceptance check remains pending before publication integration.

@@ -2,11 +2,13 @@
 
 Builds and publishes a downloadable catalog of BLS time-series IDs and titles: one
 compact Parquet file plus a `latest.json` manifest. [`design.md`](design.md) is the
-contract and [`docs/plans/implementation-plan-v1.md`](docs/plans/implementation-plan-v1.md)
+contract and [`plans/2026-10-13-simplification-implementation.md`](plans/2026-10-13-simplification-implementation.md)
 is the implementation plan.
 
-**Status:** Phase 0 (build toolchain and controlled integration harness). Nothing is
-published yet, and no code here writes to a public bucket.
+**Status:** all 33 builders work and a full local build succeeds; the code is being
+simplified before the publish step is added (plan Phase 1). Nothing is published yet, and
+no code here writes to a public bucket. Sections below describe the current code, which
+Phase 1 will change.
 
 ## Build and test
 
