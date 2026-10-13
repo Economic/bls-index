@@ -50,9 +50,10 @@ claiming a complete component grammar.
 
 Blank begin/end years and end periods become null. Present years must be in the four-digit
 range `1000`–`9999`, and a non-null begin year cannot exceed a non-null end year. Present periods must
-be a two-digit source token in a recognized monthly (`M`), quarterly (`Q`), or annual (`A`)
-family with a positive ordinal; the implementation currently accepts `M01`–`M13`, `Q01`–
-`Q05`, and `A01`. A period without an end year is rejected. These are syntax/range checks,
+be a recognized source token. For `cu` and `cw`, the accepted ranges are `M01`–`M13`
+and `S01`–`S03` (semiannual, including the annual-average code `S03`); quarterly and
+annual-family tokens are rejected. Other programs accept `M01`–`M13`, `Q01`–`Q05`,
+and `A01`. A period without an end year is rejected. These are syntax/range checks,
 not a claim that every program uses every allowed code.
 
 For programs with a verified seasonal field, the combined-candidate validator enforces the
