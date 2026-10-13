@@ -24,6 +24,13 @@ All per-program Parquets total 47,045,795 bytes. One combined-plus-program set i
 
 One full catalog read transfers ~47.1 MB; 1,000 full uncached reads ~47.1 GB, and 10,000 ~471.2 GB. Cached or range reads may differ. No dollar estimate is asserted: provider rates, request counts and client caching require separate assumptions. These results measure neither custom-domain delivery nor browser/client cold-read RAM.
 
+## Gate 1 status
+
+Gate 1 remains pending the [explicit outstanding checks](2026-10-13-phase1-open-checks.md):
+immutable-object read-back/checksum timing, completion of the applicable usage assessment,
+and operator-approved count-change investigation behavior. The measurements below support
+runner feasibility only; they do not close those prerequisites.
+
 ## Architecture and remaining decisions
 
 A sequential builder with one compressed combined file is feasible on this intended runner for the measured initial scope; no streaming or concurrent parser rewrite is required for Phase 1. OE dominates program builds (96.03 s), followed by SM (17.81 s); optimization is optional rather than a completion blocker. This single successful run demonstrates feasibility, not a reliability distribution or a maximum-resource guarantee.

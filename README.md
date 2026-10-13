@@ -112,9 +112,10 @@ bytes. The self value covers this Python process's prior lifetime peak. `data-di
 are wall-clock subprocess times; query timings exclude the initial
 combined-Parquet read. Disk free space is an instantaneous capacity reading, not a
 reservation. The default `initial` run may be expensive and needs adequate space for raw
-inputs, per-program outputs, and the combined output. No intended-runner measurement has
-been performed yet; verify it explicitly before using measurements to select architecture
-or thresholds.
+inputs, per-program outputs, and the combined output. A successful full-33 intended-runner
+measurement is recorded in [the Phase 1 benchmark](docs/evidence/2026-10-13-phase1-benchmark.md).
+It demonstrates single-run feasibility, not historical reliability or justified count-change
+thresholds; the evidence document lists remaining Gate 1 checks.
 
 Two BLS constraints, observed 2026-10-07: `download.bls.gov` returns 403 for any
 User-Agent containing "github", and BLS blocks robots that request "multiple times per
