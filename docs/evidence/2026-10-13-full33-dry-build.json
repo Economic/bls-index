@@ -1,0 +1,1541 @@
+{
+  "checkpoint": "completed",
+  "combined": {
+    "bytes": 47116278,
+    "load_seconds": 0.31654316399999516,
+    "output_tree_bytes": 1753412193,
+    "path": "combined/bls_index.parquet",
+    "row_count": 8315248,
+    "sha256": "a3aab57b5afbd28f8235cce9ef32b7ac55a2ce56aef78b239196ef916098e2b0"
+  },
+  "dictionary_check_seconds": {
+    "validate-data": 8.098313023999992,
+    "validate-meta": 0.01675391200001286,
+    "validate-spec": 0.017522991999953774
+  },
+  "failure": null,
+  "initial_scope_complete": true,
+  "notes": [
+    "Peak RSS records getrusage(RUSAGE_SELF) for this Python process and getrusage(RUSAGE_CHILDREN) for terminated child processes, including data-dict commands; child RSS is the maximum child peak, not a concurrent aggregate. Both measurements report the same platform-specific source unit (KiB except bytes on macOS) and normalized bytes; self includes prior process lifetime peak.",
+    "Dictionary command timings are wall time around each pinned data-dict subprocess.",
+    "Search timings exclude reading the combined Parquet into memory.",
+    "Disk availability is filesystem capacity at measurement time, not a reservation or estimate.",
+    "Disk peaks are sampled every 0.25 seconds while the run is active; brief transient peaks may be missed, so these are not absolute guaranteed maxima."
+  ],
+  "programs": [
+    {
+      "build_seconds": 1.3469311650000009,
+      "bundle": {
+        "parquet_bytes": 19893,
+        "parquet_path": "bundles/ap/fee3d8a5ab46e390ceef93f111969b3483b9f16f2a727ac38c30c065495c06cb/catalog.parquet",
+        "parquet_sha256": "18bbc4fea1d9027adcd796bae63314d974bca986aa212e65bbd4d56e4903aef9",
+        "provenance_path": "bundles/ap/fee3d8a5ab46e390ceef93f111969b3483b9f16f2a727ac38c30c065495c06cb/provenance.json",
+        "provenance_sha256": "fee3d8a5ab46e390ceef93f111969b3483b9f16f2a727ac38c30c065495c06cb"
+      },
+      "download_seconds": 1.3081924100000037,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "ap.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "ap",
+      "received_body_bytes": 462092,
+      "retry_body_bytes": 0,
+      "row_count": 1483,
+      "source_total_bytes": 231046,
+      "sources": [
+        {
+          "bytes": 231046,
+          "request_attempts": 1,
+          "sha256": "fc5a1536226a3c4cd5fd55210d9c56bc2ca8ec16b80dde5a7533cc956f360781",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/ap/ap.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.8717999992645673e-05,
+        "parquet_staging_seconds": 1.0222316390000117,
+        "parquet_write_seconds": 0.04482536500000833,
+        "parse_seconds": 0.024664740000005736
+      },
+      "status": "built",
+      "verification_read_bytes": 231046
+    },
+    {
+      "build_seconds": 0.6102628339999967,
+      "bundle": {
+        "parquet_bytes": 50960,
+        "parquet_path": "bundles/bd/5f1e1de42f4012e73e00332b76dac5d071b029ed88b6b50b80be2eb2b7c1c9c2/catalog.parquet",
+        "parquet_sha256": "52abab06beeb46428b6c29cf6b8d76b973e0a96a615c0c6bc59a7e440dc5c1a7",
+        "provenance_path": "bundles/bd/5f1e1de42f4012e73e00332b76dac5d071b029ed88b6b50b80be2eb2b7c1c9c2/provenance.json",
+        "provenance_sha256": "5f1e1de42f4012e73e00332b76dac5d071b029ed88b6b50b80be2eb2b7c1c9c2"
+      },
+      "download_seconds": 1.236774054999998,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "bd.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "bd",
+      "received_body_bytes": 11223090,
+      "retry_body_bytes": 0,
+      "row_count": 34464,
+      "source_total_bytes": 5611545,
+      "sources": [
+        {
+          "bytes": 5611545,
+          "request_attempts": 1,
+          "sha256": "ea09556dc0e36a37b3946c56913a2007125e1f61e70938482b64f8768da7a8ed",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/bd/bd.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.4761999992174424e-05,
+        "parquet_staging_seconds": 0.1811920149999935,
+        "parquet_write_seconds": 0.07057054199999868,
+        "parse_seconds": 0.415390931999994
+      },
+      "status": "built",
+      "verification_read_bytes": 5611545
+    },
+    {
+      "build_seconds": 0.48167811300000096,
+      "bundle": {
+        "parquet_bytes": 174311,
+        "parquet_path": "bundles/ce/d5fdcef9229b137fbec1ab0299e8ea5afea713e76f714bf03c49e4018461c7f3/catalog.parquet",
+        "parquet_sha256": "588dddb50906b6e79da2df928be3bdb7fb0b68705e37b78d7f03224f35c73c43",
+        "provenance_path": "bundles/ce/d5fdcef9229b137fbec1ab0299e8ea5afea713e76f714bf03c49e4018461c7f3/provenance.json",
+        "provenance_sha256": "d5fdcef9229b137fbec1ab0299e8ea5afea713e76f714bf03c49e4018461c7f3"
+      },
+      "download_seconds": 1.3488499159999918,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "ce.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "ce",
+      "received_body_bytes": 7883848,
+      "retry_body_bytes": 0,
+      "row_count": 22049,
+      "source_total_bytes": 3941924,
+      "sources": [
+        {
+          "bytes": 3941924,
+          "request_attempts": 1,
+          "sha256": "c87ea7ca2dda315d10d626ec925c9fc02d07469371d734903f19ea695ba0b583",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/ce/ce.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.4902000003758076e-05,
+        "parquet_staging_seconds": 0.19560146500000997,
+        "parquet_write_seconds": 0.042943893000000344,
+        "parse_seconds": 0.27699210299999777
+      },
+      "status": "built",
+      "verification_read_bytes": 3941924
+    },
+    {
+      "build_seconds": 0.044278776000012954,
+      "bundle": {
+        "parquet_bytes": 23346,
+        "parquet_path": "bundles/ci/86dc07988eb0c10202f672d4b5641f75656211bacd172c17afef1adff009e088/catalog.parquet",
+        "parquet_sha256": "b4bcf5a815ef5b08916e1e52fe53e98a7652cf32562035e38e4c666c933ec59f",
+        "provenance_path": "bundles/ci/86dc07988eb0c10202f672d4b5641f75656211bacd172c17afef1adff009e088/provenance.json",
+        "provenance_sha256": "86dc07988eb0c10202f672d4b5641f75656211bacd172c17afef1adff009e088"
+      },
+      "download_seconds": 1.6234716109999994,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "ci.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "ci",
+      "received_body_bytes": 974382,
+      "retry_body_bytes": 0,
+      "row_count": 2470,
+      "source_total_bytes": 487191,
+      "sources": [
+        {
+          "bytes": 487191,
+          "request_attempts": 1,
+          "sha256": "e6dbe9438d6981a2fc831f6438c2d318049ff12840d6768324eb9b55eb51bd52",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/ci/ci.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.2549000004469235e-05,
+        "parquet_staging_seconds": 0.0034940440000070794,
+        "parquet_write_seconds": 0.0014113909999906582,
+        "parse_seconds": 0.039393872000005103
+      },
+      "status": "built",
+      "verification_read_bytes": 487191
+    },
+    {
+      "build_seconds": 0.3233361150000178,
+      "bundle": {
+        "parquet_bytes": 71088,
+        "parquet_path": "bundles/cm/a76abace5468addd7457ca1bc9882698ef06fdf0a3b925f93422541ac57eec3c/catalog.parquet",
+        "parquet_sha256": "dcbf26e4a24313ba33a27a66eed6a6d27f2283be8c657c9c7f8f65f4d6c236dd",
+        "provenance_path": "bundles/cm/a76abace5468addd7457ca1bc9882698ef06fdf0a3b925f93422541ac57eec3c/provenance.json",
+        "provenance_sha256": "a76abace5468addd7457ca1bc9882698ef06fdf0a3b925f93422541ac57eec3c"
+      },
+      "download_seconds": 2.1253031639999875,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "cm.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "cm",
+      "received_body_bytes": 3115164,
+      "retry_body_bytes": 0,
+      "row_count": 7998,
+      "source_total_bytes": 1557582,
+      "sources": [
+        {
+          "bytes": 1557582,
+          "request_attempts": 1,
+          "sha256": "f203a81546dff819996415cc29cae2cf927cb6b13d78c27e0a5cddf593ab36b6",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/cm/cm.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.2319000006755232e-05,
+        "parquet_staging_seconds": 0.20303485200000182,
+        "parquet_write_seconds": 0.09448284900000203,
+        "parse_seconds": 0.11602598900000771
+      },
+      "status": "built",
+      "verification_read_bytes": 1557582
+    },
+    {
+      "build_seconds": 0.6136931650000008,
+      "bundle": {
+        "parquet_bytes": 58071,
+        "parquet_path": "bundles/cu/f3ac58dd1b72d08cdaa4ad30402c5b9098951e1dc4878502a2471702028c1d72/catalog.parquet",
+        "parquet_sha256": "3d90c39cc05cdf108267b6577852aef01dc10dc6e968140e47884bde7534678d",
+        "provenance_path": "bundles/cu/f3ac58dd1b72d08cdaa4ad30402c5b9098951e1dc4878502a2471702028c1d72/provenance.json",
+        "provenance_sha256": "f3ac58dd1b72d08cdaa4ad30402c5b9098951e1dc4878502a2471702028c1d72"
+      },
+      "download_seconds": 1.7930204369999956,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "cu.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "cu",
+      "received_body_bytes": 2678894,
+      "retry_body_bytes": 0,
+      "row_count": 8104,
+      "source_total_bytes": 1339447,
+      "sources": [
+        {
+          "bytes": 1339447,
+          "request_attempts": 1,
+          "sha256": "f7367ea7851338d4d9165061bfb14051030f07f073dc12d007cdff2becd2320d",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/cu/cu.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.1756999981571425e-05,
+        "parquet_staging_seconds": 0.5001362759999779,
+        "parquet_write_seconds": 0.0033362869999962186,
+        "parse_seconds": 0.10837164100001928
+      },
+      "status": "built",
+      "verification_read_bytes": 1339447
+    },
+    {
+      "build_seconds": 0.12391985899998303,
+      "bundle": {
+        "parquet_bytes": 54622,
+        "parquet_path": "bundles/cw/88ec67c605b817eac2fa546e6975917078e7e5a52109eacccf0dd968eb2d97b0/catalog.parquet",
+        "parquet_sha256": "45f72e6f9ac8ac11cc491213fbac9248fa0a978716e55bfae8847bb7b816218a",
+        "provenance_path": "bundles/cw/88ec67c605b817eac2fa546e6975917078e7e5a52109eacccf0dd968eb2d97b0/provenance.json",
+        "provenance_sha256": "88ec67c605b817eac2fa546e6975917078e7e5a52109eacccf0dd968eb2d97b0"
+      },
+      "download_seconds": 1.543247937999979,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "cw.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "cw",
+      "received_body_bytes": 2916570,
+      "retry_body_bytes": 0,
+      "row_count": 7868,
+      "source_total_bytes": 1458285,
+      "sources": [
+        {
+          "bytes": 1458285,
+          "request_attempts": 1,
+          "sha256": "75f7f0bb3b7bd9884a708301b9e86dbeae9c640e6dbf3509957cd3bf296ab1b9",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/cw/cw.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.3239999987035844e-05,
+        "parquet_staging_seconds": 0.012313943999998855,
+        "parquet_write_seconds": 0.0026653689999989183,
+        "parse_seconds": 0.10771211799999492
+      },
+      "status": "built",
+      "verification_read_bytes": 1458285
+    },
+    {
+      "build_seconds": 2.317368263999981,
+      "bundle": {
+        "parquet_bytes": 1236128,
+        "parquet_path": "bundles/cx/651542a7476c1e63065587f9e75e01d4ee8e17f0a8ee8a00e16c1005f5e7ce29/catalog.parquet",
+        "parquet_sha256": "5d28b59bdbc78bcc4540efaebe68746ef1bcdb500581a5b6cad51ee2d7c64889",
+        "provenance_path": "bundles/cx/651542a7476c1e63065587f9e75e01d4ee8e17f0a8ee8a00e16c1005f5e7ce29/provenance.json",
+        "provenance_sha256": "651542a7476c1e63065587f9e75e01d4ee8e17f0a8ee8a00e16c1005f5e7ce29"
+      },
+      "download_seconds": 2.1674694890000126,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "cx.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "cx",
+      "received_body_bytes": 62218994,
+      "retry_body_bytes": 0,
+      "row_count": 183935,
+      "source_total_bytes": 31109497,
+      "sources": [
+        {
+          "bytes": 31109497,
+          "request_attempts": 1,
+          "sha256": "9755a92a6605d05bae92ca34080b4214500603dd487c37090e0e1ed95b8432f2",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/cx/cx.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.4823000014985155e-05,
+        "parquet_staging_seconds": 0.07948816499998657,
+        "parquet_write_seconds": 0.021356294000014486,
+        "parse_seconds": 2.1736533190000102
+      },
+      "status": "built",
+      "verification_read_bytes": 31109497
+    },
+    {
+      "build_seconds": 0.03361972900000865,
+      "bundle": {
+        "parquet_bytes": 34937,
+        "parquet_path": "bundles/ei/c9bbe8f2551f77500d87775b6201afeacc5ac4c5b2e328f3e1258a846af12c91/catalog.parquet",
+        "parquet_sha256": "d0eb62f5236b1c3073c936783b6c2ab2becd4b5094c40c9411a2d874110dfa0d",
+        "provenance_path": "bundles/ei/c9bbe8f2551f77500d87775b6201afeacc5ac4c5b2e328f3e1258a846af12c91/provenance.json",
+        "provenance_sha256": "c9bbe8f2551f77500d87775b6201afeacc5ac4c5b2e328f3e1258a846af12c91"
+      },
+      "download_seconds": 1.1700019669999904,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "ei.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "ei",
+      "received_body_bytes": 741818,
+      "retry_body_bytes": 0,
+      "row_count": 1593,
+      "source_total_bytes": 370909,
+      "sources": [
+        {
+          "bytes": 370909,
+          "request_attempts": 1,
+          "sha256": "f316a22a3f449d692763745d7088c7f746ca2f535f7dcb1d9caacf173628c9da",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/ei/ei.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.1577000009310723e-05,
+        "parquet_staging_seconds": 0.0027885490000016944,
+        "parquet_write_seconds": 0.0011091339999893535,
+        "parse_seconds": 0.029707074000015155
+      },
+      "status": "built",
+      "verification_read_bytes": 370909
+    },
+    {
+      "build_seconds": 1.4041603049999765,
+      "bundle": {
+        "parquet_bytes": 1036998,
+        "parquet_path": "bundles/ep/ca70431e33760f24c54e5f05e21219d46864b267b32747b814ba38eb2c926134/catalog.parquet",
+        "parquet_sha256": "124bf53e55d53d0338210be241a79446c5eeca87158e79fdfe6426cbedeca957",
+        "provenance_path": "bundles/ep/ca70431e33760f24c54e5f05e21219d46864b267b32747b814ba38eb2c926134/provenance.json",
+        "provenance_sha256": "ca70431e33760f24c54e5f05e21219d46864b267b32747b814ba38eb2c926134"
+      },
+      "download_seconds": 2.2193919350000044,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "ep.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "ep",
+      "received_body_bytes": 37258640,
+      "retry_body_bytes": 0,
+      "row_count": 113898,
+      "source_total_bytes": 18629320,
+      "sources": [
+        {
+          "bytes": 18629320,
+          "request_attempts": 1,
+          "sha256": "be3dfa996dd5939a18c9dd45347d9f4033098c30a3cb06e2a94b5a68037f5975",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/ep/ep.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.3580999990381315e-05,
+        "parquet_staging_seconds": 0.05305723699999021,
+        "parquet_write_seconds": 0.017544324999988703,
+        "parse_seconds": 1.3116780709999887
+      },
+      "status": "built",
+      "verification_read_bytes": 18629320
+    },
+    {
+      "build_seconds": 0.054493420000000015,
+      "bundle": {
+        "parquet_bytes": 28864,
+        "parquet_path": "bundles/fm/bb786957d8d328902045b4ba96775b291400f510541f7348ddcdd8d852177d99/catalog.parquet",
+        "parquet_sha256": "6d1e2b241da2a034f63cc4bf70adb983d0cd29abf7e3cad5888f60fd41355c7e",
+        "provenance_path": "bundles/fm/bb786957d8d328902045b4ba96775b291400f510541f7348ddcdd8d852177d99/provenance.json",
+        "provenance_sha256": "bb786957d8d328902045b4ba96775b291400f510541f7348ddcdd8d852177d99"
+      },
+      "download_seconds": 1.192645328999987,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "fm.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "fm",
+      "received_body_bytes": 1268554,
+      "retry_body_bytes": 0,
+      "row_count": 3144,
+      "source_total_bytes": 634277,
+      "sources": [
+        {
+          "bytes": 634277,
+          "request_attempts": 1,
+          "sha256": "f1362ac6a77381c5048e013e60e767cb28db87c24df6dcaba06bd1690f321d3d",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/fm/fm.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.2639000004810441e-05,
+        "parquet_staging_seconds": 0.0038054540000018733,
+        "parquet_write_seconds": 0.0012028060000091045,
+        "parse_seconds": 0.04902512600000364
+      },
+      "status": "built",
+      "verification_read_bytes": 634277
+    },
+    {
+      "build_seconds": 0.3033772980000151,
+      "bundle": {
+        "parquet_bytes": 175453,
+        "parquet_path": "bundles/ip/3031e606f8bc834f054d8dd38baeacf05f0100ccb1e542f568d462b7be715923/catalog.parquet",
+        "parquet_sha256": "3281c72ace6058ed5842f6fd9031f869bc2ae60de625a3fefb4439154526a369",
+        "provenance_path": "bundles/ip/3031e606f8bc834f054d8dd38baeacf05f0100ccb1e542f568d462b7be715923/provenance.json",
+        "provenance_sha256": "3031e606f8bc834f054d8dd38baeacf05f0100ccb1e542f568d462b7be715923"
+      },
+      "download_seconds": 2.1605114050000225,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "ip.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "ip",
+      "received_body_bytes": 7930106,
+      "retry_body_bytes": 0,
+      "row_count": 21072,
+      "source_total_bytes": 3965053,
+      "sources": [
+        {
+          "bytes": 3965053,
+          "request_attempts": 1,
+          "sha256": "380bd9835ed264c67231dcac85436e7cb431b202fdb3d4f8d4dc3eb45a4e4f82",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/ip/ip.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.2738999998873624e-05,
+        "parquet_staging_seconds": 0.01459426999997504,
+        "parquet_write_seconds": 0.006259158000005982,
+        "parse_seconds": 0.27972339199999396
+      },
+      "status": "built",
+      "verification_read_bytes": 3965053
+    },
+    {
+      "build_seconds": 9.430492517000005,
+      "bundle": {
+        "parquet_bytes": 1152503,
+        "parquet_path": "bundles/is/9ec3b740815aabf30bc3ac54e712829e7520c9314fc3d36f10ae88a9d5f384ef/catalog.parquet",
+        "parquet_sha256": "a0d9e9af5e4b6d4e2c12037db20cf8b20245d9d5d809eb042efd217fe77c2565",
+        "provenance_path": "bundles/is/9ec3b740815aabf30bc3ac54e712829e7520c9314fc3d36f10ae88a9d5f384ef/provenance.json",
+        "provenance_sha256": "9ec3b740815aabf30bc3ac54e712829e7520c9314fc3d36f10ae88a9d5f384ef"
+      },
+      "download_seconds": 2.3655840030000093,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "is.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "is",
+      "received_body_bytes": 251353710,
+      "retry_body_bytes": 0,
+      "row_count": 891324,
+      "source_total_bytes": 125676855,
+      "sources": [
+        {
+          "bytes": 125676855,
+          "request_attempts": 1,
+          "sha256": "328f27086170383521c32d5c960124751130691e275788bcda785a1dbf9e6b0a",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/is/is.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.4461999995774022e-05,
+        "parquet_staging_seconds": 0.2988056280000251,
+        "parquet_write_seconds": 0.06951509500001407,
+        "parse_seconds": 8.877339364999983
+      },
+      "status": "built",
+      "verification_read_bytes": 125676855
+    },
+    {
+      "build_seconds": 1.5992121669999904,
+      "bundle": {
+        "parquet_bytes": 16409,
+        "parquet_path": "bundles/jt/4c5dc4e897996f6ecbe895695da8887d2325adf0b2488acd2a028dd71dfa1658/catalog.parquet",
+        "parquet_sha256": "514767f6d5fc1479f9cfa8cd91966ded00870759dfe8274dfe863a0a8a92e3c3",
+        "provenance_path": "bundles/jt/4c5dc4e897996f6ecbe895695da8887d2325adf0b2488acd2a028dd71dfa1658/provenance.json",
+        "provenance_sha256": "4c5dc4e897996f6ecbe895695da8887d2325adf0b2488acd2a028dd71dfa1658"
+      },
+      "download_seconds": 16.558240205000004,
+      "http_request_attempts": 16,
+      "input_files_requested": [
+        "jt.series",
+        "jt.industry",
+        "jt.state",
+        "jt.area",
+        "jt.sizeclass",
+        "jt.dataelement",
+        "jt.ratelevel",
+        "jt.seasonal"
+      ],
+      "input_set_attempts": 1,
+      "program": "jt",
+      "received_body_bytes": 324276,
+      "retry_body_bytes": 0,
+      "row_count": 2060,
+      "source_total_bytes": 162138,
+      "sources": [
+        {
+          "bytes": 158802,
+          "request_attempts": 1,
+          "sha256": "e0de35550b3925c6564f9e61fbd14153f5853f3b9049a351cc1b811e84e5d976",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.series"
+        },
+        {
+          "bytes": 1174,
+          "request_attempts": 1,
+          "sha256": "94c0c48daa6c3e93d898367a944c8357faba6be22c4bf034d99ad587713d3b50",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.industry"
+        },
+        {
+          "bytes": 1228,
+          "request_attempts": 1,
+          "sha256": "9abe706a9638003324046af1525eaebc2bdda9c9da715b1a9dd9700beefabecb",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.state"
+        },
+        {
+          "bytes": 83,
+          "request_attempts": 1,
+          "sha256": "3e5194de6be507a9f7096adb94df6a1816413584713aa5c8da6c37a72e9e2a2a",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.area"
+        },
+        {
+          "bytes": 283,
+          "request_attempts": 1,
+          "sha256": "f7a4904fb45d2f7c5f9e3978a1e2207e7b7ada9d04325a2284ae95c0a2cbd348",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.sizeclass"
+        },
+        {
+          "bytes": 375,
+          "request_attempts": 1,
+          "sha256": "32e1f1a79b1d207e70aff5988d574d40930d38f30dbab2b5a8e3f52d68890e59",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.dataelement"
+        },
+        {
+          "bytes": 114,
+          "request_attempts": 1,
+          "sha256": "f2a945018a56d5e5b8940a076fbf50242e1d942d0faee93f9a6cf2e0092952e1",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.ratelevel"
+        },
+        {
+          "bytes": 79,
+          "request_attempts": 1,
+          "sha256": "801baddf3511b8d9b03c0dbd1a9d9365c668b911a2228c6c594ea8a684ace5d7",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/jt/jt.seasonal"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 5.027599999607446e-05,
+        "parquet_staging_seconds": 0.003187971000016887,
+        "parquet_write_seconds": 0.0014608449999968798,
+        "parse_seconds": 1.5959205489999988
+      },
+      "status": "built",
+      "verification_read_bytes": 162138
+    },
+    {
+      "build_seconds": 0.16144733699999847,
+      "bundle": {
+        "parquet_bytes": 15920,
+        "parquet_path": "bundles/kv/8abda48932045b2a8542b52dc903b6c2c5d5d47d64f3461066548ef647bab7ee/catalog.parquet",
+        "parquet_sha256": "440cb6de6340ae5b1931d3927ec5333cb22568def4084d58647ed23b79d1391e",
+        "provenance_path": "bundles/kv/8abda48932045b2a8542b52dc903b6c2c5d5d47d64f3461066548ef647bab7ee/provenance.json",
+        "provenance_sha256": "8abda48932045b2a8542b52dc903b6c2c5d5d47d64f3461066548ef647bab7ee"
+      },
+      "download_seconds": 1.182673569000002,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "kv.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "kv",
+      "received_body_bytes": 514228,
+      "retry_body_bytes": 0,
+      "row_count": 1371,
+      "source_total_bytes": 257114,
+      "sources": [
+        {
+          "bytes": 257114,
+          "request_attempts": 1,
+          "sha256": "1054608b733b72be45e90cfd06ba66bfa4c5d9997d168075eb3187cb8d3338da",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/kv/kv.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.1867000011989148e-05,
+        "parquet_staging_seconds": 0.13793664199999967,
+        "parquet_write_seconds": 0.0010337200000094526,
+        "parse_seconds": 0.022593751000016482
+      },
+      "status": "built",
+      "verification_read_bytes": 257114
+    },
+    {
+      "build_seconds": 0.3258270409999966,
+      "bundle": {
+        "parquet_bytes": 205952,
+        "parquet_path": "bundles/la/d9ca2c0e8fda7c58f5a0a76a4a4d9142dbb7832b2bb0a150da8ed103cc463eda/catalog.parquet",
+        "parquet_sha256": "32308c7b43feedcb1f449f807dcb123c3be1a3aee74d8bacc79f345eb90658f2",
+        "provenance_path": "bundles/la/d9ca2c0e8fda7c58f5a0a76a4a4d9142dbb7832b2bb0a150da8ed103cc463eda/provenance.json",
+        "provenance_sha256": "d9ca2c0e8fda7c58f5a0a76a4a4d9142dbb7832b2bb0a150da8ed103cc463eda"
+      },
+      "download_seconds": 2.017952911000009,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "la.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "la",
+      "received_body_bytes": 8173084,
+      "retry_body_bytes": 0,
+      "row_count": 33985,
+      "source_total_bytes": 4086542,
+      "sources": [
+        {
+          "bytes": 4086542,
+          "request_attempts": 1,
+          "sha256": "a938666287086eb9eae630c434948e0b9dd90eaf91285f92183f24b1074e26a0",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/la/la.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.2328999986266354e-05,
+        "parquet_staging_seconds": 0.014856833000010283,
+        "parquet_write_seconds": 0.006172726000016837,
+        "parse_seconds": 0.3015564089999998
+      },
+      "status": "built",
+      "verification_read_bytes": 4086542
+    },
+    {
+      "build_seconds": 0.2119476089999921,
+      "bundle": {
+        "parquet_bytes": 114484,
+        "parquet_path": "bundles/le/d75d595290dadcd2fd4e60050b66ce4d8f21002150ccbd7f83a3bb63bc1046ba/catalog.parquet",
+        "parquet_sha256": "228fdd9e110b1c75580e20ee0923b7465d0bac5570638677ea0b3a73ab10a147",
+        "provenance_path": "bundles/le/d75d595290dadcd2fd4e60050b66ce4d8f21002150ccbd7f83a3bb63bc1046ba/provenance.json",
+        "provenance_sha256": "d75d595290dadcd2fd4e60050b66ce4d8f21002150ccbd7f83a3bb63bc1046ba"
+      },
+      "download_seconds": 1.8328070880000098,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "le.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "le",
+      "received_body_bytes": 4942920,
+      "retry_body_bytes": 0,
+      "row_count": 11053,
+      "source_total_bytes": 2471460,
+      "sources": [
+        {
+          "bytes": 2471460,
+          "request_attempts": 1,
+          "sha256": "137e0d9a6ba1e2bc1b39cc77409483bc4a198e6b7ab0dbdb27454db276810a0f",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/le/le.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.1857999993480917e-05,
+        "parquet_staging_seconds": 0.03200423399999863,
+        "parquet_write_seconds": 0.004639101999998729,
+        "parse_seconds": 0.1739096280000183
+      },
+      "status": "built",
+      "verification_read_bytes": 2471460
+    },
+    {
+      "build_seconds": 1.251404612999977,
+      "bundle": {
+        "parquet_bytes": 555500,
+        "parquet_path": "bundles/ln/4eba6caea99ae98884398d52c37a64c634c816526c7119885642bf8b71237b1a/catalog.parquet",
+        "parquet_sha256": "45c0373d3bfe98a7768be6abf7a07bf9dafb4cb9650279123a90f10f73dd6e1c",
+        "provenance_path": "bundles/ln/4eba6caea99ae98884398d52c37a64c634c816526c7119885642bf8b71237b1a/provenance.json",
+        "provenance_sha256": "4eba6caea99ae98884398d52c37a64c634c816526c7119885642bf8b71237b1a"
+      },
+      "download_seconds": 2.2058129719999897,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "ln.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "ln",
+      "received_body_bytes": 30575186,
+      "retry_body_bytes": 0,
+      "row_count": 68626,
+      "source_total_bytes": 15287593,
+      "sources": [
+        {
+          "bytes": 15287593,
+          "request_attempts": 1,
+          "sha256": "4e3dbfbed7cd0037983fec5a481fd9527592a6ab9da8e112e03ff583c02ef54c",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/ln/ln.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.1918000012656194e-05,
+        "parquet_staging_seconds": 0.13843868899999734,
+        "parquet_write_seconds": 0.01675327999998899,
+        "parse_seconds": 1.0811265810000066
+      },
+      "status": "built",
+      "verification_read_bytes": 15287593
+    },
+    {
+      "build_seconds": 0.04251201400001037,
+      "bundle": {
+        "parquet_bytes": 15421,
+        "parquet_path": "bundles/lu/0408cb55ac3601cb0900bfbe8c1f6ff1ea431012a0a9f5adbb13de6b04c0634a/catalog.parquet",
+        "parquet_sha256": "4ceefdda7701a7c6909059b35fc68d3fda25cc6e508825558613a7d6db822f07",
+        "provenance_path": "bundles/lu/0408cb55ac3601cb0900bfbe8c1f6ff1ea431012a0a9f5adbb13de6b04c0634a/provenance.json",
+        "provenance_sha256": "0408cb55ac3601cb0900bfbe8c1f6ff1ea431012a0a9f5adbb13de6b04c0634a"
+      },
+      "download_seconds": 1.2221148849999963,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "lu.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "lu",
+      "received_body_bytes": 468928,
+      "retry_body_bytes": 0,
+      "row_count": 1241,
+      "source_total_bytes": 234464,
+      "sources": [
+        {
+          "bytes": 234464,
+          "request_attempts": 1,
+          "sha256": "22e22bf4e406da50cef80c4e67cc243b78924ab1c9d2af36149f6770eb983ac8",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/lu/lu.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.171699997826181e-05,
+        "parquet_staging_seconds": 0.020409258999990243,
+        "parquet_write_seconds": 0.000740948000014896,
+        "parse_seconds": 0.02123665700000288
+      },
+      "status": "built",
+      "verification_read_bytes": 234464
+    },
+    {
+      "build_seconds": 0.13296901500001468,
+      "bundle": {
+        "parquet_bytes": 38393,
+        "parquet_path": "bundles/mp/5b04e07da924cf9a2bc277207a75104b8723fcad69d1dc752812df939648ce22/catalog.parquet",
+        "parquet_sha256": "72ec8f36c2245689c5ed9113ccab1124a79042f07c9b155b5f1db3bcb5cc09b9",
+        "provenance_path": "bundles/mp/5b04e07da924cf9a2bc277207a75104b8723fcad69d1dc752812df939648ce22/provenance.json",
+        "provenance_sha256": "5b04e07da924cf9a2bc277207a75104b8723fcad69d1dc752812df939648ce22"
+      },
+      "download_seconds": 2.126138007999998,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "mp.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "mp",
+      "received_body_bytes": 1479498,
+      "retry_body_bytes": 0,
+      "row_count": 4683,
+      "source_total_bytes": 739749,
+      "sources": [
+        {
+          "bytes": 739749,
+          "request_attempts": 1,
+          "sha256": "3d82002573f69e5f6df34fd10a303e85fde32f59611d63e94025a2ea88e3d9e7",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/mp/mp.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.1327000009941912e-05,
+        "parquet_staging_seconds": 0.07263664000001313,
+        "parquet_write_seconds": 0.0018990780000081031,
+        "parse_seconds": 0.05838123099999848
+      },
+      "status": "built",
+      "verification_read_bytes": 739749
+    },
+    {
+      "build_seconds": 1.887221100000005,
+      "bundle": {
+        "parquet_bytes": 1085037,
+        "parquet_path": "bundles/nb/dcadc9ff468592d3644f9e838bd65c24fd3f3d3b3f35b6ca6fb8c42625a8246c/catalog.parquet",
+        "parquet_sha256": "3c4115150ca1ab763cc708cb036f1e433930081e21a6c1eb30840d3ed8386351",
+        "provenance_path": "bundles/nb/dcadc9ff468592d3644f9e838bd65c24fd3f3d3b3f35b6ca6fb8c42625a8246c/provenance.json",
+        "provenance_sha256": "dcadc9ff468592d3644f9e838bd65c24fd3f3d3b3f35b6ca6fb8c42625a8246c"
+      },
+      "download_seconds": 2.197299963000006,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "nb.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "nb",
+      "received_body_bytes": 50315344,
+      "retry_body_bytes": 0,
+      "row_count": 101893,
+      "source_total_bytes": 25157672,
+      "sources": [
+        {
+          "bytes": 25157672,
+          "request_attempts": 1,
+          "sha256": "d946bfa782e6d7329ab7aa17c4c4634e05d98db11687ab819ca50fc52b1a6a14",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/nb/nb.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.4171000003670997e-05,
+        "parquet_staging_seconds": 0.07228449400000159,
+        "parquet_write_seconds": 0.024695110000010345,
+        "parse_seconds": 1.763160364000015
+      },
+      "status": "built",
+      "verification_read_bytes": 25157672
+    },
+    {
+      "build_seconds": 0.10962404800000058,
+      "bundle": {
+        "parquet_bytes": 131435,
+        "parquet_path": "bundles/nd/bf843d346580c9b4e3596b4d5fb070b82b84fa0128308c9c68cff2de07bc0015/catalog.parquet",
+        "parquet_sha256": "86c63525159dfa913b7e06a6f42d672be1cc1ab7125040e6779096a738e5fb58",
+        "provenance_path": "bundles/nd/bf843d346580c9b4e3596b4d5fb070b82b84fa0128308c9c68cff2de07bc0015/provenance.json",
+        "provenance_sha256": "bf843d346580c9b4e3596b4d5fb070b82b84fa0128308c9c68cff2de07bc0015"
+      },
+      "download_seconds": 1.1792158359999974,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "nd.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "nd",
+      "received_body_bytes": 2754138,
+      "retry_body_bytes": 0,
+      "row_count": 6509,
+      "source_total_bytes": 1377069,
+      "sources": [
+        {
+          "bytes": 1377069,
+          "request_attempts": 1,
+          "sha256": "9abff0de5df444ad48d4736399cf498f7aae1666ce46629204ef926aa8e21161",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/nd/nd.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.1376999992762649e-05,
+        "parquet_staging_seconds": 0.006638971000000993,
+        "parquet_write_seconds": 0.003063824000008708,
+        "parse_seconds": 0.09934936900000935
+      },
+      "status": "built",
+      "verification_read_bytes": 1377069
+    },
+    {
+      "build_seconds": 96.032711603,
+      "bundle": {
+        "parquet_bytes": 34100367,
+        "parquet_path": "bundles/oe/57fed8802793dce10d1b7b30923c6fefcdd8caeca5df985f9bd0d9496d64f276/catalog.parquet",
+        "parquet_sha256": "0f06ec828ca15e9b0de189ad22494a75467a762cdc7eb9f8a77d4b6f54156966",
+        "provenance_path": "bundles/oe/57fed8802793dce10d1b7b30923c6fefcdd8caeca5df985f9bd0d9496d64f276/provenance.json",
+        "provenance_sha256": "57fed8802793dce10d1b7b30923c6fefcdd8caeca5df985f9bd0d9496d64f276"
+      },
+      "download_seconds": 10.811548278999993,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "oe.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "oe",
+      "received_body_bytes": 2522877960,
+      "retry_body_bytes": 0,
+      "row_count": 6023970,
+      "source_total_bytes": 1261438980,
+      "sources": [
+        {
+          "bytes": 1261438980,
+          "request_attempts": 1,
+          "sha256": "a8e59101552352c54dc7e44e3b8ed4c1582e6d53ae9498d8ad9283af5b43ff14",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/oe/oe.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.8188000012742123e-05,
+        "parquet_staging_seconds": 2.996782479999979,
+        "parquet_write_seconds": 0.7087178029999563,
+        "parse_seconds": 90.48356774999999
+      },
+      "status": "built",
+      "verification_read_bytes": 1261438980
+    },
+    {
+      "build_seconds": 1.122937811999975,
+      "bundle": {
+        "parquet_bytes": 589687,
+        "parquet_path": "bundles/or/738a6733c0ccc6f84b1d40897a73e1a1b7898bd902f782c7fd7ea8079888ae03/catalog.parquet",
+        "parquet_sha256": "03995873d502fab037e61c784cb4ec26bbc5c08fa4b91b0eb37ff6a15a6ae238",
+        "provenance_path": "bundles/or/738a6733c0ccc6f84b1d40897a73e1a1b7898bd902f782c7fd7ea8079888ae03/provenance.json",
+        "provenance_sha256": "738a6733c0ccc6f84b1d40897a73e1a1b7898bd902f782c7fd7ea8079888ae03"
+      },
+      "download_seconds": 1.407097341999986,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "or.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "or",
+      "received_body_bytes": 30240916,
+      "retry_body_bytes": 0,
+      "row_count": 73711,
+      "source_total_bytes": 15120458,
+      "sources": [
+        {
+          "bytes": 15120458,
+          "request_attempts": 1,
+          "sha256": "85a034db3944cde16aea4d84867e356dd149df06edabab89be4b6a6d3c54d6c9",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/or/or.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.1097000026438764e-05,
+        "parquet_staging_seconds": 0.04732045999998036,
+        "parquet_write_seconds": 0.0183400279999546,
+        "parse_seconds": 1.0444730759999743
+      },
+      "status": "built",
+      "verification_read_bytes": 15120458
+    },
+    {
+      "build_seconds": 0.07122997799996256,
+      "bundle": {
+        "parquet_bytes": 87382,
+        "parquet_path": "bundles/pc/80df0bc098e561ac01bdece973d790a0537ed361811520a554abc6f652c68378/catalog.parquet",
+        "parquet_sha256": "ce7b7dfae0070f54fccc636dcd44d1fc47d6292f7f3533aa4319cb698b643c1c",
+        "provenance_path": "bundles/pc/80df0bc098e561ac01bdece973d790a0537ed361811520a554abc6f652c68378/provenance.json",
+        "provenance_sha256": "80df0bc098e561ac01bdece973d790a0537ed361811520a554abc6f652c68378"
+      },
+      "download_seconds": 1.1747680840000498,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "pc.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "pc",
+      "received_body_bytes": 1706442,
+      "retry_body_bytes": 0,
+      "row_count": 4510,
+      "source_total_bytes": 853221,
+      "sources": [
+        {
+          "bytes": 853221,
+          "request_attempts": 1,
+          "sha256": "911f881136037963018f92a0c1e4f7f48452ab53ccf303d724eaa609f8845715",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/pc/pc.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.1406999988139432e-05,
+        "parquet_staging_seconds": 0.004523710000000847,
+        "parquet_write_seconds": 0.0019110150000187787,
+        "parse_seconds": 0.06458840099998042
+      },
+      "status": "built",
+      "verification_read_bytes": 853221
+    },
+    {
+      "build_seconds": 0.22770819499999106,
+      "bundle": {
+        "parquet_bytes": 5939,
+        "parquet_path": "bundles/pr/fac06f8d5bd2fea22568a7c2f2c07cd401aea3405edc42739a30aa1584116ac7/catalog.parquet",
+        "parquet_sha256": "8635a28b535861058ba3ff5e9272146c6ebb48fc9fa4133bf7c30a49d3f728be",
+        "provenance_path": "bundles/pr/fac06f8d5bd2fea22568a7c2f2c07cd401aea3405edc42739a30aa1584116ac7/provenance.json",
+        "provenance_sha256": "fac06f8d5bd2fea22568a7c2f2c07cd401aea3405edc42739a30aa1584116ac7"
+      },
+      "download_seconds": 13.032050024,
+      "http_request_attempts": 12,
+      "input_files_requested": [
+        "pr.series",
+        "pr.sector",
+        "pr.class",
+        "pr.measure",
+        "pr.duration",
+        "pr.seasonal"
+      ],
+      "input_set_attempts": 1,
+      "program": "pr",
+      "received_body_bytes": 34044,
+      "retry_body_bytes": 0,
+      "row_count": 282,
+      "source_total_bytes": 17022,
+      "sources": [
+        {
+          "bytes": 15657,
+          "request_attempts": 1,
+          "sha256": "fe94825be4ce9c418b07180cb745b69f4e93f08636b27e7583d2fb5094ffb3b6",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/pr/pr.series"
+        },
+        {
+          "bytes": 263,
+          "request_attempts": 1,
+          "sha256": "1eaef7fb47ac5accc468ff39c4e8916f575a644a009ee66ef8dbd188fe54e369",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/pr/pr.sector"
+        },
+        {
+          "bytes": 102,
+          "request_attempts": 1,
+          "sha256": "ed5e7641b5b990460f02a3189b22b48535abcdf3eb505ebfe820ef4c7a288bc9",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/pr/pr.class"
+        },
+        {
+          "bytes": 745,
+          "request_attempts": 1,
+          "sha256": "459c07d625b60430028569cf37f20c4b618f3de0ece5756ef6fa034cbeb594c6",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/pr/pr.measure"
+        },
+        {
+          "bytes": 176,
+          "request_attempts": 1,
+          "sha256": "d1132a2ac0a27c12a1bb82538be3cb5ba1dfaa3eb6951feb8caba5d99202e97f",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/pr/pr.duration"
+        },
+        {
+          "bytes": 79,
+          "request_attempts": 1,
+          "sha256": "5ebe468ab3cbcfdd6b19b81f34af9281dd4728e891d78192f35de3a5bd9d7b24",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/pr/pr.seasonal"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 2.9415000028620852e-05,
+        "parquet_staging_seconds": 0.002056854999977986,
+        "parquet_write_seconds": 0.0006794849999778307,
+        "parse_seconds": 0.22558400799999845
+      },
+      "status": "built",
+      "verification_read_bytes": 17022
+    },
+    {
+      "build_seconds": 17.814278342000023,
+      "bundle": {
+        "parquet_bytes": 261848,
+        "parquet_path": "bundles/sm/d42966a00430252953c7b6f501a9aaa466f194e7ddee7309d81d479bdca2df16/catalog.parquet",
+        "parquet_sha256": "84d118750b08dba63d3560b48787916b5caa04eb584fea0f4cba7c93462f2837",
+        "provenance_path": "bundles/sm/d42966a00430252953c7b6f501a9aaa466f194e7ddee7309d81d479bdca2df16/provenance.json",
+        "provenance_sha256": "d42966a00430252953c7b6f501a9aaa466f194e7ddee7309d81d479bdca2df16"
+      },
+      "download_seconds": 15.109846428000026,
+      "http_request_attempts": 14,
+      "input_files_requested": [
+        "sm.series",
+        "sm.state",
+        "sm.area",
+        "sm.supersector",
+        "sm.industry",
+        "sm.data_type",
+        "sm.seasonal"
+      ],
+      "input_set_attempts": 1,
+      "program": "sm",
+      "received_body_bytes": 3819594,
+      "retry_body_bytes": 0,
+      "row_count": 22927,
+      "source_total_bytes": 1909797,
+      "sources": [
+        {
+          "bytes": 1880196,
+          "request_attempts": 1,
+          "sha256": "d237d823584aa90595cc073c5a84569c61bfbc9ac3f8f817a5f58b21790fb171",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.series"
+        },
+        {
+          "bytes": 809,
+          "request_attempts": 1,
+          "sha256": "147cc20c91412cc8d70dd7003ea70453c20b68b396735bcc55159fd14b74b926",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.state"
+        },
+        {
+          "bytes": 12644,
+          "request_attempts": 1,
+          "sha256": "357930421d05d7883c8ddb7657d0046e55e10e48840de2cb63e106d2d66e5649",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.area"
+        },
+        {
+          "bytes": 566,
+          "request_attempts": 1,
+          "sha256": "b5b2c911026606e401458bc3ec960ebda32878eb3976908b3475204470df96b6",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.supersector"
+        },
+        {
+          "bytes": 14684,
+          "request_attempts": 1,
+          "sha256": "63562d3efc25f54bc6163fc4282df1abb7c0653d24add398a685f3b4e836dbb9",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.industry"
+        },
+        {
+          "bytes": 819,
+          "request_attempts": 1,
+          "sha256": "3b14101486303537f41bcfbd187dcdb7cc5dd6d949830f7d4c9ab4a7f499b2dc",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.data_type"
+        },
+        {
+          "bytes": 79,
+          "request_attempts": 1,
+          "sha256": "801baddf3511b8d9b03c0dbd1a9d9365c668b911a2228c6c594ea8a684ace5d7",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/sm/sm.seasonal"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 3.146799997466587e-05,
+        "parquet_staging_seconds": 0.015420012999982191,
+        "parquet_write_seconds": 0.009948774000008598,
+        "parse_seconds": 17.79876758299997
+      },
+      "status": "built",
+      "verification_read_bytes": 1909797
+    },
+    {
+      "build_seconds": 0.06525913299998365,
+      "bundle": {
+        "parquet_bytes": 3932,
+        "parquet_path": "bundles/su/64996668e319403ce2fe7ffac3381362a176810f1b673715a542d2c79fa380dc/catalog.parquet",
+        "parquet_sha256": "bda7c8652a05526ccc9df2322575d79c91133081c055565c4e63e7d2277dd6db",
+        "provenance_path": "bundles/su/64996668e319403ce2fe7ffac3381362a176810f1b673715a542d2c79fa380dc/provenance.json",
+        "provenance_sha256": "64996668e319403ce2fe7ffac3381362a176810f1b673715a542d2c79fa380dc"
+      },
+      "download_seconds": 1.5319701480000276,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "su.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "su",
+      "received_body_bytes": 9828,
+      "retry_body_bytes": 0,
+      "row_count": 29,
+      "source_total_bytes": 4914,
+      "sources": [
+        {
+          "bytes": 4914,
+          "request_attempts": 1,
+          "sha256": "7da3ac42aef524b2cc21fe2cb8f6ab71124ae808db699f2b4d5919b306bafbcc",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/su/su.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.0986000006596441e-05,
+        "parquet_staging_seconds": 0.05955911399996694,
+        "parquet_write_seconds": 0.0005279160000100092,
+        "parse_seconds": 0.005337472000007892
+      },
+      "status": "built",
+      "verification_read_bytes": 4914
+    },
+    {
+      "build_seconds": 1.8565635700000485,
+      "bundle": {
+        "parquet_bytes": 580471,
+        "parquet_path": "bundles/tu/26153974f9458610e14f33bae02404094642c823df096c37f72bc609112fad6e/catalog.parquet",
+        "parquet_sha256": "94c14dd2588e6d3a6a61bbdfc3def6a8829614daa46b4b5a4d21376e1e3deb3b",
+        "provenance_path": "bundles/tu/26153974f9458610e14f33bae02404094642c823df096c37f72bc609112fad6e/provenance.json",
+        "provenance_sha256": "26153974f9458610e14f33bae02404094642c823df096c37f72bc609112fad6e"
+      },
+      "download_seconds": 2.1665227259999824,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "tu.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "tu",
+      "received_body_bytes": 47915958,
+      "retry_body_bytes": 0,
+      "row_count": 87387,
+      "source_total_bytes": 23957979,
+      "sources": [
+        {
+          "bytes": 23957979,
+          "request_attempts": 1,
+          "sha256": "26cc80b28138946f29abe225cdae80ee265b879f57153fe942846a4399f53ac7",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/tu/tu.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.4862000000448461e-05,
+        "parquet_staging_seconds": 0.15353685500002712,
+        "parquet_write_seconds": 0.01374275599999919,
+        "parse_seconds": 1.6532569040000453
+      },
+      "status": "built",
+      "verification_read_bytes": 23957979
+    },
+    {
+      "build_seconds": 0.21142096400001265,
+      "bundle": {
+        "parquet_bytes": 150407,
+        "parquet_path": "bundles/wd/dda4e0a5feadd54f8bc0669291bcdfcc9846a21593f2fff6cf085e74ea90b9f4/catalog.parquet",
+        "parquet_sha256": "0d5d4829e82f227987f48ce4bf397876294952c3c9586fc24235a96321faac7b",
+        "provenance_path": "bundles/wd/dda4e0a5feadd54f8bc0669291bcdfcc9846a21593f2fff6cf085e74ea90b9f4/provenance.json",
+        "provenance_sha256": "dda4e0a5feadd54f8bc0669291bcdfcc9846a21593f2fff6cf085e74ea90b9f4"
+      },
+      "download_seconds": 1.1966137929999832,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "wd.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "wd",
+      "received_body_bytes": 3240040,
+      "retry_body_bytes": 0,
+      "row_count": 8538,
+      "source_total_bytes": 1620020,
+      "sources": [
+        {
+          "bytes": 1620020,
+          "request_attempts": 1,
+          "sha256": "021dbbc00b6b221886ee96b89b2024fbe800a2178a4fe2a0f324ce4bc52f10b7",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/wd/wd.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.1898000025212241e-05,
+        "parquet_staging_seconds": 0.07091275700003052,
+        "parquet_write_seconds": 0.003908460999980434,
+        "parse_seconds": 0.13675784500003374
+      },
+      "status": "built",
+      "verification_read_bytes": 1620020
+    },
+    {
+      "build_seconds": 8.151329438000005,
+      "bundle": {
+        "parquet_bytes": 4879915,
+        "parquet_path": "bundles/wm/3c933d0a23187461acd854855694973e7f895baeed25fd3c261908b1962cd835/catalog.parquet",
+        "parquet_sha256": "bb5f1625671f1cf0342c1aa1e294eb1618f0af0a344e3bb53cb164f5ff255115",
+        "provenance_path": "bundles/wm/3c933d0a23187461acd854855694973e7f895baeed25fd3c261908b1962cd835/provenance.json",
+        "provenance_sha256": "3c933d0a23187461acd854855694973e7f895baeed25fd3c261908b1962cd835"
+      },
+      "download_seconds": 2.429881435000027,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "wm.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "wm",
+      "received_body_bytes": 216959732,
+      "retry_body_bytes": 0,
+      "row_count": 557753,
+      "source_total_bytes": 108479866,
+      "sources": [
+        {
+          "bytes": 108479866,
+          "request_attempts": 1,
+          "sha256": "cb5377d4b62bf87a0d12bd7e9b2de6a047a8e0cca9f5ac582a07ee83dd1cf56c",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/wm/wm.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.2419000029240124e-05,
+        "parquet_staging_seconds": 0.27618753400003015,
+        "parquet_write_seconds": 0.07428649899998163,
+        "parse_seconds": 7.65618849599997
+      },
+      "status": "built",
+      "verification_read_bytes": 108479866
+    },
+    {
+      "build_seconds": 0.15878543100001252,
+      "bundle": {
+        "parquet_bytes": 86581,
+        "parquet_path": "bundles/wp/f56cee68e60bba073e3b8d08757deb9427f4b93d7809877ed72830ac02b8d5d3/catalog.parquet",
+        "parquet_sha256": "693564631275eeefa267a8797de9375e8d942b3453b6c74df4cadaa5ee89f60b",
+        "provenance_path": "bundles/wp/f56cee68e60bba073e3b8d08757deb9427f4b93d7809877ed72830ac02b8d5d3/provenance.json",
+        "provenance_sha256": "f56cee68e60bba073e3b8d08757deb9427f4b93d7809877ed72830ac02b8d5d3"
+      },
+      "download_seconds": 1.2052055629999927,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "wp.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "wp",
+      "received_body_bytes": 1970324,
+      "retry_body_bytes": 0,
+      "row_count": 5312,
+      "source_total_bytes": 985162,
+      "sources": [
+        {
+          "bytes": 985162,
+          "request_attempts": 1,
+          "sha256": "cf06d3d3e03393dce142145fa24ba028915ca39637adb86a0efe1a2b66fe8265",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/wp/wp.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.3840999997682957e-05,
+        "parquet_staging_seconds": 0.07992299800002911,
+        "parquet_write_seconds": 0.002275914999984252,
+        "parse_seconds": 0.07623428499999818
+      },
+      "status": "built",
+      "verification_read_bytes": 985162
+    },
+    {
+      "build_seconds": 0.0065058320000161984,
+      "bundle": {
+        "parquet_bytes": 3541,
+        "parquet_path": "bundles/ws/a6eef189ecc8aeacf9b05559bd2f3bac5028802b77a360e77d69a81fa536950f/catalog.parquet",
+        "parquet_sha256": "d705084211816b462f6767e2f3c2ca2c8b5ff6b1c09e530dc9bb1aaec2fc8beb",
+        "provenance_path": "bundles/ws/a6eef189ecc8aeacf9b05559bd2f3bac5028802b77a360e77d69a81fa536950f/provenance.json",
+        "provenance_sha256": "a6eef189ecc8aeacf9b05559bd2f3bac5028802b77a360e77d69a81fa536950f"
+      },
+      "download_seconds": 1.9047311360000094,
+      "http_request_attempts": 2,
+      "input_files_requested": [
+        "ws.series"
+      ],
+      "input_set_attempts": 1,
+      "program": "ws",
+      "received_body_bytes": 1774,
+      "retry_body_bytes": 0,
+      "row_count": 6,
+      "source_total_bytes": 887,
+      "sources": [
+        {
+          "bytes": 887,
+          "request_attempts": 1,
+          "sha256": "ada22764a544fb4a555977a54ba88252ef842ad3425d5f4c096082198f24d727",
+          "status": 200,
+          "url": "https://download.bls.gov/pub/time.series/ws/ws.series"
+        }
+      ],
+      "stage_seconds": {
+        "input_validation_seconds": 1.0425999960261834e-05,
+        "parquet_staging_seconds": 0.0014529989999800819,
+        "parquet_write_seconds": 0.000554652999994687,
+        "parse_seconds": 0.004738609000014549
+      },
+      "status": "built",
+      "verification_read_bytes": 887
+    }
+  ],
+  "requested_programs": [
+    "ap",
+    "bd",
+    "ce",
+    "ci",
+    "cm",
+    "cu",
+    "cw",
+    "cx",
+    "ei",
+    "ep",
+    "fm",
+    "ip",
+    "is",
+    "jt",
+    "kv",
+    "la",
+    "le",
+    "ln",
+    "lu",
+    "mp",
+    "nb",
+    "nd",
+    "oe",
+    "or",
+    "pc",
+    "pr",
+    "sm",
+    "su",
+    "tu",
+    "wd",
+    "wm",
+    "wp",
+    "ws"
+  ],
+  "run_directory": "/home/runner/work/_temp/dry-build-work/dry-build-20261013T121921Z-4a7bdc39ef9c42959eedc9eaf4f9cd8b",
+  "runtime_environment": {
+    "cpu_count": 4,
+    "git_revision": "a871ee0dae94405172eba8d46d7fe1c397e225e5",
+    "machine": "x86_64",
+    "memory_available_bytes": 11639762944,
+    "memory_total_bytes": 16766414848,
+    "peak_rss": {
+      "children": {
+        "bytes": 4615942144,
+        "scope": "maximum of terminated child processes; not a concurrent aggregate",
+        "unit": "KiB",
+        "value": 4507756
+      },
+      "self": {
+        "bytes": 4615942144,
+        "scope": "current Python process; includes earlier process lifetime peak",
+        "unit": "KiB",
+        "value": 4507756
+      }
+    },
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "python": "3.13.12"
+  },
+  "schema_version": 1,
+  "scope_complete": true,
+  "search_queries": [
+    {
+      "elapsed_seconds": 0.000176326000030258,
+      "name": "row_count",
+      "result_count": 8315248
+    },
+    {
+      "elapsed_seconds": 0.054158346999997775,
+      "name": "distinct_programs",
+      "result_count": 33
+    },
+    {
+      "elapsed_seconds": 0.12498792000002368,
+      "name": "unemployment_ln_nsa",
+      "result_count": 7084
+    },
+    {
+      "elapsed_seconds": 0.14227709400000776,
+      "name": "registered_nurses_oe_nsa",
+      "result_count": 12644
+    }
+  ],
+  "status": "success",
+  "storage": {
+    "disk_free_bytes_after": 88943407104,
+    "disk_free_bytes_before": 90698006528,
+    "disk_total_bytes_after": 154894188544,
+    "disk_total_bytes_before": 154894188544,
+    "run_output_bytes": 1753412193,
+    "sampled_peak": {
+      "lowest_filesystem_free_bytes": 86661804032,
+      "measurement": "sampled peak; not an absolute guaranteed maximum",
+      "peak_filesystem_used_bytes": 68232384512,
+      "peak_run_directory_bytes": 2731014644,
+      "sample_count": 650,
+      "sampling_interval_seconds": 0.25
+    }
+  },
+  "summary": {
+    "build_seconds": 148.528506802,
+    "combined_seconds": 12.512583352999968,
+    "download_seconds": 104.74695405400007,
+    "http_request_attempts": 102,
+    "input_set_retries": 0,
+    "programs_built": 33,
+    "programs_requested": 33,
+    "received_body_bytes": 3318350076,
+    "request_retry_attempts": 0,
+    "retry_body_bytes": 0,
+    "source_total_bytes": 1659175038,
+    "total_seconds": 268.581089047,
+    "verification_read_bytes": 1659175038,
+    "verification_request_attempts": 51
+  },
+  "workflow": "local_dry_build"
+}
