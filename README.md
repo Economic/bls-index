@@ -55,6 +55,8 @@ export BLS_INDEX_USER_AGENT='bls_index catalog builder (+https://example.org/con
 uv run pytest -m live                          # small real-BLS smoke test (opt-in)
 uv run bls-index probe --programs oe,ap,pr --parse-check --out probe.json
 uv run bls-index probe --programs initial --out probe.json   # all 33 programs
+uv run bls-index dry-build --programs initial --workdir ./benchmarks
+uv run bls-index dry-build --programs ap,pr --workdir ./benchmarks  # local/offline fixture source via --base-url
 uv run bls-index runner-info                   # CPU, memory, disk of this machine
 ```
 
@@ -64,6 +66,43 @@ response metadata, sizes, checksums and file layouts, and with `--parse-check` m
 polars parse time and peak memory. Raw downloads go to a temporary directory and are
 deleted. The `source-probe` GitHub Actions workflow runs the same probe on a clean
 runner; it reads the User-Agent from the repository secret `BLS_INDEX_USER_AGENT`.
+
+### Local dry builds and measurements
+
+`dry-build` runs one requested program at a time. It downloads and rechecks verified
+inputs using the same fetcher, builds local content-addressed per-program Parquet bundles,
+then reloads those bundles and validates a combined candidate with the pinned
+`data-dict` executable only after every requested program succeeds. It defaults to the
+fixed initial 33-program scope; `--programs` accepts an explicit unique subset. Each
+invocation creates a new `dry-build-<UTC-time>-<random-id>` directory under required
+`--workdir`; it does not replace prior runs. The run includes `report.json`, raw verified
+source inputs, per-program artifacts, and `combined/bls_index.parquet` only on success.
+Failed and incomplete runs still write a diagnostic report and do not expose a combined
+candidate. The command has no object-store, publication, or GitHub workflow integration.
+
+For a controlled offline run, use the local fixture HTTP source from the test harness or
+serve a compatible fixture tree and pass its URL with `--base-url`; the default base URL
+is the live BLS source. A descriptive contactable `BLS_INDEX_USER_AGENT` is required in
+either case. Request pacing defaults to one second and may be lowered only for loopback
+fixture servers. Fetch attempts are bounded by `--max-request-attempts` and
+`--max-input-set-attempts`.
+
+The JSON report records requested scope and per-input sizes/SHA-256, per-program
+download/build durations, row counts and bundle checksums, combined artifact size/checksum,
+pinned dictionary validation durations, representative in-memory search query durations
+and result counts, source total bytes, runtime/platform/CPU/revision, peak RSS, and
+filesystem capacity/output bytes. Timings are observations, not estimates or acceptance
+thresholds. Peak RSS records both `getrusage(RUSAGE_SELF)` and
+`getrusage(RUSAGE_CHILDREN)`, including terminated `data-dict` child processes. The child
+value is the maximum child-process peak, not a concurrent aggregate; both values use the
+same platform-specific source unit (KiB except bytes on macOS) and include normalized
+bytes. The self value covers this Python process's prior lifetime peak. `data-dict` timings
+are wall-clock subprocess times; query timings exclude the initial
+combined-Parquet read. Disk free space is an instantaneous capacity reading, not a
+reservation. The default `initial` run may be expensive and needs adequate space for raw
+inputs, per-program outputs, and the combined output. No intended-runner measurement has
+been performed yet; verify it explicitly before using measurements to select architecture
+or thresholds.
 
 Two BLS constraints, observed 2026-10-07: `download.bls.gov` returns 403 for any
 User-Agent containing "github", and BLS blocks robots that request "multiple times per

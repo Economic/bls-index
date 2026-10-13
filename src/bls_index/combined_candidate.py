@@ -10,8 +10,9 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import Callable, Mapping, Sequence
 
 import polars as pl
 
@@ -229,13 +230,18 @@ def validate_combined_candidate(
     return combined.cast(CANONICAL_SCHEMA)
 
 
-def _run_data_dict_checks(dictionary: Path, repository_root: Path) -> None:
+def _run_data_dict_checks(
+    dictionary: Path,
+    repository_root: Path,
+    timing_callback: Callable[[str, float], None] | None = None,
+) -> None:
     commands = (
         ("validate-spec",),
         ("validate-meta",),
         ("validate-data",),
     )
     for check in commands:
+        started = time.perf_counter()
         result = subprocess.run(
             ["uv", "run", "--locked", "data-dict", *check, str(dictionary), "--json"],
             cwd=repository_root,
@@ -243,6 +249,8 @@ def _run_data_dict_checks(dictionary: Path, repository_root: Path) -> None:
             capture_output=True,
             text=True,
         )
+        if timing_callback is not None:
+            timing_callback(check[0], time.perf_counter() - started)
         if result.returncode:
             details = (result.stdout + "\n" + result.stderr).strip()
             raise CombinedCandidateError(
@@ -256,6 +264,7 @@ def write_combined_candidate(
     output_path: str | Path,
     *,
     dictionary_path: str | Path | None = None,
+    timing_callback: Callable[[str, float], None] | None = None,
 ) -> pl.DataFrame:
     """Validate frames and write one compressed Parquet candidate without replacement.
 
@@ -300,7 +309,7 @@ def write_combined_candidate(
                 dictionary_text.replace(_DICTIONARY_SOURCE, "parquet: bls_index.parquet"),
                 encoding="utf-8",
             )
-            _run_data_dict_checks(staged_dictionary.resolve(), root)
+            _run_data_dict_checks(staged_dictionary.resolve(), root, timing_callback)
             try:
                 os.link(staged_parquet, destination)
             except FileExistsError as exc:
