@@ -1,0 +1,60 @@
+$version: 0.1.0
+$learn_more: https://data-dict.tidyverse.org/
+name: bls_index
+description: >
+  One row per BLS series in the fixed schema-v1 catalog scope. Schema v1 is
+  distinct from a data release version, which is not assigned here. This describes
+  the candidate catalog format; it does not assert that source IDs are live or
+  globally unique beyond the candidate being validated.
+tables:
+  - name: series
+    source:
+      parquet: bls_index.parquet
+    constraints:
+      - assert: end_year IS NULL OR begin_year IS NULL OR begin_year <= end_year
+        description: A known begin year cannot be later than a known end year.
+      - assert: (program IN ('sm', 'jt', 'pr') AND title_source = 'synthesized') OR (program NOT IN ('sm', 'jt', 'pr') AND title_source = 'native')
+        description: The fixed initial scope determines whether a title is native or synthesized.
+    columns:
+      - name: program
+        type: enum
+        constraints: [required]
+        values: [ap, bd, ce, ci, cm, cu, cw, cx, ei, ep, fm, ip, is, jt, kv, la, le, ln, lu, mp, nb, nd, oe, or, pc, pr, sm, su, tu, wd, wm, wp, ws]
+        description: Explicit BLS program code assigned by the source builder.
+      - name: series_id
+        type: string
+        constraints:
+          - required
+          - unique
+          - assert: LENGTH(TRIM(series_id)) > 0 AND TRIM(series_id) = series_id
+        description: Nonempty, trimmed BLS series identifier; IDs are strings.
+        examples: [APU0000701111, LNS14000000]
+      - name: series_title
+        type: string
+        constraints:
+          - required
+          - assert: LENGTH(TRIM(series_title)) > 0
+        description: Native or synthesized human-readable series title; surrounding whitespace is preserved.
+        examples: ['Average Price: Apples, all urban consumers']
+      - name: title_source
+        type: enum
+        constraints: [required]
+        values: [native, synthesized]
+        description: Whether the title is copied from the native series file or synthesized from lookups.
+      - name: seasonal
+        type: enum
+        constraints: [required]
+        values: [SA, NSA, unknown]
+        description: Canonical seasonal-adjustment status, or unknown when unavailable.
+      - name: begin_year
+        type: number
+        description: Optional positive four-digit year; descriptive source metadata.
+        examples: [1980, 2026]
+      - name: end_year
+        type: number
+        description: Optional positive four-digit year; descriptive source metadata.
+        examples: [1980, 2026]
+      - name: end_period
+        type: string
+        description: Optional BLS period code such as M08, Q02, S01, S02, S03, or A01. S01 through S03 are accepted for cu and cw.
+        examples: [M08, Q02, S01, S02, S03, A01]
