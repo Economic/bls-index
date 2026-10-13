@@ -64,7 +64,12 @@ def test_transfer_counters_include_first_reads_and_rechecks(http_server, events,
         assert result.attempts == 1
         expected_input_bytes = sum(len(served[f"pr/{name}"]) for name in input_files("pr"))
         assert source.received_body_bytes == 2 * expected_input_bytes
+        assert source.verification_body_bytes == expected_input_bytes
+        assert source.retry_body_bytes == 0
         assert source.request_attempts == 2 * len(input_files("pr"))
+        assert source.verification_request_attempts == len(input_files("pr"))
+        assert source.request_retry_attempts == 0
+        assert source.input_set_retries == 0
         assert len(http_server.requests) == source.request_attempts
     finally:
         source.close()
@@ -90,8 +95,122 @@ def test_transfer_counters_include_partial_failed_body_and_retried_set(
         # not observable at the application-body iterator boundary and are not counted.
         yielded_partial_bytes = 1 << 20
         assert source.received_body_bytes == yielded_partial_bytes + 2 * expected_input_bytes
+        assert source.verification_body_bytes == expected_input_bytes
+        assert source.retry_body_bytes == 2 * expected_input_bytes
         assert source.request_attempts == 1 + 2 * len(input_files("pr"))
+        assert source.verification_request_attempts == len(input_files("pr"))
+        assert source.request_retry_attempts == 0
+        assert source.input_set_retries == 1
         assert len(http_server.requests) == source.request_attempts
+    finally:
+        source.close()
+
+
+def test_verification_counters_include_discarded_input_set_rechecks(
+    http_server, events, clock, tmp_path
+):
+    served = http_server.serve_tree(TWO_PROGRAM)
+    names = input_files("pr")
+    input_bytes = sum(len(served[f"pr/{name}"]) for name in names)
+    source = _make_source(http_server, events, clock)
+    try:
+        source.fetch_input_set("pr", tmp_path / "initial")
+        previous = (
+            source.received_body_bytes,
+            source.verification_body_bytes,
+            source.retry_body_bytes,
+            source.request_attempts,
+            source.verification_request_attempts,
+            source.request_retry_attempts,
+            source.input_set_retries,
+        )
+
+        changed_name = names[0]
+        original = served[f"pr/{changed_name}"]
+        changed = bytes([original[0] ^ 1]) + original[1:]
+        http_server.script(
+            f"pr/{changed_name}",
+            Reply(body=original),  # first read, attempt 1
+            Reply(body=changed),  # changed verification read, attempt 1
+            Reply(body=original),  # first read, attempt 2
+            Reply(body=original),  # verification read, attempt 2
+        )
+        result = source.fetch_input_set("pr", tmp_path / "changed")
+
+        assert result.attempts == 2
+        assert source.verification_body_bytes - previous[1] == 2 * input_bytes
+        assert source.verification_request_attempts - previous[4] == 2 * len(names)
+        assert source.retry_body_bytes - previous[2] == 2 * input_bytes
+        assert source.input_set_retries - previous[6] == 1
+        current = (
+            source.received_body_bytes,
+            source.verification_body_bytes,
+            source.retry_body_bytes,
+            source.request_attempts,
+            source.verification_request_attempts,
+            source.request_retry_attempts,
+            source.input_set_retries,
+        )
+        assert all(after >= before for before, after in zip(previous, current, strict=True))
+    finally:
+        source.close()
+
+
+def test_verification_counters_include_request_level_retry(
+    http_server, events, clock, tmp_path
+):
+    served = http_server.serve_tree(TWO_PROGRAM)
+    names = input_files("pr")
+    input_bytes = sum(len(served[f"pr/{name}"]) for name in names)
+    retried_name = names[0]
+    http_server.script(
+        f"pr/{retried_name}",
+        Reply(body=served[f"pr/{retried_name}"]),  # first read
+        Reply(status=503),  # failed verification request
+        Reply(body=served[f"pr/{retried_name}"]),  # request-level retry
+    )
+    source = _make_source(http_server, events, clock)
+    try:
+        result = source.fetch_input_set("pr", tmp_path)
+        assert result.attempts == 1
+        assert source.verification_body_bytes == input_bytes
+        assert source.verification_request_attempts == len(names) + 1
+        assert source.request_retry_attempts == 1
+        assert source.retry_body_bytes == len(served[f"pr/{retried_name}"])
+        assert source.input_set_retries == 0
+    finally:
+        source.close()
+
+
+def test_verification_counters_include_partial_failed_recheck_body(
+    http_server, events, clock, tmp_path
+):
+    served = http_server.serve_tree(TWO_PROGRAM)
+    names = input_files("pr")
+    input_bytes = sum(len(served[f"pr/{name}"]) for name in names)
+    failed_name = names[0]
+    partial_size = (1 << 20) + 128
+    http_server.script(
+        f"pr/{failed_name}",
+        Reply(body=served[f"pr/{failed_name}"]),  # first read, attempt 1
+        Reply(
+            body=b"x" * (partial_size + 1),
+            truncate_at=partial_size,
+            chunked=True,
+        ),  # partial verification read; this fails the input-set attempt
+        Reply(body=served[f"pr/{failed_name}"]),  # first read, attempt 2
+        Reply(body=served[f"pr/{failed_name}"]),  # verification read, attempt 2
+    )
+    source = _make_source(http_server, events, clock)
+    try:
+        result = source.fetch_input_set("pr", tmp_path)
+        assert result.attempts == 2
+        yielded_partial_bytes = 1 << 20
+        assert source.verification_body_bytes == input_bytes + yielded_partial_bytes
+        assert source.verification_request_attempts == 1 + len(names)
+        assert source.retry_body_bytes == 2 * input_bytes
+        assert source.request_retry_attempts == 0
+        assert source.input_set_retries == 1
     finally:
         source.close()
 

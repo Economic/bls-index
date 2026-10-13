@@ -81,8 +81,9 @@ Failed and incomplete runs write a diagnostic report and do not expose a combine
 candidate. `report.json` is checkpointed at run start and after each program; a recoverable
 failure records the failed stage. A hard process kill or unavailable/full disk cannot be
 caught or reported reliably: in those cases only the last successfully written checkpoint
-may remain, and no stronger recovery guarantee is made. The command has no object-store,
-publication, or GitHub workflow integration.
+may remain, and no stronger recovery guarantee is made. The repository includes a manually
+dispatched GitHub Actions workflow that runs the dry build and retains diagnostic JSON only;
+it does not publish or upload source inputs or Parquet artifacts.
 
 For a controlled offline run, use the local fixture HTTP source from the test harness or
 serve a compatible fixture tree and pass its URL with `--base-url`; the default base URL
@@ -95,7 +96,12 @@ The JSON report records requested scope and per-input sizes/SHA-256, per-program
 download/build durations, row counts and bundle checksums, combined artifact size/checksum,
 pinned dictionary validation durations, combined-Parquet load time, representative
 in-memory search query durations and result counts, source total bytes, runtime/platform/CPU/
-revision, peak RSS, and filesystem capacity/output bytes. Search examples are unemployment
+revision, peak RSS, filesystem capacity/output bytes, and sampled peak run-directory bytes
+and filesystem use/free space. Sampling runs every 0.25 seconds and includes temporary
+combined-candidate staging and downloads, but short-lived peaks between samples may be missed;
+these are sampled peaks, not absolute guaranteed maxima. A full initial-scope run fails validation
+and exposes no combined candidate if either representative query has zero results; explicit
+subsets may return zero. Search examples are unemployment
 in `ln` with `NSA` seasonality and registered nurses in `oe` with `NSA` seasonality; each
 query reports count and elapsed time separately from the combined-file load. Timings are
 observations, not estimates or acceptance thresholds. Peak RSS records both `getrusage(RUSAGE_SELF)` and

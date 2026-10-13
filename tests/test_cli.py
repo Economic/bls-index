@@ -99,8 +99,22 @@ def test_dry_build_rejects_credential_or_query_bearing_base_url_before_run(
 
 
 def test_dry_build_writes_local_candidate_and_structured_report(http_server, tmp_path, monkeypatch):
+    from bls_index import dry_build
+
     http_server.serve_tree(TWO_PROGRAM)
     monkeypatch.setenv("BLS_INDEX_USER_AGENT", TEST_USER_AGENT)
+    staged_peaks = []
+
+    def sample_temporary_combined_stage(sampler):
+        stage_dir = sampler._path / "combined"
+        stage_dir.mkdir(exist_ok=True)
+        stage = stage_dir / ".bls-index-candidate-test-stage"
+        stage.write_bytes(b"x" * 1024 * 1024)
+        sampler._sample()
+        staged_peaks.append(sampler.peak_run_directory_bytes)
+        stage.unlink()
+
+    monkeypatch.setattr(dry_build._DiskSampler, "_run", sample_temporary_combined_stage)
     assert main([
         "dry-build", "--programs", "ap,pr", "--base-url", http_server.base_url,
         "--workdir", str(tmp_path / "runs"), "--min-request-interval", "0",
@@ -119,6 +133,14 @@ def test_dry_build_writes_local_candidate_and_structured_report(http_server, tmp
     assert report["programs"][1]["source_total_bytes"] > 0
     assert report["combined"]["sha256"]
     assert report["combined"]["row_count"] > 0
+    sampled_peak = report["storage"]["sampled_peak"]
+    assert sampled_peak["sampling_interval_seconds"] == 0.25
+    assert sampled_peak["sample_count"] >= 2
+    assert sampled_peak["peak_run_directory_bytes"] >= max(staged_peaks)
+    assert sampled_peak["peak_filesystem_used_bytes"] >= 0
+    assert sampled_peak["lowest_filesystem_free_bytes"] >= 0
+    assert "not an absolute guaranteed maximum" in sampled_peak["measurement"]
+    assert not list(run_dir.glob("combined/.bls-index-candidate-test-stage"))
     peak_rss = report["runtime_environment"]["peak_rss"]
     assert peak_rss["self"]["bytes"] >= 0
     assert peak_rss["children"]["bytes"] >= 0
@@ -164,6 +186,43 @@ def test_search_queries_apply_program_and_seasonality_filters(tmp_path):
     assert load_seconds >= 0
     assert counts["unemployment_ln_nsa"] == 1
     assert counts["registered_nurses_oe_nsa"] == 1
+
+
+@pytest.mark.parametrize("empty_query", [
+    "unemployment_ln_nsa", "registered_nurses_oe_nsa",
+])
+def test_full_initial_scope_requires_representative_search_results(
+    empty_query, http_server, tmp_path, monkeypatch,
+):
+    from bls_index import dry_build
+
+    http_server.serve_tree(TWO_PROGRAM)
+    monkeypatch.setenv("BLS_INDEX_USER_AGENT", TEST_USER_AGENT)
+    monkeypatch.setattr(dry_build, "INITIAL_PROGRAMS", ("ap",))
+    monkeypatch.setattr(
+        dry_build, "_query_metrics",
+        lambda _path: (0.0, [
+            {"name": "row_count", "elapsed_seconds": 0.0, "result_count": 1},
+            {"name": "distinct_programs", "elapsed_seconds": 0.0, "result_count": 1},
+            {"name": "unemployment_ln_nsa", "elapsed_seconds": 0.0,
+             "result_count": 0 if empty_query == "unemployment_ln_nsa" else 1},
+            {"name": "registered_nurses_oe_nsa", "elapsed_seconds": 0.0,
+             "result_count": 0 if empty_query == "registered_nurses_oe_nsa" else 1},
+        ]),
+    )
+    workdir = tmp_path / "runs"
+    assert main([
+        "dry-build", "--programs", "ap", "--base-url", http_server.base_url,
+        "--workdir", str(workdir), "--min-request-interval", "0",
+    ]) == 1
+
+    run_dir = next(workdir.glob("dry-build-*"))
+    report = json.loads((run_dir / "report.json").read_text())
+    assert report["status"] == "failed"
+    assert report["failure"]["stage"] == "combined_validation"
+    assert empty_query in report["failure"]["detail"]
+    assert report["combined"] is None
+    assert not (run_dir / "combined" / "bls_index.parquet").exists()
 
 
 def test_dry_build_rejects_changed_valid_bundle_before_reload(http_server, tmp_path, monkeypatch):

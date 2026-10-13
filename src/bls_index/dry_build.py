@@ -15,6 +15,7 @@ import resource
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -182,6 +183,77 @@ def _query_metrics(parquet_path: Path) -> tuple[float, list[dict[str, Any]]]:
     return load_seconds, output
 
 
+class _DiskSampler:
+    """Sample run-directory size and filesystem use while a build is in progress."""
+
+    def __init__(self, interval_seconds: float = 0.25) -> None:
+        self.interval_seconds = interval_seconds
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+        self._path: Path | None = None
+        self._lock = threading.Lock()
+        self.sample_count = 0
+        self.peak_run_directory_bytes = 0
+        self.peak_filesystem_used_bytes = 0
+        self.lowest_filesystem_free_bytes: int | None = None
+
+    def start(self, path: Path) -> None:
+        self._path = path
+        self._sample()
+        self._thread = threading.Thread(
+            target=self._run, name="dry-build-disk-sampler", daemon=True
+        )
+        self._thread.start()
+
+    def _run(self) -> None:
+        while not self._stop.wait(self.interval_seconds):
+            self._sample()
+
+    def _sample(self) -> None:
+        if self._path is None:
+            return
+        try:
+            run_directory_bytes = _tree_bytes(self._path)
+            disk = shutil.disk_usage(self._path)
+        except OSError:
+            # Files may be created/removed during a walk; a missed sample is preferable
+            # to terminating the build or the sampler thread.
+            return
+        filesystem_used_bytes = disk.total - disk.free
+        with self._lock:
+            self.sample_count += 1
+            self.peak_run_directory_bytes = max(
+                self.peak_run_directory_bytes, run_directory_bytes
+            )
+            self.peak_filesystem_used_bytes = max(
+                self.peak_filesystem_used_bytes, filesystem_used_bytes
+            )
+            if self.lowest_filesystem_free_bytes is None:
+                self.lowest_filesystem_free_bytes = disk.free
+            else:
+                self.lowest_filesystem_free_bytes = min(
+                    self.lowest_filesystem_free_bytes, disk.free
+                )
+
+    def stop(self) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join()
+            self._thread = None
+        self._sample()
+
+    def report(self) -> dict[str, Any]:
+        with self._lock:
+            return {
+                "sampling_interval_seconds": self.interval_seconds,
+                "sample_count": self.sample_count,
+                "peak_run_directory_bytes": self.peak_run_directory_bytes,
+                "peak_filesystem_used_bytes": self.peak_filesystem_used_bytes,
+                "lowest_filesystem_free_bytes": self.lowest_filesystem_free_bytes,
+                "measurement": "sampled peak; not an absolute guaranteed maximum",
+            }
+
+
 def run_dry_build(
     programs: Sequence[str],
     source: HttpSource,
@@ -190,6 +262,43 @@ def run_dry_build(
     *,
     dictionary_path: Path | None = None,
     events: EventLog | None = None,
+) -> dict[str, Any]:
+    sampler = _DiskSampler()
+    try:
+        report = _run_dry_build_impl(
+            programs, source, clock, workdir,
+            dictionary_path=dictionary_path, events=events, sampler=sampler,
+        )
+    finally:
+        sampler.stop()
+
+    report["storage"]["sampled_peak"] = sampler.report()
+    report["notes"].append(
+        "Disk peaks are sampled every 0.25 seconds while the run is active; brief "
+        "transient peaks may be missed, so these are not absolute guaranteed maxima."
+    )
+    report_path = Path(report["run_directory"]) / "report.json"
+    report_tmp = report_path.with_name(f".{report_path.name}-{uuid.uuid4().hex}.tmp")
+    try:
+        with report_tmp.open("x", encoding="utf-8") as stream:
+            stream.write(json.dumps(report, indent=2, sort_keys=True) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(report_tmp, report_path)
+    finally:
+        report_tmp.unlink(missing_ok=True)
+    return report
+
+
+def _run_dry_build_impl(
+    programs: Sequence[str],
+    source: HttpSource,
+    clock: Clock,
+    workdir: Path,
+    *,
+    dictionary_path: Path | None = None,
+    events: EventLog | None = None,
+    sampler: _DiskSampler,
 ) -> dict[str, Any]:
     """Run a sequential verified-download/local-build benchmark in a fresh run directory."""
     events = events or EventLog(clock)
@@ -211,6 +320,7 @@ def run_dry_build(
     bundles_dir = run_dir / "bundles"
     downloads_dir.mkdir()
     bundles_dir.mkdir()
+    sampler.start(run_dir)
     disk_before = shutil.disk_usage(run_dir)
     initial_tree_bytes = _tree_bytes(run_dir)
     run_started = time.perf_counter()
@@ -227,6 +337,8 @@ def run_dry_build(
             "input_files_requested": list(input_files(program)),
             "status": "failed",
         }
+        verification_bytes_before = source.verification_body_bytes
+        retry_bytes_before = source.retry_body_bytes
         bytes_before = source.received_body_bytes
         attempts_before = source.request_attempts
         download_started = time.perf_counter()
@@ -261,7 +373,8 @@ def run_dry_build(
         item["download_seconds"] = time.perf_counter() - download_started
         item["received_body_bytes"] = source.received_body_bytes - bytes_before
         item["http_request_attempts"] = source.request_attempts - attempts_before
-        item["verification_read_bytes"] = sum(record.bytes for record in input_set.rechecks)
+        item["verification_read_bytes"] = source.verification_body_bytes - verification_bytes_before
+        item["retry_body_bytes"] = source.retry_body_bytes - retry_bytes_before
         item["input_set_attempts"] = input_set.attempts
         item["sources"] = [
             {"url": _safe_url(record.url), "bytes": record.bytes, "sha256": record.sha256,
@@ -333,6 +446,19 @@ def run_dry_build(
             )
             combined_seconds = time.perf_counter() - combined_started
             combined_load_seconds, query_metrics = _query_metrics(combined_path)
+            if set(requested) == set(INITIAL_PROGRAMS):
+                missing_representatives = [
+                    item["name"] for item in query_metrics
+                    if item["name"] in {
+                        "unemployment_ln_nsa", "registered_nurses_oe_nsa"
+                    } and item["result_count"] == 0
+                ]
+                if missing_representatives:
+                    raise ValueError(
+                        "full initial-scope benchmark requires nonzero representative "
+                        "search results; zero results for: "
+                        + ", ".join(missing_representatives)
+                    )
             combined_info = {
                 "load_seconds": combined_load_seconds,
                 "path": str(combined_path.relative_to(run_dir)),
@@ -391,7 +517,11 @@ def run_dry_build(
             "source_total_bytes": sum(item.get("source_total_bytes", 0) for item in programs_report),
             "received_body_bytes": source.received_body_bytes,
             "http_request_attempts": source.request_attempts,
-            "verification_read_bytes": sum(item.get("verification_read_bytes", 0) for item in programs_report),
+            "verification_read_bytes": source.verification_body_bytes,
+            "retry_body_bytes": source.retry_body_bytes,
+            "verification_request_attempts": source.verification_request_attempts,
+            "request_retry_attempts": source.request_retry_attempts,
+            "input_set_retries": source.input_set_retries,
             "download_seconds": sum(item.get("download_seconds", 0) for item in programs_report),
             "build_seconds": sum(item.get("build_seconds", 0) or 0 for item in programs_report),
             "combined_seconds": combined_seconds,
