@@ -2,8 +2,9 @@
 
 Schema version 1 is the canonical row format for series records. Local native-title parsing
 is implemented for all 30 fixed native-title programs. Bounded local synthesized-title parsers
-are implemented for `pr`, `sm`, and `jt`. These parsers do not build a combined catalog or
-publish anything.
+are implemented for `pr`, `sm`, and `jt`. The combined-candidate validator checks explicit frames
+against schema-v1 and BLS-specific invariants; its local writer stages a candidate and runs the
+pinned data-dictionary checks. Neither function downloads source data or publishes anything.
 
 ## Columns
 
@@ -14,8 +15,8 @@ publish anything.
 | `series_title` | string | no | Native builders preserve the source title, including surrounding spaces. PR, SM, and JT use synthesized titles from trimmed lookup labels. A title containing only whitespace is invalid. Titles need not be unique. |
 | `title_source` | string | no | `native` for native-title programs; `synthesized` for bounded local PR, SM, and JT parsers. |
 | `seasonal` | string | no | `SA`, `NSA`, or `unknown`. Observed source code `S` maps to `SA`; `U` maps to `NSA`. A source with no seasonal field (such as `ap`) maps to `unknown`. |
-| `begin_year` | int32 | yes | Four-digit positive year from the source, or null when the source field is blank. Descriptive metadata only, not a claim of current activity. |
-| `end_year` | int32 | yes | Four-digit positive year from the source, or null when the source field is blank. Descriptive metadata only, not a claim of current activity. |
+| `begin_year` | int32 | yes | Four-digit year from the source (`1000`–`9999`), or null when the source field is blank. Descriptive metadata only, not a claim of current activity. |
+| `end_year` | int32 | yes | Four-digit year from the source (`1000`–`9999`), or null when the source field is blank. Descriptive metadata only, not a claim of current activity. |
 | `end_period` | string | yes | Trimmed source end-period code, or null when blank. Kept as the source code; no date is inferred. |
 
 The canonical column order is exactly the table order. The schema version is separate from
@@ -47,17 +48,19 @@ claiming a complete component grammar.
 
 ## Validation behavior and deferred verification
 
-Blank begin/end years and end periods become null. Present years must be four decimal digits,
-positive, and a non-null begin year cannot exceed a non-null end year. Present periods must
+Blank begin/end years and end periods become null. Present years must be in the four-digit
+range `1000`–`9999`, and a non-null begin year cannot exceed a non-null end year. Present periods must
 be a two-digit source token in a recognized monthly (`M`), quarterly (`Q`), or annual (`A`)
 family with a positive ordinal; the implementation currently accepts `M01`–`M13`, `Q01`–
 `Q05`, and `A01`. A period without an end year is rejected. These are syntax/range checks,
 not a claim that every program uses every allowed code.
 
-Seasonal codes in a column must be present and be `S` or `U`. The local probe fixture for
-`pr.seasonal` records `S = Seasonal Adjusted` and `U = Not Seasonally Adjusted`; schema v1
-uses the shorter canonical values `SA` and `NSA`. The probe confirms `ap` has no seasonal
-column, so its canonical value is `unknown`.
+For programs with a verified seasonal field, the combined-candidate validator enforces the
+per-program source mapping in `native_builders.py`: `S` maps to `SA`, `U` maps to `NSA`, and
+only mapped values are accepted (`kv` and `cx` are U-only). `ap` and `mp` have no verified
+seasonal values and must use `unknown`; `sm`, `jt`, and `pr` accept `SA` or `NSA`. A known
+`SA`/`NSA` value must agree with the ID's third character (`S`/`U`). The local probe fixture
+for `pr.seasonal` records `S = Seasonal Adjusted` and `U = Not Seasonally Adjusted`.
 
 **Deferred verification before production catalog assembly:** review the source-specific
 metadata value domains (including all valid periods, exceptional years, and seasonal values)
@@ -68,9 +71,15 @@ PR source validation is recorded in
 [`evidence/2026-10-13-pr-validation.json`](evidence/2026-10-13-pr-validation.json): six PR
 source files were downloaded and parsed, their hashes matched on recheck, and validation
 completed with status `ok` for 282 rows. This PR-specific check does not resolve the deferred
-all-program native source-domain review. There is no row-count threshold, whole-scope
-cross-program uniqueness check, combined catalog build, or publication integration. Do not infer
-liveness from year or period fields. `survey_name` and `begin_period` are intentionally deferred
+all-program native source-domain review. The combined-candidate validator checks for duplicate
+`series_id` values across its complete requested frame scope (including duplicates within a
+program); the local writer stages one canonical Parquet file and runs the pinned `data-dict`
+`validate-spec`, `validate-meta`, and `validate-data` commands before exposing the output with a
+no-overwrite local operation. These checks are not a production catalog build or publication
+integration. The checked-in all-33 small-fixture test exercises this path, but does not fulfill the
+planned fresh full-33 dry build and intended-runner benchmark; those Gate 1 measurements remain
+pending per [`implementation-plan-v1.md`](plans/implementation-plan-v1.md). Do not infer liveness
+from year or period fields. `survey_name` and `begin_period` are intentionally deferred
 from schema v1 until their normalization and verification are explicitly approved.
 
 ## Bounded synthesized builders

@@ -90,7 +90,7 @@ def test_combined_candidate_accepts_duplicate_titles_but_rejects_id_collision():
     accepted = validate_combined_candidate(
         {
             "ap": _frame(title="same title"),
-            "jt": _frame("jt", "JTS000000000000000HIR", title="same title"),
+            "jt": _frame("jt", "JTS000000000000000HIR", title="same title", seasonal="SA"),
         },
         ["ap", "jt"],
     )
@@ -143,21 +143,55 @@ def test_synthesized_ids_require_exact_shape(program: str, series_id: str):
 def test_known_seasonal_value_must_match_id_code(
     program: str, series_id: str, seasonal: str
 ):
+
     with pytest.raises(CombinedCandidateError, match="seasonal code inconsistent"):
         validate_combined_candidate(
             {program: _frame(program, series_id, seasonal=seasonal)}, [program]
         )
 
 
-def test_unknown_seasonal_does_not_constrain_the_id_season_code():
-    frame = _frame("sm", "SMU00000000000000021", seasonal="unknown")
-    assert validate_combined_candidate({"sm": frame}, ["sm"]).height == 1
+def test_unknown_seasonal_is_limited_to_programs_without_verified_seasonal_values():
+    frame = _frame("ap", "APU0000701111", seasonal="unknown")
+    assert validate_combined_candidate({"ap": frame}, ["ap"]).height == 1
+
+
+@pytest.mark.parametrize(
+    ("program", "series_id", "seasonal"),
+    [
+        ("ap", "APU0000701111", "SA"),
+        ("ap", "APU0000701111", "NSA"),
+        ("mp", "MPU000000", "NSA"),
+        ("kv", "KVU0100000000000001", "SA"),
+        ("cx", "CXU001000LB0101M", "SA"),
+        ("ce", "CES0000000001", "unknown"),
+    ],
+)
+def test_seasonal_values_must_be_available_for_program(
+    program: str, series_id: str, seasonal: str
+):
+    with pytest.raises(CombinedCandidateError, match="seasonal value outside"):
+        validate_combined_candidate(
+            {program: _frame(program, series_id, seasonal=seasonal)}, [program]
+        )
+
+
+def test_u_only_programs_and_synthesized_programs_accept_nsa():
+    for program, series_id in (
+        ("kv", "KVU0100000000000001"),
+        ("cx", "CXU001000LB0101M"),
+        ("sm", "SMU00000000000000021"),
+        ("jt", "JTU000000000000000HIR"),
+        ("pr", "PRU30006011"),
+    ):
+        assert validate_combined_candidate(
+            {program: _frame(program, series_id, seasonal="NSA")}, [program]
+        ).height == 1
 
 
 def test_combined_candidate_accepts_requested_native_subset():
     frames = {
         "ap": _frame("ap", "APU0000701111"),
-        "cu": _frame("cu", "CUUS0000SAF111", end_period="S03"),
+        "cu": _frame("cu", "CUUS0000SAF111", seasonal="NSA", end_period="S03"),
     }
     combined = validate_combined_candidate(frames, ["ap", "cu"])
     assert combined.height == 2
@@ -188,7 +222,8 @@ def test_combined_bls_specific_checks_preserve_native_title_content():
         (_frame(series_id=" APU1"), "series_id"),
         (_frame(title=" \t "), "whitespace-only series_title"),
         (_frame(seasonal="S"), "seasonal value"),
-        (_frame(begin_year=0), "positive four-digit year"),
+        (_frame(begin_year=999), "four-digit year range"),
+        (_frame(begin_year=10000), "four-digit year range"),
         (_frame(begin_year=2027), "begin_year later than end_year"),
         (_frame(end_period="M00"), "unsupported BLS end_period"),
         (_frame(end_period="S01"), "unsupported BLS end_period"),
@@ -200,21 +235,30 @@ def test_combined_bls_specific_checks_preserve_native_title_content():
 
 
 def test_semiannual_periods_are_scoped_to_cu_and_cw(tmp_path):
-    cu = _frame("cu", "CUUS0000SAF111", end_period="S03")
-    cw = _frame("cw", "CWSR0000SA0", end_period="S03")
+    cu = _frame("cu", "CUUS0000SAF111", seasonal="NSA", end_period="S03")
+    cw = _frame("cw", "CWSR0000SA0", seasonal="SA", end_period="S03")
     assert validate_combined_candidate({"cu": cu}, ["cu"]).item(0, "end_period") == "S03"
     assert validate_combined_candidate({"cw": cw}, ["cw"]).item(0, "end_period") == "S03"
 
     for program, series_id in (("cu", "CUUS0000SAF111"), ("cw", "CWSR0000SA0")):
+        seasonal = "NSA" if series_id.startswith("CU") else "SA"
         for period in ("S04", "Q01", "A01"):
             with pytest.raises(CombinedCandidateError, match="unsupported BLS end_period"):
                 validate_combined_candidate(
-                    {program: _frame(program, series_id, end_period=period)}, [program]
+                    {
+                        program: _frame(
+                            program, series_id, seasonal=seasonal, end_period=period
+                        )
+                    },
+                    [program],
                 )
     with pytest.raises(CombinedCandidateError, match="unsupported BLS end_period"):
         validate_combined_candidate({"ap": _frame(end_period="S03")}, ["ap"])
     with pytest.raises(CombinedCandidateError, match="unsupported BLS end_period"):
-        validate_combined_candidate({"su": _frame("su", "SUUR0000SA0", end_period="S03")}, ["su"])
+        validate_combined_candidate(
+            {"su": _frame("su", "SUUR0000SA0", seasonal="NSA", end_period="S03")},
+            ["su"],
+        )
 
     output = tmp_path / "cu" / "bls_index.parquet"
     write_combined_candidate({"cu": cu}, ["cu"], output, dictionary_path=DICTIONARY)
@@ -288,6 +332,37 @@ def test_all_initial_program_fixtures_build_and_validate_staged_candidate(tmp_pa
             "program", "series_id", "series_title"
         ).iter_rows()
     } == titles
+
+
+def test_candidate_writer_rejects_year_below_four_digit_range_without_output(tmp_path):
+    output = tmp_path / "invalid-year" / "bls_index.parquet"
+    with pytest.raises(CombinedCandidateError, match="four-digit year range"):
+        write_combined_candidate(
+            {"ap": _frame(begin_year=999)}, ["ap"], output, dictionary_path=DICTIONARY
+        )
+    assert not output.exists()
+
+
+def test_candidate_writer_runs_pinned_cli_from_external_cwd_with_relative_output(
+    tmp_path, monkeypatch
+):
+    monkeypatch.chdir(tmp_path)
+    relative_output = Path("relative") / "bls_index.parquet"
+    write_combined_candidate(
+        {"ap": _frame()}, ["ap"], relative_output, dictionary_path=DICTIONARY
+    )
+    assert relative_output.is_file()
+    assert pl.read_parquet(relative_output).get_column("program").item() == "ap"
+
+    original = relative_output.read_bytes()
+    with pytest.raises(CombinedCandidateError, match="already exists"):
+        write_combined_candidate(
+            {"ap": _frame(series_id="APU0000701112")},
+            ["ap"],
+            relative_output,
+            dictionary_path=DICTIONARY,
+        )
+    assert relative_output.read_bytes() == original
 
 
 def test_candidate_writer_rejects_existing_destination_and_noncanonical_name(tmp_path):

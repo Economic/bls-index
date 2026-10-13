@@ -18,6 +18,7 @@ import polars as pl
 from bls_index.native_builders import (
     CANONICAL_SCHEMA,
     SCHEMA_VERSION,
+    SEASONAL_SOURCE_CODES,
     SERIES_ID_PATTERNS,
 )
 from bls_index.scope import (
@@ -104,19 +105,28 @@ def _validate_frame(frame: pl.DataFrame, program: str) -> None:
             f"program {program!r} has a missing or whitespace-only series_title"
         )
 
-    bad_seasonal = _invalid_rows(
-        frame, ~pl.col("seasonal").is_in(["SA", "NSA", "unknown"])
-    )
+    seasonal = pl.col("seasonal")
+    if program in SEASONAL_SOURCE_CODES:
+        allowed_source_codes = SEASONAL_SOURCE_CODES[program]
+        allowed_seasonal = (
+            ["unknown"]
+            if allowed_source_codes is None
+            else ["SA" if code == "S" else "NSA" for code in sorted(allowed_source_codes)]
+        )
+    else:
+        # Synthesized builders expose the observed S/U source convention.
+        allowed_seasonal = ["SA", "NSA"]
+    bad_seasonal = _invalid_rows(frame, ~seasonal.is_in(allowed_seasonal))
     if bad_seasonal.height:
         raise CombinedCandidateError(
-            f"program {program!r} has a seasonal value outside SA, NSA, unknown"
+            f"program {program!r} has seasonal value outside {allowed_seasonal!r}"
         )
 
     seasonal_code = series_id.str.to_uppercase().str.slice(2, 1)
     seasonal_mismatch = _invalid_rows(
         frame,
-        ((pl.col("seasonal") == "SA") & (seasonal_code != "S"))
-        | ((pl.col("seasonal") == "NSA") & (seasonal_code != "U")),
+        ((seasonal == "SA") & (seasonal_code != "S"))
+        | ((seasonal == "NSA") & (seasonal_code != "U")),
     )
     if seasonal_mismatch.height:
         raise CombinedCandidateError(
@@ -127,11 +137,11 @@ def _validate_frame(frame: pl.DataFrame, program: str) -> None:
         bad_year = _invalid_rows(
             frame,
             pl.col(column).is_not_null()
-            & ((pl.col(column) < 1) | (pl.col(column) > _YEAR_LIMIT)),
+            & ((pl.col(column) < 1000) | (pl.col(column) > _YEAR_LIMIT)),
         )
         if bad_year.height:
             raise CombinedCandidateError(
-                f"program {program!r} has {column} outside the positive four-digit year range"
+                f"program {program!r} has {column} outside the four-digit year range 1000–9999"
             )
 
     inverted_years = _invalid_rows(
@@ -290,7 +300,7 @@ def write_combined_candidate(
                 dictionary_text.replace(_DICTIONARY_SOURCE, "parquet: bls_index.parquet"),
                 encoding="utf-8",
             )
-            _run_data_dict_checks(staged_dictionary, root)
+            _run_data_dict_checks(staged_dictionary.resolve(), root)
             try:
                 os.link(staged_parquet, destination)
             except FileExistsError as exc:
