@@ -363,6 +363,34 @@ def test_verified_partial_id_field_mismatches_are_rejected(tmp_path, program, fi
         parse_native_series(path, program)
 
 
+def test_ei_unlisted_id_position_is_opaque_when_verified_slice_matches(tmp_path):
+    path = _constructed_program_file(tmp_path, "ei")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    row = lines[1].split("\t")
+    original_id = row[0]
+    changed_character = "Z" if original_id[5] != "Z" else "Y"
+    row[0] = original_id[:5] + changed_character + original_id[6:]
+    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+
+    parsed = parse_native_series(path, "ei")
+    assert parsed.get_column("series_id").item() == row[0].strip()
+
+
+@pytest.mark.parametrize(
+    ("program", "field"), [("ei", "series_name"), ("nb", "survey_code")]
+)
+def test_partial_id_mappings_leave_unlisted_source_fields_opaque(tmp_path, program, field):
+    path = _constructed_program_file(tmp_path, program)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header = lines[0].split("\t")
+    row = lines[1].split("\t")
+    row[header.index(field)] = "changed unlisted source value"
+    path.write_text("\n".join([lines[0], "\t".join(row), ""]), encoding="utf-8")
+
+    parsed = parse_native_series(path, program)
+    assert parsed.get_column("series_id").item() == row[0].strip()
+
+
 @pytest.mark.parametrize(
     ("program", "field"),
     [

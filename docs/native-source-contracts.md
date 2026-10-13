@@ -60,8 +60,9 @@ series-ID prefixes, reports, or a shared schema guess.
   `SERIES_ID_COMPONENTS`; independently verified source-field slices for incomplete or
   non-contiguous mappings are listed in `SERIES_ID_FIELD_SLICES`. A partial slice check
   constrains only the named source field at the documented ID position: every unlisted
-  position remains opaque, and variable-length IDs are still checked only against their
-  observed length and character constraints. These checks validate reported source fields;
+  ID position and unrelated source field remain opaque. IDs are also checked against their
+  program prefix, program-specific length and character constraints, and any applicable
+  seasonal character rule. These checks validate reported source fields;
   they do not decode every characteristic in a series ID or establish categorical code
   validity from mapping files.
 
