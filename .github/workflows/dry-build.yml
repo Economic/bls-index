@@ -31,12 +31,6 @@ jobs:
           version: "0.10.3"
       - name: Install locked toolchain
         run: uv sync --frozen
-      - name: Record runner resources
-        run: |
-          rm -rf "$ARTIFACT_DIR"
-          mkdir -p "$ARTIFACT_DIR"
-          uv run --frozen bls-index runner-info --workdir "$RUNNER_TEMP" \
-            > "$ARTIFACT_DIR/runner-info.json"
       - name: Build locally and stage diagnostic JSON only
         env:
           PROGRAMS: ${{ inputs.programs }}

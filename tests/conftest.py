@@ -12,7 +12,6 @@ from bls_index.http_source import FetchConfig, HttpSource
 from bls_index.object_store import S3ObjectStore, make_s3_client
 from tests.harness.clock import FakeClock
 from tests.harness.http_source import ControlledHttpSource
-from tests.harness.notifier import FakeNotifier
 from tests.harness.s3 import FaultProxy, backdoor_client, start_moto
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -29,11 +28,6 @@ def clock() -> FakeClock:
 @pytest.fixture
 def events(clock: FakeClock) -> EventLog:
     return EventLog(clock)
-
-
-@pytest.fixture
-def notifier() -> FakeNotifier:
-    return FakeNotifier()
 
 
 @pytest.fixture

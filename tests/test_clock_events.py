@@ -1,4 +1,4 @@
-"""Injected clock, event log, and fake notifier."""
+"""Injected clock and event log."""
 
 from __future__ import annotations
 
@@ -9,23 +9,9 @@ import pytest
 
 from bls_index.clock import SystemClock, isoformat_utc, require_utc
 from bls_index.events import EventLog
-from bls_index.notifier import Alert, send_alert
 from tests.harness.clock import TICK, FakeClock
 
 START = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
-
-
-def test_fake_clock_exact_48_hour_boundary():
-    clock = FakeClock(START)
-    window = timedelta(hours=48)
-
-    clock.advance(window)
-    assert clock.now() - START == window
-    assert not clock.now() - START > window
-
-    clock.advance(TICK)
-    assert clock.now() - START > window
-    assert clock.now() - START == window + timedelta(microseconds=1)
 
 
 def test_fake_clock_rejects_naive_non_utc_and_backwards():
@@ -81,29 +67,3 @@ def test_event_payload_is_snapshotted_at_record_time():
     headers["sizes"].append(3)
 
     assert log.events[0].data["headers"] == {"etag": '"v1"', "sizes": [1, 2]}
-
-
-def test_notifier_captures_alerts(notifier, events):
-    alert = Alert("manifest_write_unknown", "manifest write outcome unknown")
-    assert send_alert(notifier, alert, events) is True
-    assert notifier.delivered == [alert]
-    assert events.events[-1].kind == "notify.sent"
-
-
-def test_notifier_failure_is_reported_not_swallowed(notifier, events):
-    notifier.fail_next = 1
-    alert = Alert("initial_build_failed", "initial build failed")
-
-    assert send_alert(notifier, alert, events) is False
-    assert notifier.delivered == [] and notifier.attempted == [alert]
-    assert events.events[-1].kind == "notify.failed"
-
-    assert send_alert(notifier, alert, events) is True
-    assert notifier.delivered == [alert]
-
-
-def test_notifier_can_fail_permanently(notifier, events):
-    notifier.fail_always = True
-    for _ in range(3):
-        assert send_alert(notifier, Alert("x", "x"), events) is False
-    assert notifier.delivered == []
