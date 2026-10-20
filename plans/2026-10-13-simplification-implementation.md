@@ -52,7 +52,9 @@ The goal is the same catalog rows from much less code. Every task ends with
 - `scripts/golden.py` confirms every program's rows match the old code on one full download.
 - The combined catalog is identical: 8,315,248 rows.
 - Local build time fell from 176 s to 7 s, and peak RSS from 4.6 GB to 3.8 GB.
-- Task 1.8 (runner build, evidence note, checkpoint review) is in progress.
+- Task 1.8 is done. The runner build ([evidence](../docs/evidence/2026-10-20-phase1-runner-build.md))
+  took 1 m 33 s for the whole job, against 4 m 44 s before. The checkpoint review's
+  findings are fixed.
 
 Deviations from the task list:
 - The rewrite merged the builder modules into `schema.py` and `builders.py`. It also
@@ -232,6 +234,28 @@ proof that the refactor preserved output.
 4. Run a manual `checkpoint_panel` review of Phase 1.
 
 **Expected size after Phase 1:** about 1,200–1,500 lines of source, down from 4,800.
+
+### 1.9 Add `survey_name` (decided 2026-10-20)
+
+Do this before Phase 2, so the first published schema includes the column.
+
+- **Names.** Add `SURVEY_NAMES: dict[program, str]` to `scope.py`, one entry for each
+  of the 33 programs. Take each name from an official BLS source, preferably the
+  survey list on BLS's series ID format help page or the program's `<program>.txt` file
+  (`cx.txt` returned 404 in October, so `cx` needs another BLS page). Record the source
+  for each name in a short note in `docs/`. Do not fetch names at build time.
+- **Schema.** Add `survey_name` (string, required) after `program` in
+  `CANONICAL_SCHEMA`, in `canonical_rows`, in `docs/schema-v1.md`, and in
+  `data-dict.yaml`. In the dictionary, also assert that every program has exactly one
+  survey name.
+- **Tests.** Check that every program in scope has a name, and none outside it. Check that
+  a build gives every row its program's name. Search the fixture catalog for "consumer
+  price index" and confirm it finds the `cu` row.
+- **Verify.** The golden comparison now differs by one column. Compare all other columns
+  with `scripts/golden.py`; it may need a column filter. Then confirm the new column has
+  one value per program.
+- **Size.** Record the catalog's compressed size before and after. One repeated value per
+  program should add very little.
 
 ## Phase 2: Publish
 

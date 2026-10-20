@@ -54,6 +54,7 @@ constraints are in the repository-root [`data-dict.yaml`](data-dict.yaml).
 | Column | Type | Notes |
 |---|---|---|
 | `program` | string | BLS program code from scope, never inferred from the ID |
+| `survey_name` | string | BLS name of the program's survey, such as "Consumer Price Index - All Urban Consumers"; one fixed value per program |
 | `series_id` | string | Trimmed; unique across the catalog; compared exactly as spelled |
 | `series_title` | string | Native title preserved as published, or synthesized from lookups |
 | `title_source` | string | `native` or `synthesized` |
@@ -62,7 +63,13 @@ constraints are in the repository-root [`data-dict.yaml`](data-dict.yaml).
 | `end_period` | string, nullable | Source period code, such as `M08` |
 
 Titles need not be unique. Schema version 1 is separate from the data-dict `$version`.
-`survey_name` and `begin_period` are deferred.
+`begin_period` is deferred.
+
+`survey_name` makes a series findable by its survey. Many native titles never name the
+survey: CPI titles begin "All items in U.S. city average", so a search for "consumer
+price index" finds nothing without it. Names come from a fixed table in code, one entry
+per program in scope, taken from official BLS sources and checked by tests. Adding a
+program adds its name.
 
 ## Build
 
@@ -260,6 +267,8 @@ These are deliberate. Reviews should not report them as defects.
   (2026-10-07).
 - **R2 conditional writes** verified in Gate 0 (2026-10-12).
 - **Diagnostic row counts only:** no thresholds or warning state (2026-10-13).
+- **Add `survey_name` before first publication** (2026-10-20), so the published v1
+  schema includes it from the start.
 - **Operations** (2026-10-13):
   - Two buckets: `bls-index` (production) and `bls-index-staging` (staging), both
     public through their custom domains.
