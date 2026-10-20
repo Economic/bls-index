@@ -5,16 +5,13 @@ from __future__ import annotations
 
 import pytest
 
-from bls_index.clock import SystemClock
-from bls_index.events import EventLog
+from bls_index.builders import build_program
 from bls_index.http_source import FetchConfig, HttpSource, user_agent_from_env
 
 
 @pytest.mark.live
-def test_small_real_program_downloads_and_rechecks(tmp_path):
-    clock = SystemClock()
-    config = FetchConfig(user_agent=user_agent_from_env())
-    with HttpSource(config, EventLog(clock), clock) as source:
-        result = source.fetch_input_set("pr", tmp_path)
-    assert result.files[0].bytes > 0
-    assert all(r.status == 200 for r in result.files)
+def test_small_real_program_downloads_and_builds(tmp_path):
+    with HttpSource(FetchConfig(user_agent=user_agent_from_env())) as source:
+        downloads = source.fetch_program("pr", tmp_path)
+    frame = build_program("pr", {name: d.path for name, d in downloads.items()})
+    assert frame.height > 0

@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
-import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import polars as pl
@@ -59,9 +58,6 @@ def write_combined_candidate(
     frames: Mapping[str, pl.DataFrame],
     requested_programs: Sequence[str],
     directory: Path,
-    *,
-    dictionary_path: Path | None = None,
-    timing_callback: Callable[[str, float], None] | None = None,
 ) -> pl.DataFrame:
     """Validate, write ``directory/bls_index.parquet``, and run the pinned data-dict checks.
 
@@ -75,26 +71,23 @@ def write_combined_candidate(
     dictionary = directory / "data-dict.yaml"
     combined.write_parquet(catalog, compression="zstd")
     try:
-        shutil.copyfile(dictionary_path or DICTIONARY, dictionary)
-        _run_data_dict(dictionary, timing_callback)
+        shutil.copyfile(DICTIONARY, dictionary)
+        _run_data_dict(dictionary)
     except BaseException:
         catalog.unlink(missing_ok=True)
         raise
     return combined
 
 
-def _run_data_dict(dictionary: Path, timing_callback: Callable[[str, float], None] | None) -> None:
+def _run_data_dict(dictionary: Path) -> None:
     executable = shutil.which("data-dict")
     if executable is None:
         raise CombinedCandidateError("data-dict executable not found on PATH")
     for check in ("validate-spec", "validate-meta", "validate-data"):
-        started = time.perf_counter()
         result = subprocess.run(
             [executable, check, str(dictionary), "--json"],
             capture_output=True, text=True, check=False,
         )  # fmt: skip
-        if timing_callback is not None:
-            timing_callback(check, time.perf_counter() - started)
         if result.returncode:
             raise CombinedCandidateError(
                 f"data-dict {check} failed (exit {result.returncode}): "

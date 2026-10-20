@@ -1,34 +1,25 @@
 """HTTPS fetcher for BLS flat files.
 
-Every input is downloaded in full on every run: no HEAD requests, conditional requests,
-or header checks are used to skip a download. Each program's inputs form one build unit
-that is downloaded, then downloaded again and compared by SHA-256 (BLS validators are
-not yet established as reliable). A changed or incomplete input retries the program's
-entire input set up to a fixed limit.
+Every input is downloaded in full on every run. No HEAD requests, conditional requests,
+or header checks are used to skip a download, and each file is downloaded once.
 """
 
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 import os
-import shutil
-import threading
 import time
-from collections.abc import Callable, Iterator, Mapping, Sequence
-from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
-from dataclasses import dataclass, replace
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from pathlib import Path
-from typing import Any
 from urllib.parse import urlsplit
 
 import httpx
 
-from bls_index.clock import Clock, isoformat_utc
-from bls_index.events import EventLog
 from bls_index.scope import input_files, source_path
 
 DEFAULT_BASE_URL = "https://download.bls.gov/pub/time.series/"
@@ -36,15 +27,8 @@ DEFAULT_BASE_URL = "https://download.bls.gov/pub/time.series/"
 BLS_MIN_REQUEST_INTERVAL = 1.0
 USER_AGENT_ENV = "BLS_INDEX_USER_AGENT"
 RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
-RECORDED_HEADERS = (
-    "content-length",
-    "content-type",
-    "etag",
-    "last-modified",
-    "date",
-    "accept-ranges",
-    "content-encoding",
-)
+
+log = logging.getLogger(__name__)
 
 
 def validate_user_agent(user_agent: str) -> str:
@@ -61,15 +45,15 @@ def validate_user_agent(user_agent: str) -> str:
     return ua
 
 
-def _is_loopback(url: str) -> bool:
-    return urlsplit(url).hostname in {"127.0.0.1", "localhost", "::1"}
-
-
 def user_agent_from_env() -> str:
     value = os.environ.get(USER_AGENT_ENV)
     if not value:
         raise ValueError(f"set {USER_AGENT_ENV} to a descriptive, contactable User-Agent")
     return validate_user_agent(value)
+
+
+def _is_loopback(url: str) -> bool:
+    return urlsplit(url).hostname in {"127.0.0.1", "localhost", "::1"}
 
 
 @dataclass(frozen=True)
@@ -78,28 +62,22 @@ class FetchConfig:
     base_url: str = DEFAULT_BASE_URL
     connect_timeout: float = 30.0
     read_timeout: float = 120.0
-    max_request_attempts: int = 4
+    max_attempts: int = 4
     backoff_initial: float = 2.0
     backoff_max: float = 60.0
-    # Provisional; Phase 1 sets the final limit from measured behavior.
-    max_input_set_attempts: int = 3
-    max_concurrency: int = 4
-    # Minimum seconds between request starts across all workers. BLS blocks robots
-    # that "access or download survey information multiple times per second".
-    min_request_interval: float = 1.0
+    # Minimum seconds between request starts. Lower values are allowed only for local
+    # test servers.
+    min_request_interval: float = BLS_MIN_REQUEST_INTERVAL
 
     def __post_init__(self) -> None:
         validate_user_agent(self.user_agent)
         if not self.base_url.endswith("/"):
             raise ValueError("base_url must end with '/'")
-        for name in ("max_request_attempts", "max_input_set_attempts", "max_concurrency"):
-            if getattr(self, name) < 1:
-                raise ValueError(f"{name} must be at least 1")
+        if self.max_attempts < 1:
+            raise ValueError("max_attempts must be at least 1")
         if not math.isfinite(self.min_request_interval) or self.min_request_interval < 0:
             raise ValueError("min_request_interval must be a finite, non-negative number")
-        if self.min_request_interval < BLS_MIN_REQUEST_INTERVAL and not _is_loopback(
-            self.base_url
-        ):
+        if self.min_request_interval < BLS_MIN_REQUEST_INTERVAL and not _is_loopback(self.base_url):
             raise ValueError(
                 f"min_request_interval below {BLS_MIN_REQUEST_INTERVAL}s is allowed only for "
                 "local test sources"
@@ -107,44 +85,19 @@ class FetchConfig:
 
 
 @dataclass(frozen=True)
-class DownloadRecord:
+class Download:
     url: str
-    path: Path | None  # None once the local copy is deleted (identity rechecks)
-    status: int
+    path: Path
     bytes: int
     sha256: str
-    headers: Mapping[str, str]
-    started_at: datetime
-    finished_at: datetime
-    request_attempts: int
-
-    def to_json(self) -> dict[str, Any]:
-        return {
-            "url": self.url,
-            "status": self.status,
-            "bytes": self.bytes,
-            "sha256": self.sha256,
-            "headers": dict(self.headers),
-            "started_at": isoformat_utc(self.started_at),
-            "finished_at": isoformat_utc(self.finished_at),
-            "request_attempts": self.request_attempts,
-        }
 
 
 class SourceError(Exception):
-    """A single download failed. ``reason`` is one of: http_status, timeout, transport,
-    incomplete, content_encoding."""
+    """A download failed. ``reason`` is http_status, timeout, transport, incomplete, or
+    content_encoding."""
 
-    def __init__(
-        self,
-        url: str,
-        reason: str,
-        message: str,
-        *,
-        status: int | None = None,
-        retryable: bool,
-        retry_after: float | None = None,
-    ) -> None:
+    def __init__(self, url: str, reason: str, message: str, *, status: int | None = None,
+                 retryable: bool, retry_after: float | None = None) -> None:
         super().__init__(f"{url}: {reason}: {message}")
         self.url = url
         self.reason = reason
@@ -153,92 +106,18 @@ class SourceError(Exception):
         self.retry_after = retry_after
 
 
-@dataclass(frozen=True)
-class InputSet:
-    """One program's inputs, each downloaded twice with identical SHA-256."""
-
-    program: str
-    files: tuple[DownloadRecord, ...]
-    rechecks: tuple[DownloadRecord, ...]  # metadata only; their files are deleted
-    attempts: int
-
-
-@dataclass(eq=False)
-class InputSetError(Exception):
-    program: str
-    attempts: int
-    reason: str  # "source_error" or "changed_during_build"
-    detail: str
-    source_error: SourceError | None = None
-
-    def __str__(self) -> str:
-        return f"{self.program}: {self.reason} after {self.attempts} attempt(s): {self.detail}"
-
-
-class RequestPacer:
-    """Spaces request starts at least ``interval`` seconds apart across threads.
-
-    A request is dispatched inside ``slot()``, which holds a lock from the pacing wait
-    until the response headers arrive (or the request fails). The next caller is measured
-    from that release, which is after this request actually started, so no delay between
-    pacing and dispatch can let two request starts bunch up.
-    """
-
-    def __init__(
-        self,
-        interval: float,
-        *,
-        monotonic: Callable[[], float] = time.monotonic,
-        sleep: Callable[[float], None] = time.sleep,
-    ) -> None:
-        self.interval = interval
-        self._monotonic = monotonic
-        self._sleep = sleep
-        self._lock = threading.Lock()
-        self._next_start: float | None = None
-
-    @contextmanager
-    def slot(self) -> Iterator[float]:
-        """Hold the only request slot; yield the seconds waited for it."""
-        if self.interval <= 0:
-            yield 0.0
-            return
-        with self._lock:
-            entered = now = self._monotonic()
-            while self._next_start is not None and now < self._next_start:
-                self._sleep(self._next_start - now)
-                now = self._monotonic()
-            try:
-                yield now - entered
-            finally:
-                self._next_start = self._monotonic() + self.interval
-
-
 class HttpSource:
     def __init__(
         self,
         config: FetchConfig,
-        events: EventLog,
-        clock: Clock,
         *,
         sleep: Callable[[float], None] = time.sleep,
-        pacer: RequestPacer | None = None,
+        monotonic: Callable[[], float] = time.monotonic,
     ) -> None:
-        """``sleep`` is used for retry backoff; request pacing uses ``pacer``, which
-        defaults to real time with ``config.min_request_interval``."""
         self.config = config
-        self._events = events
-        self._clock = clock
         self._sleep = sleep
-        self._pacer = pacer or RequestPacer(config.min_request_interval)
-        self._transfer_metrics_lock = threading.Lock()
-        self._received_body_bytes = 0
-        self._verification_body_bytes = 0
-        self._retry_body_bytes = 0
-        self._request_attempts = 0
-        self._verification_request_attempts = 0
-        self._request_retry_attempts = 0
-        self._input_set_retries = 0
+        self._monotonic = monotonic
+        self._next_start: float | None = None
         self._client = httpx.Client(
             headers={
                 "User-Agent": validate_user_agent(config.user_agent),
@@ -246,64 +125,8 @@ class HttpSource:
                 "Accept-Encoding": "identity",
             },
             timeout=httpx.Timeout(config.read_timeout, connect=config.connect_timeout),
-            limits=httpx.Limits(max_connections=config.max_concurrency),
             follow_redirects=False,
         )
-
-    @property
-    def received_body_bytes(self) -> int:
-        """Cumulative HTTP application-body bytes yielded by response iterators.
-
-        This excludes headers, framing, and wire bytes; bytes buffered below HTTPX but
-        never yielded to ``iter_raw`` cannot be observed. Partial bodies count as received.
-        """
-        with self._transfer_metrics_lock:
-            return self._received_body_bytes
-
-    @property
-    def verification_body_bytes(self) -> int:
-        """Cumulative yielded HTTP body bytes from input-set verification reads.
-
-        Includes partial bodies, per-request retries, and reads from discarded input-set
-        attempts; it is a traffic counter, not the size of the final verified inputs.
-        """
-        with self._transfer_metrics_lock:
-            return self._verification_body_bytes
-
-    @property
-    def retry_body_bytes(self) -> int:
-        """Cumulative yielded bytes from retry requests, counted once per body chunk.
-
-        A request is a retry if it repeats a GET after a failed request, or if it belongs
-        to a repeated input-set attempt. The latter includes both first reads and
-        verification reads in that repeated attempt.
-        """
-        with self._transfer_metrics_lock:
-            return self._retry_body_bytes
-
-    @property
-    def request_attempts(self) -> int:
-        """Cumulative number of GET send attempts, including retries and rechecks."""
-        with self._transfer_metrics_lock:
-            return self._request_attempts
-
-    @property
-    def verification_request_attempts(self) -> int:
-        """Cumulative GET attempts made for input-set verification reads."""
-        with self._transfer_metrics_lock:
-            return self._verification_request_attempts
-
-    @property
-    def request_retry_attempts(self) -> int:
-        """Cumulative GET attempts after the initial request for a single download."""
-        with self._transfer_metrics_lock:
-            return self._request_retry_attempts
-
-    @property
-    def input_set_retries(self) -> int:
-        """Cumulative repeated input-set attempts, excluding each program's first."""
-        with self._transfer_metrics_lock:
-            return self._input_set_retries
 
     def close(self) -> None:
         self._client.close()
@@ -314,246 +137,79 @@ class HttpSource:
     def __exit__(self, *exc: object) -> None:
         self.close()
 
-    # -- single files -------------------------------------------------------------
+    def fetch_program(self, program: str, directory: Path) -> dict[str, Download]:
+        """Download every input file for ``program`` into ``directory/program``."""
+        return {
+            name: self.download(source_path(program, name), directory / program / name)
+            for name in input_files(program)
+        }
 
-    def download(self, rel_path: str, dest: Path) -> DownloadRecord:
-        """GET one file into ``dest`` with request-level retries for transient errors.
-
-        Incomplete bodies are not retried here; they fail the attempt so the caller
-        retries the whole program input set.
-        """
-        return self._download_classified(rel_path, dest)
-
-    def _download_classified(
-        self,
-        rel_path: str,
-        dest: Path,
-        *,
-        verification: bool = False,
-        input_set_retry: bool = False,
-    ) -> DownloadRecord:
-        """Download one file with per-call instrumentation labels."""
+    def download(self, rel_path: str, dest: Path) -> Download:
+        """GET one file into ``dest``, retrying transient failures with backoff."""
         url = self.config.base_url + rel_path
         dest.parent.mkdir(parents=True, exist_ok=True)
-        attempt = 1
-        while True:
+        for attempt in range(1, self.config.max_attempts + 1):
             try:
-                return self._download_once(
-                    url, dest, attempt,
-                    verification=verification,
-                    input_set_retry=input_set_retry,
-                )
+                return self._download_once(url, dest)
             except SourceError as exc:
-                if (
-                    not exc.retryable
-                    or exc.reason == "incomplete"
-                    or attempt >= self.config.max_request_attempts
-                ):
-                    raise
                 delay = self._retry_delay(attempt, exc)
-                if delay is None:
+                if not exc.retryable or attempt == self.config.max_attempts or delay is None:
                     raise
-                self._events.record(
-                    "http.retry", url=url, attempt=attempt, reason=exc.reason,
-                    status=exc.status, delay=delay,
-                )  # fmt: skip
+                log.info("retrying %s in %.1fs after %s (attempt %d)", url, delay, exc.reason, attempt)
                 self._sleep(delay)
-                attempt += 1
+        raise AssertionError("unreachable")
 
-    def _retry_delay(self, attempt: int, exc: SourceError | None = None) -> float | None:
-        """Exponential backoff, never shorter than the server's Retry-After.
-
-        Returns None when Retry-After exceeds ``backoff_max``: the caller stops retrying
-        rather than retrying before the server asked it to.
-        """
+    def _retry_delay(self, attempt: int, exc: SourceError) -> float | None:
+        """Exponential backoff, never shorter than Retry-After; None if Retry-After is too long."""
         delay = min(self.config.backoff_initial * 2 ** (attempt - 1), self.config.backoff_max)
-        retry_after = exc.retry_after if exc is not None else None
-        if retry_after is not None:
-            if retry_after > self.config.backoff_max:
-                self._events.record(
-                    "http.retry_after_exceeds_limit", url=exc.url, retry_after=retry_after,
-                    backoff_max=self.config.backoff_max,
-                )  # fmt: skip
+        if exc.retry_after is not None:
+            if exc.retry_after > self.config.backoff_max:
                 return None
-            delay = max(delay, retry_after)
+            delay = max(delay, exc.retry_after)
         return delay
 
-    def _download_once(
-        self,
-        url: str,
-        dest: Path,
-        attempt: int,
-        *,
-        verification: bool = False,
-        input_set_retry: bool = False,
-    ) -> DownloadRecord:
-        body_started = False
+    def _pace(self) -> None:
+        now = self._monotonic()
+        if self._next_start is not None and now < self._next_start:
+            self._sleep(self._next_start - now)
+        self._next_start = self._monotonic() + self.config.min_request_interval
+
+    def _download_once(self, url: str, dest: Path) -> Download:
         digest = hashlib.sha256()
         size = 0
-        request = self._client.build_request("GET", url)
+        body_started = False
+        self._pace()
         try:
-            with self._pacer.slot() as paced:
-                self._events.record(
-                    "http.request", method="GET", url=url, attempt=attempt,
-                    paced_seconds=round(paced, 3),
-                )  # fmt: skip
-                started = self._clock.now()
-                with self._transfer_metrics_lock:
-                    self._request_attempts += 1
-                    if verification:
-                        self._verification_request_attempts += 1
-                    if attempt > 1:
-                        self._request_retry_attempts += 1
-                resp = self._client.send(request, stream=True)
-            try:
-                status = resp.status_code
-                headers = {k: resp.headers[k] for k in RECORDED_HEADERS if k in resp.headers}
-                if status != 200:
+            with self._client.stream("GET", url) as resp:
+                if resp.status_code != 200:
                     raise SourceError(
-                        url, "http_status", f"HTTP {status}", status=status,
-                        retryable=status in RETRYABLE_STATUS,
-                        retry_after=_parse_retry_after(
-                            resp.headers.get("retry-after"), self._clock.now()
-                        ),
+                        url, "http_status", f"HTTP {resp.status_code}", status=resp.status_code,
+                        retryable=resp.status_code in RETRYABLE_STATUS,
+                        retry_after=_parse_retry_after(resp.headers.get("retry-after")),
                     )  # fmt: skip
-                encoding = headers.get("content-encoding", "identity").lower()
+                encoding = resp.headers.get("content-encoding", "identity").lower()
                 if encoding != "identity":
-                    raise SourceError(
-                        url, "content_encoding", f"unexpected Content-Encoding {encoding!r}",
-                        status=status, retryable=False,
-                    )  # fmt: skip
-                with dest.open("wb") as fh:
+                    raise SourceError(url, "content_encoding", f"unexpected Content-Encoding {encoding!r}",
+                                      retryable=False)
+                expected = resp.headers.get("content-length")
+                with dest.open("wb") as stream:
                     body_started = True
                     for chunk in resp.iter_raw(1 << 20):
-                        # Count bytes as HTTPX yields them, before local disk writes. If a
-                        # later read or write fails, the already received body stays counted.
-                        with self._transfer_metrics_lock:
-                            chunk_bytes = len(chunk)
-                            self._received_body_bytes += chunk_bytes
-                            if verification:
-                                self._verification_body_bytes += chunk_bytes
-                            if input_set_retry or attempt > 1:
-                                self._retry_body_bytes += chunk_bytes
                         digest.update(chunk)
-                        fh.write(chunk)
+                        stream.write(chunk)
                         size += len(chunk)
-            finally:
-                resp.close()
         except httpx.TimeoutException as exc:
-            reason = "incomplete" if body_started else "timeout"
-            raise SourceError(url, reason, repr(exc), retryable=True) from exc
+            raise SourceError(url, "incomplete" if body_started else "timeout", repr(exc),
+                              retryable=True) from exc
         except httpx.TransportError as exc:
-            reason = "incomplete" if body_started else "transport"
-            raise SourceError(url, reason, repr(exc), retryable=True) from exc
-
-        expected = headers.get("content-length")
+            raise SourceError(url, "incomplete" if body_started else "transport", repr(exc),
+                              retryable=True) from exc
         if expected is not None and int(expected) != size:
-            raise SourceError(
-                url, "incomplete", f"received {size} of {expected} bytes",
-                status=status, retryable=True,
-            )  # fmt: skip
-        record = DownloadRecord(
-            url=url, path=dest, status=status, bytes=size, sha256=digest.hexdigest(),
-            headers=headers, started_at=started, finished_at=self._clock.now(),
-            request_attempts=attempt,
-        )  # fmt: skip
-        self._events.record(
-            "http.response", url=url, status=status, bytes=size, sha256=record.sha256,
-            etag=headers.get("etag"), last_modified=headers.get("last-modified"),
-        )  # fmt: skip
-        return record
-
-    # -- program input sets --------------------------------------------------------
-
-    def fetch_input_set(
-        self, program: str, workdir: Path, files: Sequence[str] | None = None
-    ) -> InputSet:
-        """Download every input for ``program``, then recheck each by redownloading.
-
-        Raises ``InputSetError`` after a non-retryable failure or once the bounded
-        number of input-set attempts is exhausted.
-        """
-        names = tuple(files) if files is not None else input_files(program)
-        detail = ""
-        last_error: SourceError | None = None
-        for attempt in range(1, self.config.max_input_set_attempts + 1):
-            attempt_dir = workdir / program / f"attempt-{attempt}"
-            if attempt > 1:
-                with self._transfer_metrics_lock:
-                    self._input_set_retries += 1
-            self._events.record("input_set.attempt", program=program, attempt=attempt)
-            try:
-                first = [
-                    self._download_classified(
-                        source_path(program, n), attempt_dir / "read-1" / n,
-                        input_set_retry=attempt > 1,
-                    )
-                    for n in names
-                ]
-                second = [
-                    self._download_classified(
-                        source_path(program, n), attempt_dir / "read-2" / n,
-                        verification=True,
-                        input_set_retry=attempt > 1,
-                    )
-                    for n in names
-                ]
-            except SourceError as exc:
-                shutil.rmtree(attempt_dir, ignore_errors=True)
-                self._events.record(
-                    "input_set.failed_attempt", program=program, attempt=attempt,
-                    url=exc.url, reason=exc.reason, status=exc.status,
-                )  # fmt: skip
-                last_error, detail = exc, str(exc)
-                delay = self._retry_delay(attempt, exc) if exc.retryable else None
-                if delay is None:
-                    raise InputSetError(program, attempt, "source_error", detail, exc) from exc
-                self._sleep(delay)
-                continue
-
-            shutil.rmtree(attempt_dir / "read-2", ignore_errors=True)
-            second = [replace(r, path=None) for r in second]
-            changed = [a.url for a, b in zip(first, second, strict=True) if a.sha256 != b.sha256]
-            if changed:
-                shutil.rmtree(attempt_dir, ignore_errors=True)
-                self._events.record(
-                    "input_set.changed", program=program, attempt=attempt, urls=changed
-                )
-                last_error, detail = None, f"changed during build: {', '.join(changed)}"
-                self._sleep(self._retry_delay(attempt))
-                continue
-
-            self._events.record(
-                "input_set.verified", program=program, attempt=attempt,
-                files={r.url: r.sha256 for r in first},
-            )  # fmt: skip
-            return InputSet(program, tuple(first), tuple(second), attempt)
-
-        reason = "source_error" if last_error is not None else "changed_during_build"
-        self._events.record(
-            "input_set.failed", program=program,
-            attempts=self.config.max_input_set_attempts, reason=reason,
-        )  # fmt: skip
-        raise InputSetError(
-            program, self.config.max_input_set_attempts, reason, detail, last_error
-        )
-
-    def fetch_programs(
-        self, programs: Sequence[str], workdir: Path
-    ) -> dict[str, InputSet | InputSetError]:
-        """Fetch each program's input set with at most ``max_concurrency`` in flight."""
-
-        def one(program: str) -> InputSet | InputSetError:
-            try:
-                return self.fetch_input_set(program, workdir)
-            except InputSetError as exc:
-                return exc
-
-        with ThreadPoolExecutor(max_workers=self.config.max_concurrency) as pool:
-            return dict(zip(programs, pool.map(one, programs), strict=True))
+            raise SourceError(url, "incomplete", f"received {size} of {expected} bytes", retryable=True)
+        return Download(url, dest, size, digest.hexdigest())
 
 
-def _parse_retry_after(value: str | None, now: datetime) -> float | None:
+def _parse_retry_after(value: str | None) -> float | None:
     """Seconds to wait from a Retry-After header: delay-seconds or an HTTP-date."""
     if value is None:
         return None
@@ -568,4 +224,4 @@ def _parse_retry_after(value: str | None, now: datetime) -> float | None:
         return None
     if when.tzinfo is None:  # RFC 9110 dates are GMT
         when = when.replace(tzinfo=UTC)
-    return max(0.0, (when - now).total_seconds())
+    return max(0.0, (when - datetime.now(UTC)).total_seconds())

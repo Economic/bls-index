@@ -37,15 +37,13 @@ def stored(backdoor, bucket, key) -> bytes | None:
 # -- immutable upload and read-back ---------------------------------------------------
 
 
-def test_put_immutable_then_verify(store, events):
+def test_put_immutable_then_verify(store):
     body = b"parquet bytes"
     result = store.put_immutable("programs/ap-abc.parquet", body, PARQUET)
 
     assert result.outcome is WriteOutcome.COMMITTED
     info = store.verify("programs/ap-abc.parquet", sha256_hex(body), len(body))
     assert info.size == len(body)
-    assert [e.kind for e in events.events] == ["object.put_immutable", "object.get", "object.readback"]
-    assert events.events[-1].data["ok"] is True
 
 
 def test_put_immutable_existing_key_is_rejected_not_overwritten(store, backdoor, bucket):
@@ -64,23 +62,21 @@ def test_namespace_prefix_isolates_keys(store, backdoor, bucket):
 
 
 @pytest.mark.parametrize("prefix", ["", "no-slash", "/abs/"])
-def test_prefix_must_be_relative_namespace(prefix, events):
+def test_prefix_must_be_relative_namespace(prefix):
     with pytest.raises(ValueError):
-        S3ObjectStore(object(), "b", prefix, events)
+        S3ObjectStore(object(), "b", prefix)
 
 
 # -- corruption ---------------------------------------------------------------------
 
 
-def test_stored_corruption_fails_verification(store, backdoor, bucket, events):
+def test_stored_corruption_fails_verification(store, backdoor, bucket):
     body = b"good bytes"
     store.put_immutable("k", body, PARQUET)
     backdoor.put_object(Bucket=bucket, Key="test-ns/k", Body=b"bad! bytes")
 
     with pytest.raises(ChecksumMismatch):
         store.verify("k", sha256_hex(body), len(body))
-    assert events.events[-1].kind == "object.readback"
-    assert events.events[-1].data["ok"] is False
 
 
 def test_corrupted_response_fails_verification(store, fault_proxy):
@@ -152,9 +148,9 @@ def test_head_404_with_failing_confirmation_read_is_not_absence(store, fault_pro
     assert not isinstance(info.value, ObjectNotFound)
 
 
-def test_missing_bucket_head_is_not_absence(fault_proxy, events):
+def test_missing_bucket_head_is_not_absence(fault_proxy):
     client = make_s3_client(fault_proxy.url, "testing", "testing", region="us-east-1")
-    store = S3ObjectStore(client, "bucket-that-does-not-exist", "ns/", events)
+    store = S3ObjectStore(client, "bucket-that-does-not-exist", "ns/")
     with pytest.raises(ObjectStoreError) as info:
         store.stat("latest.json")
     assert not isinstance(info.value, ObjectNotFound)
@@ -252,14 +248,3 @@ def test_write_timeout_is_unknown(store, fault_proxy):
     fault_proxy.add(FaultRule("PUT", "latest.json", DELAY, seconds=3.0))
     result = store.put_conditional("latest.json", b"{}", JSON, if_absent=True)
     assert result.outcome is WriteOutcome.UNKNOWN
-
-
-def test_write_events_record_outcome(store, fault_proxy, events):
-    store.put_conditional("latest.json", b"{}", JSON, if_absent=True)
-    fault_proxy.add(FaultRule("PUT", "latest.json", DROP_AFTER))
-    store.put_conditional("latest.json", b"{}", JSON, if_absent=True)
-
-    writes = events.of_kind("object.put_conditional")
-    assert [w.data["outcome"] for w in writes] == ["committed", "unknown"]
-    assert writes[0].data["condition"] == ["IfNoneMatch"]
-    assert writes[0].data["sha256"] == sha256_hex(b"{}")

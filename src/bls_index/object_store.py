@@ -18,6 +18,7 @@ rejection. Callers own retry policy.
 from __future__ import annotations
 
 import hashlib
+import logging
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
@@ -26,7 +27,8 @@ import boto3
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 
-from bls_index.events import EventLog
+log = logging.getLogger(__name__)
+
 
 
 class WriteOutcome(StrEnum):
@@ -107,13 +109,12 @@ def sha256_hex(data: bytes) -> str:
 class S3ObjectStore:
     """Keys passed to methods are logical; ``prefix`` scopes them to one namespace."""
 
-    def __init__(self, client: Any, bucket: str, prefix: str, events: EventLog) -> None:
+    def __init__(self, client: Any, bucket: str, prefix: str) -> None:
         if not prefix or not prefix.endswith("/") or prefix.startswith("/"):
             raise ValueError("prefix must be a non-empty relative namespace ending in '/'")
         self._client = client
         self.bucket = bucket
         self.prefix = prefix
-        self._events = events
 
     def _key(self, key: str) -> str:
         if not key or key.startswith("/"):
@@ -166,11 +167,7 @@ class S3ObjectStore:
             result = WriteResult(key, outcome, status=status, error_code=code, detail=str(exc))
         except BotoCoreError as exc:
             result = WriteResult(key, WriteOutcome.UNKNOWN, detail=repr(exc))
-        self._events.record(
-            kind, key=key, sha256=sha256_hex(body), bytes=len(body),
-            condition=sorted(condition), outcome=str(result.outcome),
-            status=result.status, error_code=result.error_code,
-        )  # fmt: skip
+        log.info("%s %s: %s (status %s)", kind, key, result.outcome, result.status)
         return result
 
     # -- reads ---------------------------------------------------------------------
@@ -182,7 +179,6 @@ class S3ObjectStore:
             resp = self._client.head_object(Bucket=self.bucket, Key=self._key(key))
         except ClientError as exc:
             status, code = _client_error(exc)
-            self._events.record("object.stat", key=key, result="error", status=status)
             if status != 404:
                 raise ObjectStoreError(f"stat {key}: {status} {code}") from exc
             # A HEAD 404 has no error body: it may mean a missing bucket or be spurious.
@@ -197,10 +193,8 @@ class S3ObjectStore:
                 f"stat {key}: HEAD reported 404 but GET found the object"
             ) from exc
         except BotoCoreError as exc:
-            self._events.record("object.stat", key=key, result="error", status=None)
             raise ObjectStoreError(f"stat {key}: {exc!r}") from exc
         info = ObjectInfo(key, resp["ETag"], resp["ContentLength"])
-        self._events.record("object.stat", key=key, result="found", etag=info.etag)
         return info
 
     def read(self, key: str) -> StoredObject:
@@ -211,32 +205,20 @@ class S3ObjectStore:
         except ClientError as exc:
             status, code = _client_error(exc)
             if status == 404 and code == "NoSuchKey":
-                self._events.record("object.get", key=key, result="absent", status=status)
                 raise ObjectNotFound(key) from exc
-            self._events.record("object.get", key=key, result="error", status=status)
             raise ObjectStoreError(f"read {key}: {status} {code}") from exc
         except BotoCoreError as exc:
-            self._events.record("object.get", key=key, result="error", status=None)
             raise ObjectStoreError(f"read {key}: {exc!r}") from exc
         expected = resp.get("ContentLength")
         if expected is not None and expected != len(body):
-            self._events.record("object.get", key=key, result="incomplete", status=200)
             raise ObjectStoreError(f"read {key}: received {len(body)} of {expected} bytes")
-        self._events.record("object.get", key=key, result="found", etag=resp.get("ETag"))
         return StoredObject(key, resp.get("ETag", ""), body)
 
     def verify(self, key: str, sha256: str, size: int | None = None) -> ObjectInfo:
         """Read back ``key`` and require its SHA-256 (and size, if given) to match."""
-        try:
-            obj = self.read(key)
-        except (ObjectNotFound, ObjectStoreError) as exc:
-            self._events.record("object.readback", key=key, ok=False, error=type(exc).__name__)
-            raise
+        obj = self.read(key)
         actual = sha256_hex(obj.body)
         ok = actual == sha256 and (size is None or size == len(obj.body))
-        self._events.record(
-            "object.readback", key=key, ok=ok, expected_sha256=sha256, actual_sha256=actual
-        )
         if not ok:
             raise ChecksumMismatch(
                 f"{key}: expected sha256 {sha256} ({size} bytes), "
