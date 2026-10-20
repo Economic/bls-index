@@ -40,8 +40,9 @@ v1 publishes exactly 33 programs, defined in `src/bls_index/scope.py`:
 Scope never comes from BLS directory listings or from a failed or missing source. The
 remaining 21 programs (frozen twins, injuries and illnesses, standalone frozen programs)
 and the excluded `nw` and case-characteristics programs are future work. Each addition
-is a pull request that adds a builder, tests, the code to `scope.py`, and the program to
-the `program` values and `title_source` rule in `data-dict.yaml`. A full build of the
+is a pull request that adds a builder, tests, and the code to `scope.py`, adds the code to
+the `program` values in `data-dict.yaml`, and, for a synthesized-title program only, adds
+it to the dictionary's list of synthesized programs in the `title_source` rule. A full build of the
 expanded scope must pass before the PR merges. The next daily run then publishes it.
 
 ## Catalog
