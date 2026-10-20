@@ -37,7 +37,9 @@ Most of this was done in the change that added this plan.
 6. Add `tmp/` to `.gitignore`, and merge this phase to `main`. **Done.**
 
 **Check:** a manual `roborev review --branch --panel design_only_panel` on Phase 0 alone,
-to confirm the new guidelines produce proportionate findings.
+to confirm the new guidelines produce proportionate findings. **Done** (roborev job 222,
+2026-10-20). It produced four medium findings, all correctness gaps; all four are fixed
+in `design.md` and tasks 1.3, 1.4 and 2.3.
 
 ## Phase 1: Simplify the build (no behavior change on current sources)
 
@@ -109,6 +111,11 @@ proof that the refactor preserved output.
   - lookup keys are unique (`is_duplicated`)
   - every series key matches a lookup row (an anti-join is empty)
   - the output row count equals the `.series` row count
+- **Keep the ID-to-dimension checks** that `sm`, `jt` and `pr` have today (and SM's
+  supersector-prefix check, which also chooses a title label): each series
+  ID must agree with the codes used to build its title. Express them as one vectorized
+  comparison per program. Test a code that exists in the lookup but disagrees with the
+  ID.
 - **Keep each program's join and template definition as data:** key column, label
   column, and template string.
 - **Make the PR `base_year` check a warning.** It compares `base_year` with the index
@@ -124,6 +131,10 @@ proof that the refactor preserved output.
 - **Reduce `_validate_frame` to:** schema equality, a nonempty frame, `program` and
   `title_source` assignment, and global ID uniqueness. Row rules live in the builders and
   `data-dict.yaml`.
+- **Add year range constraints to `data-dict.yaml`:** `begin_year` and `end_year`
+  between 1000 and 9999 when present. This replaces the year checks in
+  `_validate_frame` and covers native and synthesized programs alike. Test that a
+  candidate with a two-digit year fails `validate-data`.
 - **Data-dict:** run the `data-dict` binary from `PATH`, not `uv run --locked`, and move
   `data-dict-yaml` into the runtime dependencies.
 - **Keep copying `data-dict.yaml` next to the candidate.** `validate-data` resolves the
@@ -235,7 +246,8 @@ Keep automatic botocore retries off for conditional writes.
    not a 404 fails the run.
 2. Upload `v1/catalog/bls_index-<sha>.parquet`. Read it back, and compare SHA-256 and
    size.
-3. Upload `v1/manifests/<build_id>.json`.
+3. Upload `v1/manifest-<build_id>.json` (beside `latest.json`, so relative paths
+   resolve the same way).
 4. Write `latest.json` with `put_if`.
 5. Handle the result:
    - **committed:** done
@@ -287,8 +299,8 @@ That is about 10 tests.
 ## Phase 3: Launch
 
 1. **Buckets.** Attach the custom domain `bls-index.benzipperer.org` to the existing
-   empty `bls-index` bucket, with `r2.dev` disabled. Add a cache rule for `/v1/catalog/*` and `/v1/manifests/*`, a short TTL for
-   `latest.json`, and a lifecycle rule (90 days on `v1/catalog/` and `v1/manifests/`, a starting point
+   empty `bls-index` bucket, with `r2.dev` disabled. Add a cache rule for `/v1/catalog/*` and `/v1/manifest-*`, a short TTL for
+   `latest.json`, and a lifecycle rule (90 days on prefixes `v1/catalog/` and `v1/manifest-`, a starting point
    to shorten later).
 2. **Credentials.** Add scoped production credentials, and switch the workflow variable
    to production.

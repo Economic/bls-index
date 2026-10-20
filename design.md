@@ -40,8 +40,9 @@ v1 publishes exactly 33 programs, defined in `src/bls_index/scope.py`:
 Scope never comes from BLS directory listings or from a failed or missing source. The
 remaining 21 programs (frozen twins, injuries and illnesses, standalone frozen programs)
 and the excluded `nw` and case-characteristics programs are future work. Each addition
-is a pull request that adds a builder, tests, and the code to `scope.py`; the next daily
-run publishes it if all programs pass.
+is a pull request that adds a builder, tests, the code to `scope.py`, and the program to
+the `program` values and `title_source` rule in `data-dict.yaml`. A full build of the
+expanded scope must pass before the PR merges. The next daily run then publishes it.
 
 ## Catalog
 
@@ -96,7 +97,11 @@ reviewed title template. Fail the program on:
 
 - a lookup key that matches zero rows, or more than one row
 - a missing label
+- a series ID that disagrees with the dimension codes used to build its title
 - an output row count that differs from the `.series` row count
+
+Unlike native IDs, synthesized IDs are checked against their dimension codes, because
+those codes choose the title.
 
 The templates and lookup files are documented in
 [`docs/synthesized-source-contracts.md`](docs/synthesized-source-contracts.md).
@@ -108,7 +113,8 @@ The templates and lookup files are documented in
 - global `series_id` uniqueness
 
 Then run the pinned `data-dict` `validate-spec`, `validate-meta` and `validate-data` on
-the written Parquet. Row counts are kept in the run report as diagnostics. A change in
+the written Parquet. The dictionary is the single place for row rules that apply to every
+program, including the four-digit year range. Row counts are kept in the run report as diagnostics. A change in
 row count alone is not a failure.
 
 If any program or any combined check fails, the run fails and publishes nothing.
@@ -121,14 +127,15 @@ The storage is Cloudflare R2, accessed through its S3 API. Gate 0 (2026-10-12) v
 Public objects live under `/v1/` in the public bucket:
 
 - `v1/catalog/bls_index-<sha256>.parquet`: immutable, content-addressed catalog
-- `v1/manifests/<build_id>.json`: immutable copy of each published manifest
+- `v1/manifest-<build_id>.json`: immutable copy of each published manifest. It sits
+  beside `latest.json` so its relative catalog path resolves the same way.
 - `v1/latest.json`: the current manifest, the only object that is ever replaced
 
 A run publishes in this order:
 
 1. Read `latest.json` and remember its ETag, or confirm that it does not exist.
 2. Upload the catalog. Read it back and verify its SHA-256 and size.
-3. Upload the manifest copy to `v1/manifests/<build_id>.json`.
+3. Upload the manifest copy to `v1/manifest-<build_id>.json`.
 4. Write `latest.json` conditionally, with `If-Match: <etag>`. For the first
    publication, use `If-None-Match: *`.
 5. Handle the response:
@@ -166,13 +173,13 @@ Object paths are relative to the manifest's own URL. A path contains only `/`-se
 nonempty segments of `A-Z a-z 0-9 . _ -`, and no segment may be `.` or `..`. Builds and
 clients reject any other form. The manifest names no host.
 
-**Retention.** An R2 lifecycle rule deletes objects under `v1/catalog/` and
-`v1/manifests/` 90 days after upload. `latest.json` is not covered by the rule. 90 days
+**Retention.** An R2 lifecycle rule deletes objects with the prefixes `v1/catalog/` and
+`v1/manifest-` 90 days after upload. `latest.json` is not covered by the rule. 90 days
 is a starting point; shorten it once real rollback needs are known. Daily failure alerts
 make an unnoticed outage longer than the window implausible. That remaining risk is
 listed under accepted risks.
 
-**Manual recovery.** To roll back, verify an older `v1/manifests/<build_id>.json` and the
+**Manual recovery.** To roll back, verify an older `v1/manifest-<build_id>.json` and the
 catalog it names, then copy it to `latest.json` with `If-Match`. The runbook documents
 this step.
 
@@ -205,7 +212,7 @@ this step.
   `bls-index.benzipperer.org`, with the public `r2.dev` URL disabled. Reads need no key
   and no JavaScript challenge, and must work from `curl` and R. The data host can move:
   clients find it through the discovery pointer.
-- **Caching.** A long TTL for `/v1/catalog/*.parquet` and `/v1/manifests/*`, and a short
+- **Caching.** A long TTL for `/v1/catalog/*.parquet` and `/v1/manifest-*`, and a short
   TTL for `latest.json`. No CAPTCHA or managed challenge. Add a path-scoped rate-limit
   rule only after measuring real traffic. Configure usage and budget alerts, which are
   not hard caps.
@@ -235,8 +242,8 @@ These are deliberate. Reviews should not report them as defects.
    download and still passes every check can be published, and the next run corrects it.
 3. **Valid but incomplete sources are published.** A structurally valid but incomplete
    source is published, because row-count changes are diagnostics, not failures.
-4. **Native parsers check only the columns the catalog uses.** BLS's internal
-   consistency between IDs and their dimension columns is not checked.
+4. **Native parsers check only the columns the catalog uses.** For native programs,
+   BLS's internal consistency between IDs and their dimension columns is not checked.
 5. **Unclear write outcomes can mislead alerts.** A run whose manifest write outcome
    stays unclear may report failure even though it published. The next run reads
    whatever is current.
