@@ -196,7 +196,8 @@ The catalog URL names the tag rather than "latest", so a client that read one ma
 always downloads the matching catalog, even if a new release appears in between.
 
 **Retention.** After publishing, the run deletes releases beyond the newest 12, about
-three months. Every deletion also deletes the release's tag.
+three months. Every deletion also deletes the release's tag. A failed deletion only logs
+a warning: the catalog is already published, and the next publish tries again.
 
 **Manual rollback.** Run `gh release edit <tag> --latest` on an older release. A rollback
 lasts until the next publish. To hold it longer, disable the workflow's schedule until
@@ -207,21 +208,23 @@ the problem is fixed. The runbook documents this.
 - **Workflow.** One GitHub Actions workflow on a standard Linux runner, scheduled daily
   and dispatchable by hand, in concurrency group `bls-index-publish` with
   `cancel-in-progress: false`. A pending run may be replaced by a newer pending run,
-  which is fine. It has two jobs:
+  which is fine. It has three jobs:
   - **Build.** Holds only `contents: read` and the User-Agent secret. It builds the
     catalog and writes `latest.json`, then hands the run directory to the next job as a
     short-lived workflow artifact.
   - **Publish.** Runs only when publishing is due. Holds `contents: write` through the
     built-in `GITHUB_TOKEN`, and never sees BLS data except the finished files.
+  - **Monitor.** Runs after the other two, always. It reports the run to the monitor
+    (see Alerts).
 
   Splitting the jobs keeps the write token away from the job that parses downloaded
   files.
 - **Branch protection.** `main` requires pull requests, so the workflow's write token
   cannot change code on `main`.
 - **Alerts.** One healthchecks.io check (free tier) emails the maintainer:
-  - **Failed runs.** The workflow pings `/start` when it begins, the success URL after a
-    successful build (and publish, when due), and `/fail` from an `if: failure()` step.
-    An explicit failure alerts within minutes.
+  - **Failed runs.** The build job pings `/start` when it begins. The monitor job pings
+    the success URL when the build succeeded and the publish job either succeeded or was
+    skipped, and pings `/fail` otherwise. An explicit failure alerts within minutes.
   - **Missed runs.** With a 1-day period and a 1-day grace time, a missing success ping
     alerts within about 48 hours. That covers runs that never start, including GitHub
     disabling the schedule in an inactive repository.

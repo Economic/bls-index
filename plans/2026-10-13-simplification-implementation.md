@@ -325,8 +325,10 @@ the build's start time. Every deletion uses `gh release delete --cleanup-tag`.
 4. `gh release edit TAG --draft=false --latest` (without `--latest` for a test run). If
    this fails, re-read the release. If it is published (and latest, for a real run),
    continue; otherwise delete the draft and fail.
-5. Delete `catalog-` releases beyond the newest 12. A test release stays until the next
-   run's step 1, so it can be inspected and downloaded first.
+5. Delete `catalog-` releases beyond the newest 12. A failed deletion logs a warning and
+   does not fail the job, because the release is already published; the next publish
+   retries it. A test release stays until the next run's step 1, so it can be inspected
+   and downloaded first.
 
 **Test.** One offline pytest runs the script with a stub `gh` first on `PATH`. The stub
 records every call and returns canned JSON. Two cases:
@@ -349,8 +351,10 @@ exercise the script against real GitHub.
      and the report alone as a 7-day diagnostic artifact, after the User-Agent grep.
 - **Publish job** (`contents: write`). Runs when publishing is due, forced, or a test:
   download the artifact and run `scripts/publish.sh`.
-- **Monitor.** A final step pings the success URL when every job succeeded, and an
-  `if: failure()` step pings `/fail`.
+- **Monitor job.** `needs: [build, publish]` with `if: always()`. It pings the success
+  URL when the build succeeded and the publish job succeeded or was skipped, and pings
+  `/fail` in every other case (`failure` or `cancelled` in either job). This keeps the
+  six build-only days a week reporting success, and a failed publish reporting failure.
 - **Secrets.** Two: `BLS_INDEX_USER_AGENT` and the healthchecks.io ping URL.
 - **Replace `build.yml`.** The daily workflow with a manual dispatch covers it.
 
