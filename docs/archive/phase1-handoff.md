@@ -1,6 +1,6 @@
 # Phase 1 handoff status
 
-> **Historical (2026-10-13).** Superseded by the rewritten [`design.md`](../design.md) and [`plans/2026-10-13-simplification-implementation.md`](../plans/2026-10-13-simplification-implementation.md). Gate 1 is closed by decision; remote read-back timing moves to the Phase 2 staging run.
+> **Historical (2026-10-13).** Superseded by the rewritten [`design.md`](../../design.md) and [`plans/2026-10-13-simplification-implementation.md`](../../plans/2026-10-13-simplification-implementation.md). Gate 1 is closed by decision; remote read-back timing moves to the Phase 2 staging run.
 
 Updated 2026-10-13. Read `design.md` as the source of truth and `docs/plans/implementation-plan-v1.md` for sequencing. Do not treat this status note as authorization for production publication.
 

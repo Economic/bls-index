@@ -104,7 +104,7 @@ series-ID prefixes, reports, or a shared schema guess.
   remain checks after the caller selects an explicit adapter; they never select the program. All mappings,
   including slices, are evidence-bounded and do not claim coverage of every valid ID.
 - Small real-source samples for each of the 30 native programs are in
-  [`../tests/fixtures/real_native/`](../tests/fixtures/real_native/). Each metadata JSON
+  [`../tests/fixtures/real_native/`](../../tests/fixtures/real_native/). Each metadata JSON
   records the official URL, retrieval date, two matching SHA-256 reads, source row count,
   selected first/midpoint/last rows, raw fields, expected canonical values or parser error,
   and full-file parse status. The fixture tests compare those expectations and preserve

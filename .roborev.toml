@@ -41,8 +41,8 @@ Project artifacts:
 - design.md is the source of truth. Its "Decisions", "Non-goals" and "Accepted risks"
   sections are settled. Challenge them only with a genuinely new argument, and do not
   report an accepted risk as a defect.
-- The current implementation plan is in plans/ (newest dated file). docs/plans/ and
-  docs/evidence/ are historical records.
+- The current implementation plan is in plans/ (newest dated file). docs/archive/
+  holds historical records.
 - src/ and tests/ are implementation code.
 
 What to flag:
@@ -146,6 +146,6 @@ trigger_paths = [
 ]
 skip_paths = [               # skip only if every changed file matches
   "**/*.md",
-  "docs/evidence/**",
+  "docs/archive/**",
   "tests/fixtures/**",
 ]

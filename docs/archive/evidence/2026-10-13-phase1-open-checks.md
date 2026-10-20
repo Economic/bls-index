@@ -1,6 +1,6 @@
 # Outstanding Gate 1 checks
 
-> **Historical (2026-10-13).** Superseded by the rewritten [`design.md`](../../design.md) and [`plans/2026-10-13-simplification-implementation.md`](../../plans/2026-10-13-simplification-implementation.md). Gate 1 is closed by decision; remote read-back timing moves to the Phase 2 staging run.
+> **Historical (2026-10-13).** Superseded by the rewritten [`design.md`](../../../design.md) and [`plans/2026-10-13-simplification-implementation.md`](../../../plans/2026-10-13-simplification-implementation.md). Gate 1 is closed by decision; remote read-back timing moves to the Phase 2 staging run.
 
 The successful full-33 dry build is not a declaration that Gate 1 is closed.
 

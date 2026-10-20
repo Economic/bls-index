@@ -1,7 +1,7 @@
 # Implementation plan: simplify, then publish (2026-10-13)
 
 This plan implements the rewritten [`design.md`](../design.md). It replaces
-[`docs/plans/implementation-plan-v1.md`](../docs/plans/implementation-plan-v1.md), which
+[`docs/archive/plans/implementation-plan-v1.md`](../docs/archive/plans/implementation-plan-v1.md), which
 is kept as a historical record. The reasoning is in
 [`2026-10-13-simplification-review.md`](2026-10-13-simplification-review.md) and
 [`../docs/reviews/2026-10-13-simplification-review.md`](../docs/reviews/2026-10-13-simplification-review.md).
@@ -45,6 +45,23 @@ in `design.md` and tasks 1.3, 1.4 and 2.3.
 
 The goal is the same catalog rows from much less code. Every task ends with
 `./scripts/check.sh` passing.
+
+**Progress (2026-10-20), branch `phase1-simplify-build`:** tasks 1.0–1.7 are done.
+- Source: 1,072 lines, down from 4,800.
+- Tests: 154, running in 12 s, down from 538 in 41 s.
+- `scripts/golden.py` confirms every program's rows match the old code on one full download.
+- The combined catalog is identical: 8,315,248 rows.
+- Local build time fell from 176 s to 7 s, and peak RSS from 4.6 GB to 3.8 GB.
+- Task 1.8 (runner build, evidence note, checkpoint review) is in progress.
+
+Deviations from the task list:
+- The rewrite merged the builder modules into `schema.py` and `builders.py`. It also
+  renamed `dry_build.py` to `build.py`, with the `build` command and `build.yml` workflow.
+- A truncated download is retried per request, because there is no longer an
+  input-set retry.
+- The seasonal lookup files are no longer downloaded.
+- Builder warnings (unexpected seasonal codes, PR `base_year` mismatches) appear per
+  program in `report.json`.
 
 ### 1.0 Capture a golden output first
 
