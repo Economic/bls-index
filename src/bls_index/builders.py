@@ -119,7 +119,8 @@ def synthesize(program: str, files: Mapping[str, Path]) -> pl.DataFrame:
                              f"for {bad['series_id'][0]!r}")
     if program == "pr":
         base = pl.col("duration").str.extract(r"(?i)Index\s*\(\s*([0-9]{4})\s*=\s*100\s*\)", 1)
-        count = series.filter(base.is_not_null() & (base != pl.col("base_year").str.strip_chars())).height
+        differs = (base != pl.col("base_year").str.strip_chars()).fill_null(True)
+        count = series.filter(base.is_not_null() & differs).height
         if count:
             log.warning("%s: %d rows whose base_year differs from the duration's index base", where, count)
 

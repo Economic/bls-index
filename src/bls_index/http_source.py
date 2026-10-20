@@ -172,15 +172,22 @@ class HttpSource:
         now = self._monotonic()
         if self._next_start is not None and now < self._next_start:
             self._sleep(self._next_start - now)
+
+    def _hold_next_start(self) -> None:
+        """Start the interval once a request has reached the server (or failed), so a
+        slow connection cannot bunch two requests together at the server."""
         self._next_start = self._monotonic() + self.config.min_request_interval
 
     def _download_once(self, url: str, dest: Path) -> Download:
         digest = hashlib.sha256()
         size = 0
         body_started = False
+        headers_received = False
         self._pace()
         try:
             with self._client.stream("GET", url) as resp:
+                self._hold_next_start()
+                headers_received = True
                 if resp.status_code != 200:
                     raise SourceError(
                         url, "http_status", f"HTTP {resp.status_code}", status=resp.status_code,
@@ -204,6 +211,9 @@ class HttpSource:
         except httpx.TransportError as exc:
             raise SourceError(url, "incomplete" if body_started else "transport", repr(exc),
                               retryable=True) from exc
+        finally:
+            if not headers_received:
+                self._hold_next_start()
         if expected is not None and int(expected) != size:
             raise SourceError(url, "incomplete", f"received {size} of {expected} bytes", retryable=True)
         return Download(url, dest, size, digest.hexdigest())

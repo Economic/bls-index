@@ -191,13 +191,14 @@ def test_sm_supersector_must_match_industry_prefix(tmp_path):
         synthesize("sm", files)
 
 
-def test_pr_base_year_mismatch_warns_without_failing(tmp_path, caplog):
+@pytest.mark.parametrize("base_year", ["2012", " "])
+def test_pr_base_year_mismatch_warns_without_failing(tmp_path, caplog, base_year):
     files = _synth_files("pr", tmp_path)
     text = files["pr.series"].read_text(encoding="utf-8")
     index_rows = [line for line in text.splitlines() if "\t2017\t" in line]
     assert index_rows, "fixture needs an index row with base_year 2017"
-    files["pr.series"].write_text(text.replace(index_rows[0], index_rows[0].replace("\t2017\t", "\t2012\t")),
-                                  encoding="utf-8")
+    changed = index_rows[0].replace("\t2017\t", f"\t{base_year}\t")
+    files["pr.series"].write_text(text.replace(index_rows[0], changed), encoding="utf-8")
     with caplog.at_level(logging.WARNING):
         frame = synthesize("pr", files)
     assert frame.height == 8

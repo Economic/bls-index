@@ -259,23 +259,27 @@ Keep automatic botocore retries off for conditional writes.
 
 ### 2.3 Publish command (`bls-index publish RUNDIR`)
 
-1. Read `latest.json`, keeping its ETag, or confirm it is absent. A read error that is
+1. Refuse a run whose `report.json` is not `success` or whose `requested_programs` is
+   not exactly `scope.INITIAL_PROGRAMS`. A subset build is a diagnostic, never a
+   publication.
+2. Read `latest.json`, keeping its ETag, or confirm it is absent. A read error that is
    not a 404 fails the run.
-2. Upload `v1/catalog/bls_index-<sha>.parquet`. Read it back, and compare SHA-256 and
+3. Upload `v1/catalog/bls_index-<sha>.parquet`. Read it back, and compare SHA-256 and
    size.
-3. Upload `v1/manifest-<build_id>.json` (beside `latest.json`, so relative paths
+4. Upload `v1/manifest-<build_id>.json` (beside `latest.json`, so relative paths
    resolve the same way).
-4. Write `latest.json` with `put_if`.
-5. Handle the result:
+5. Write `latest.json` with `put_if`.
+6. Handle the result:
    - **committed:** done
    - **rejected:** fail the run
    - **unknown:** re-read. If it holds our `build_id`, done. Otherwise retry once with the
      same condition. If that is still not committed, re-read once more for our
      `build_id`, then fail.
-6. Exit nonzero on any failure. Print a summary.
+7. Exit nonzero on any failure. Print a summary.
 
 ### 2.4 Publish tests (moto plus the fault proxy)
 
+- a subset or failed run is refused before any upload
 - a first publication
 - a second publication against the prior ETag
 - 412 when the ETag changed

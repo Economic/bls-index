@@ -63,7 +63,7 @@ def run_build(programs: Sequence[str], source: HttpSource, workdir: Path) -> dic
         try:
             with warnings:
                 downloads = source.fetch_program(program, run_dir / "downloads")
-                item["sources"] = [{"file": name, "bytes": d.bytes, "sha256": d.sha256}
+                item["sources"] = [{"file": name, "url": d.url, "bytes": d.bytes, "sha256": d.sha256}
                                    for name, d in downloads.items()]
                 item["download_seconds"] = round(time.perf_counter() - step, 3)
                 stage, step = "build", time.perf_counter()
@@ -89,6 +89,9 @@ def run_build(programs: Sequence[str], source: HttpSource, workdir: Path) -> dic
                                  "seconds": round(time.perf_counter() - step, 3)}
             report["status"] = "success"
         except Exception as exc:
+            report["catalog"] = None
+            report["status"] = "failed"
+            (run_dir / CATALOG_NAME).unlink(missing_ok=True)
             report["failure"] = {"stage": "combine", "error": f"{type(exc).__name__}: {exc}"}
 
     report["finished_at"] = datetime.now(UTC).isoformat()

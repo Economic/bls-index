@@ -1,8 +1,8 @@
-"""Fixed program scope for the first publication.
+"""The published program scope.
 
-The initial published scope is fixed here and in tests. It is never inferred from the
-BLS directory listing or from future checkpoint lists. After first publication, the
-daily scope comes from the published manifest's ``required_programs``.
+This module is the only source of scope: every build covers ``INITIAL_PROGRAMS``, and
+scope changes only through a reviewed change here. Scope is never inferred from the BLS
+directory listing, a failed or missing source, or the future checkpoint lists.
 """
 
 from __future__ import annotations

@@ -69,8 +69,8 @@ def write_combined_candidate(
     directory.mkdir(parents=True, exist_ok=True)
     catalog = directory / CATALOG_NAME
     dictionary = directory / "data-dict.yaml"
-    combined.write_parquet(catalog, compression="zstd")
     try:
+        combined.write_parquet(catalog, compression="zstd")
         shutil.copyfile(DICTIONARY, dictionary)
         _run_data_dict(dictionary)
     except BaseException:

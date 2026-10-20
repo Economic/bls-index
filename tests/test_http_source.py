@@ -156,6 +156,18 @@ def test_request_starts_are_spaced_including_retries(http_server, tmp_path):
     assert t.slept == [0.25, 0.75, 1.0, 1.0, 1.0, 1.0]
 
 
+def test_interval_is_measured_from_when_the_server_answers(http_server, tmp_path):
+    """A request that is slow to reach the server must not shorten the next gap."""
+    http_server.serve_tree(TWO_PROGRAM)
+    http_server.script("pr/pr.series", Reply(body=b"x", delay=0.3))  # headers 0.3 s late
+    config = FetchConfig(user_agent=TEST_USER_AGENT, base_url=http_server.base_url,
+                         min_request_interval=0.3)
+    with HttpSource(config) as source:
+        source.fetch_program("pr", tmp_path)
+    arrivals = [request.arrived for request in http_server.requests]
+    assert arrivals[1] - arrivals[0] >= 0.55  # 0.3 s to answer, then the 0.3 s interval
+
+
 @pytest.mark.parametrize("interval", [-1.0, float("nan"), float("inf"), 0.0, 0.5])
 def test_bls_requires_at_least_one_second_between_requests(interval):
     with pytest.raises(ValueError):

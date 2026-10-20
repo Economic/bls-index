@@ -97,6 +97,12 @@ def test_data_dict_rejects_bad_rows_and_leaves_no_candidate(tmp_path, change, me
     assert not (tmp_path / "bls_index.parquet").exists()
 
 
+def test_null_years_and_period_pass_validation(tmp_path):
+    frame = _frame(begin_year=None, end_year=None, end_period=None)
+    write_combined_candidate({"ap": frame}, ["ap"], tmp_path)
+    assert pl.read_parquet(tmp_path / "bls_index.parquet").row(0, named=True)["begin_year"] is None
+
+
 def test_writer_works_from_another_directory(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     write_combined_candidate({"ap": _frame()}, ["ap"], Path("out"))

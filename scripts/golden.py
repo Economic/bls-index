@@ -2,9 +2,9 @@
 
 Usage: uv run python scripts/golden.py RUN_DIR [PROGRAM ...]
 
-RUN_DIR is a ``dry-build-*`` directory from the unmodified code. For each program, this
-rebuilds rows from the run's downloaded inputs with the current checkout and compares
-them with the run's own per-program Parquet output. Exits 1 on any difference.
+RUN_DIR is a ``build-*`` run, or a legacy ``dry-build-*`` run from before Phase 1. For each
+program, this rebuilds rows from the run's downloaded inputs with the current checkout
+and compares them with that run's output for the program. Exits 1 on any difference.
 """
 
 from __future__ import annotations
@@ -26,9 +26,13 @@ def main(run_dir: Path, programs: list[str]) -> int:
     failed = False
     for program in programs or INITIAL_PROGRAMS:
         entry = entries[program]
-        inputs = run_dir / "downloads" / program / f"attempt-{entry['input_set_attempts']}" / "read-1"
+        if "bundle" in entry:  # legacy dry-build run
+            inputs = run_dir / "downloads" / program / f"attempt-{entry['input_set_attempts']}" / "read-1"
+            expected = pl.read_parquet(run_dir / entry["bundle"]["parquet_path"])
+        else:
+            inputs = run_dir / "downloads" / program
+            expected = pl.read_parquet(run_dir / "bls_index.parquet").filter(pl.col("program") == program)
         files = {name: inputs / name for name in input_files(program)}
-        expected = pl.read_parquet(run_dir / entry["bundle"]["parquet_path"])
         started = time.perf_counter()
         try:
             actual = build_program(program, files)
