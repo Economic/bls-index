@@ -64,7 +64,8 @@ Official BLS series reports checked on 2026-10-12 and 2026-10-13 are saved in
 fields with the generated titles. The PR reports do not show Class, so the "All workers"
 component is checked only against the lookup file. Full-source validation of all three
 programs is recorded in
-[`archive/evidence/2026-10-13-sm-jt-validation.json`](archive/evidence/2026-10-13-sm-jt-validation.json)
-and [`archive/evidence/2026-10-13-pr-validation.json`](archive/evidence/2026-10-13-pr-validation.json).
+[`2026-10-13-sm-jt-validation.json`](https://github.com/Economic/bls-index/blob/pre-cleanup/docs/archive/evidence/2026-10-13-sm-jt-validation.json)
+and [`2026-10-13-pr-validation.json`](https://github.com/Economic/bls-index/blob/pre-cleanup/docs/archive/evidence/2026-10-13-pr-validation.json),
+at the git tag `pre-cleanup`.
 On 2026-10-20, the current builders reproduced the earlier builders' output exactly on a
 full download (`scripts/golden.py`).

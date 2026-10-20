@@ -17,8 +17,8 @@ One command, used locally and in CI:
 ./scripts/check.sh -k builder # extra arguments go to pytest
 ```
 
-The suite needs no network access and no credentials. It starts a local moto S3 server
-and a local HTTP fixture server on `127.0.0.1`.
+The suite needs no network access and no credentials. It starts a local HTTP fixture
+server on `127.0.0.1`.
 
 Toolchain: Python 3.13 (`.python-version`) and dependencies pinned in `pyproject.toml`
 and `uv.lock`, including the `data-dict` validator (`data-dict-yaml` on PyPI). Install
@@ -62,11 +62,10 @@ src/bls_index/
   builders.py            native titles and sm/jt/pr title synthesis
   combined_candidate.py  combined checks and the pinned data-dict validation
   build.py, cli.py       the build run, its report, and the `bls-index` command
-  object_store.py        S3/R2 adapter, unused; removed in Phase 2
 tests/
-  harness/               controlled HTTP source, moto server and fault proxy
+  harness/               controlled HTTP source serving scripted replies
   fixtures/              real sample rows for every program; two_program/ is served over HTTP
-docs/                    schema, synthesized-title contracts, evidence and history
+docs/                    schema, synthesized-title contracts, evidence
 ```
 
 Raw BLS files and credentials are never committed.
