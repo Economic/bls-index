@@ -151,17 +151,18 @@ once a week. If a publish fails, the next day's run retries it. A manual dispatc
 force a publish. Only a run that built exactly the 33 programs in scope can publish; a
 subset build is a diagnostic.
 
-**A release** has the tag `catalog-YYYY-MM-DD` (the UTC build date), targets the commit
-that built it, and carries two files:
+**A release** has the tag `catalog-YYYY-MM-DDTHHMMZ` (the UTC build start, to the
+minute), targets the commit that built it, and carries two files:
 
 - `bls_index.parquet`: the catalog
 - `latest.json`: the manifest
 
-If a release for that date already exists, the run publishes nothing.
+The timestamp makes every tag unique, so a forced publish can follow a scheduled one on
+the same day.
 
 **Order.** The release stays a draft, invisible to clients, until everything is checked:
 
-1. Delete any leftover draft release from an earlier failed run.
+1. Delete any leftover draft or test release from an earlier run, together with its tag.
 2. Create a draft release and upload both files.
 3. Read the uploaded files' SHA-256 digests and sizes from the GitHub API. They must
    match the local files.
@@ -194,8 +195,8 @@ next run tries again.
 The catalog URL names the tag rather than "latest", so a client that read one manifest
 always downloads the matching catalog, even if a new release appears in between.
 
-**Retention.** After publishing, the run deletes releases and tags beyond the newest 12,
-about three months.
+**Retention.** After publishing, the run deletes releases beyond the newest 12, about
+three months. Every deletion also deletes the release's tag.
 
 **Manual rollback.** Run `gh release edit <tag> --latest` on an older release. A rollback
 lasts until the next publish. To hold it longer, disable the workflow's schedule until
@@ -231,8 +232,9 @@ the problem is fixed. The runbook documents this.
 - **Credentials.** None beyond the `BLS_INDEX_USER_AGENT` secret, the healthchecks.io ping
   URL, and the built-in `GITHUB_TOKEN`.
 - **Testing before launch.** A manual dispatch with a `test` option publishes a
-  prerelease tagged `test-YYYY-MM-DD`. Prereleases never become "latest", so clients
-  never see it. The run deletes it afterwards.
+  prerelease tagged `test-YYYY-MM-DDTHHMMZ`. Prereleases never become "latest", so
+  clients never see it. It stays until the next run's cleanup, so it can be inspected
+  and downloaded first.
 
 ## Clients
 

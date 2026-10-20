@@ -299,9 +299,11 @@ not a package.
   `RUNDIR/latest.json` with the fields in `design.md`. It refuses a run whose
   `report.json` is not `success`, or whose `requested_programs` is not exactly
   `scope.INITIAL_PROGRAMS`.
-- `bls-index publish-due PREVIOUS_MANIFEST` exits 0 when the previous manifest's
-  `built_at` is at least 6 days old, or when there is no previous manifest, and 1
-  otherwise.
+- `bls-index publish-due [PREVIOUS_MANIFEST]` prints `due=true` when the previous
+  manifest's `built_at` is at least 6 days old, or when no previous manifest is given,
+  and `due=false` otherwise. The workflow appends this to `$GITHUB_OUTPUT`. The command
+  exits 0 either way, and nonzero only on an error such as an unreadable manifest, so an
+  ordinary day without publishing never counts as a failure.
 - Tests: refusal of failed and subset runs; manifest fields and the catalog URL; the
   6-day boundary; no previous manifest.
 
@@ -309,21 +311,28 @@ not a package.
 
 A short `gh` script, run by the publish job:
 
-1. Delete any draft release left by an earlier run.
-2. Stop without publishing if a release with this tag already exists.
-3. `gh release create TAG --draft --target <sha>` with `bls_index.parquet` and
-   `latest.json`. For a test run, use `--prerelease` and a `test-` tag.
-4. Read the uploaded files' digests and sizes with `gh release view --json assets`, and
+Tags are `catalog-YYYY-MM-DDTHHMMZ`, or `test-YYYY-MM-DDTHHMMZ` for a test run, from
+the build's start time. Every deletion uses `gh release delete --cleanup-tag`.
+
+1. Delete any draft release, and any `test-` prerelease, left by an earlier run.
+2. `gh release create TAG --draft --target <sha>` with `bls_index.parquet` and
+   `latest.json`. For a test run, add `--prerelease`.
+3. Read the uploaded files' digests and sizes with `gh release view --json assets`, and
    compare them with the local SHA-256 and sizes. On a mismatch, delete the draft and
    fail.
-5. `gh release edit TAG --draft=false --latest` (without `--latest` for a test run). If
-   this fails, re-read the release. If it is published and latest, continue; otherwise
-   delete the draft and fail.
-6. Delete releases and tags beyond the newest 12 non-test releases, and delete the test
-   release after a test run.
+4. `gh release edit TAG --draft=false --latest` (without `--latest` for a test run). If
+   this fails, re-read the release. If it is published (and latest, for a real run),
+   continue; otherwise delete the draft and fail.
+5. Delete `catalog-` releases beyond the newest 12. A test release stays until the next
+   run's step 1, so it can be inspected and downloaded first.
 
-The script has no unit tests. The test-prerelease runs in 2.5 exercise it, and the
-Python pieces it relies on are tested in 2.2.
+**Test.** One offline pytest runs the script with a stub `gh` first on `PATH`. The stub
+records every call and returns canned JSON. Two cases:
+- matching digests: the draft is published
+- a wrong digest: `release edit --draft=false` is never called, and the draft is deleted
+
+This guards the design's one high-severity rule. The test-prerelease runs in 2.5
+exercise the script against real GitHub.
 
 ### 2.4 Daily workflow (`.github/workflows/daily.yml`)
 
@@ -346,15 +355,16 @@ Python pieces it relies on are tested in 2.2.
 ### 2.5 Test before launch
 
 1. Create the healthchecks.io check: 1-day period, 1-day grace time, email alerts.
-2. Dispatch with `publish: test` twice. Confirm that:
-   - a `test-` prerelease appears, never becomes "latest", and is deleted
-   - the reference client downloads and verifies a catalog from the prerelease's
-     tag-specific URL
-3. Dispatch once with a forced failure, such as a bad base URL. Confirm that no release
+2. Dispatch with `publish: test`. Confirm that a `test-` prerelease appears and never
+   becomes "latest". Before the next run, confirm that the reference client downloads
+   and verifies a catalog from the prerelease's tag-specific URL.
+3. Dispatch with `publish: test` again, on the same day. Confirm that the first test
+   release and its tag are gone, and that a second one appears with a new tag.
+4. Dispatch once with a forced failure, such as a bad base URL. Confirm that no release
    is created and `/fail` sends an email.
-4. Pause the workflow for more than two days, or point the check at a test URL, and
+5. Pause the workflow for more than two days, or point the check at a test URL, and
    confirm that the missed-run email arrives.
-5. Record the results, including publish duration, in a short evidence note.
+6. Record the results, including publish duration, in a short evidence note.
 
 ## Phase 3: Launch
 
