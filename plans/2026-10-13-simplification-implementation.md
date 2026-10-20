@@ -52,7 +52,9 @@ The goal is the same catalog rows from much less code. Every task ends with
 - `scripts/golden.py` confirms every program's rows match the old code on one full download.
 - The combined catalog is identical: 8,315,248 rows.
 - Local build time fell from 176 s to 7 s, and peak RSS from 4.6 GB to 3.8 GB.
-- Task 1.8 (runner build, evidence note, checkpoint review) is in progress.
+- Task 1.8 is done. The runner build ([evidence](../docs/evidence/2026-10-20-phase1-runner-build.md))
+  took 1 m 33 s for the whole job, against 4 m 44 s before. The checkpoint review's
+  findings are fixed.
 
 Deviations from the task list:
 - The rewrite merged the builder modules into `schema.py` and `builders.py`. It also
@@ -233,112 +235,157 @@ proof that the refactor preserved output.
 
 **Expected size after Phase 1:** about 1,200–1,500 lines of source, down from 4,800.
 
-## Phase 2: Publish
+### 1.9 Add `survey_name` and raise compression (decided 2026-10-20)
 
-### 2.1 Manifest
+Do this before Phase 2, so the first published schema includes the column.
 
-1. Document the manifest fields from `design.md` in `docs/manifest-v1.md`, with an
-   example.
-2. Write `manifest.py` (about 80 lines) to build the manifest dict from the build report,
-   and to validate relative paths (the segment rule) in both directions.
-3. Tests:
-   - path rule accept and reject cases, including `..`, `%2e`, a leading `/`, a scheme,
-     a query, and an empty segment
-   - round trip from report to manifest
+- **Names.** Add `SURVEY_NAMES: dict[program, str]` to `scope.py`, one entry for each
+  of the 33 programs. Take each name from an official BLS source, preferably the
+  survey list on BLS's series ID format help page or the program's `<program>.txt` file
+  (`cx.txt` returned 404 in October, so `cx` needs another BLS page). Record the source
+  for each name in a short note in `docs/`. Do not fetch names at build time.
+- **Schema.** Add `survey_name` (string, required) after `program` in
+  `CANONICAL_SCHEMA`, in `canonical_rows`, in `docs/schema-v1.md`, and in
+  `data-dict.yaml`. In the dictionary, also assert that every program has exactly one
+  survey name.
+- **Compression.** Write the combined catalog at zstd level 19. Measured on the
+  2026-10-20 catalog: 32.8 MB instead of 47.2 MB, the same read time, and about 70 s
+  more to write.
+- **Tests.** Check that every program in scope has a name, and none outside it. Check that
+  a build gives every row its program's name.
+- **Verify.** The golden comparison now differs by one column. Compare all other columns
+  with `scripts/golden.py`; it may need a column filter. Then confirm the new column has
+  one value per program, and record the catalog's size.
 
-### 2.2 Object store (`object_store.py`)
+### 1.10 Reference client prototype (decided 2026-10-20)
 
-Trim to four calls:
+Write `examples/find_bls.R` before Phase 2, against a local build, to test the schema
+and search behavior while they can still change. It is a reference for `epidatatools`,
+not a package.
 
-- `get(key) -> (bytes, etag) | Absent`
-- `put(key, bytes)`
-- `put_if(key, bytes, if_match=etag | if_none_match=True) -> committed | rejected | unknown`
-- `head(key)`
+- **Signature.** `find_bls(search_string, max_results = 20, survey = NULL,
+  seasonality = NULL, refresh = FALSE)`, returning a tibble with `series_id`,
+  `series_title`, `survey_name` and `seasonal`. This matches today's function plus
+  `refresh`.
+- **Search.** Query the cached Parquet in place with `arrow::open_dataset`. Every word of
+  `search_string` must appear, case-insensitively, in `series_title` or `survey_name`.
+  `survey` filters `program`, and `seasonality` filters `seasonal`.
+- **Ranking.** Try a few orderings on realistic queries and pick one: shortest title
+  first; seasonally adjusted first; by program then ID. Examples: "unemployment rate",
+  "consumer price index", "registered nurses", "average hourly earnings manufacturing",
+  "quits". Show the maintainer the top 20 for each before choosing.
+- **Row groups.** Check whether writing the Parquet in program order with smaller row
+  groups makes `survey = "ln"` skip OE's 6 million rows. Adopt it only if the speedup is
+  noticeable.
+- **Cache and refresh.** Implement the client rules in `design.md` (weekly check, checksum,
+  swap, offline fallback, download timeout). Until Phase 2 exists, point it at a local
+  manifest and catalog. Phase 2 tests the download path against a test prerelease.
+- **Done when** each example query returns sensible top results in under a second, and
+  any schema change it motivates has been made in the build.
 
-Keep automatic botocore retries off for conditional writes.
+## Phase 2: Publish through GitHub Releases
 
-### 2.3 Publish command (`bls-index publish RUNDIR`)
+### 2.1 Remove the R2 code
 
-1. Refuse a run whose `report.json` is not `success` or whose `requested_programs` is
-   not exactly `scope.INITIAL_PROGRAMS`. A subset build is a diagnostic, never a
-   publication.
-2. Read `latest.json`, keeping its ETag, or confirm it is absent. A read error that is
-   not a 404 fails the run.
-3. Upload `v1/catalog/bls_index-<sha>.parquet`. Read it back, and compare SHA-256 and
-   size.
-4. Upload `v1/manifest-<build_id>.json` (beside `latest.json`, so relative paths
-   resolve the same way).
-5. Write `latest.json` with `put_if`.
-6. Handle the result:
-   - **committed:** done
-   - **rejected:** fail the run
-   - **unknown:** re-read. If it holds our `build_id`, done. Otherwise retry once with the
-     same condition. If that is still not committed, re-read once more for our
-     `build_id`, then fail.
-7. Exit nonzero on any failure. Print a summary.
+- Delete `object_store.py`, `tests/test_object_store.py`, `tests/harness/s3.py`, and
+  the moto fixtures in `conftest.py`.
+- Remove `boto3` and `moto[server]` from `pyproject.toml`, and update `uv.lock`.
+- Operator, optional: delete the R2 buckets `bls-index` and `bls-index-staging` and their
+  API token, or keep them unused.
 
-### 2.4 Publish tests (moto plus the fault proxy)
+### 2.2 Manifest and publish decision (`manifest.py`)
 
-- a subset or failed run is refused before any upload
-- a first publication
-- a second publication against the prior ETag
-- 412 when the ETag changed
-- a commit with the response dropped, then re-read as committed
-- a timeout with no commit, then retry
-- a failed read-back writes no `latest.json`
-- a `latest.json` read error (403 or 500) fails before upload
-- the manifest is never written before catalog verification: assert on the fault proxy's
-  request log
+- `bls-index manifest RUNDIR --tag TAG --repo Economic/bls-index` writes
+  `RUNDIR/latest.json` with the fields in `design.md`. It refuses a run whose
+  `report.json` is not `success`, or whose `requested_programs` is not exactly
+  `scope.INITIAL_PROGRAMS`.
+- `bls-index publish-due [PREVIOUS_MANIFEST]` prints `due=true` when the previous
+  manifest's `built_at` is at least 6 days old, or when no previous manifest is given,
+  and `due=false` otherwise. The workflow appends this to `$GITHUB_OUTPUT`. The command
+  exits 0 either way, and nonzero only on an error such as an unreadable manifest, so an
+  ordinary day without publishing never counts as a failure.
+- Tests: refusal of failed and subset runs; manifest fields and the catalog URL; the
+  6-day boundary; no previous manifest.
 
-That is about 10 tests.
+### 2.3 Publish script (`scripts/publish.sh`)
 
-### 2.5 Daily workflow (`.github/workflows/daily.yml`)
+A short `gh` script, run by the publish job:
 
-- Triggers: `schedule` (cron) plus `workflow_dispatch`, in concurrency group
-  `bls-index-publish` with `cancel-in-progress: false`.
-- Steps: ping healthchecks.io `/start`, install, build, publish, then ping the success
-  URL. An `if: failure()` step pings `/fail`. Configure the check with a 1-day period
-  and a 1-day grace time, with email alerts to the maintainer.
-- Upload `report.json` as a 7-day diagnostic artifact, after the User-Agent grep.
-- Secrets: `BLS_INDEX_USER_AGENT`, the R2 endpoint and keys, the bucket name, and the
-  monitor URL.
-- Default to the staging bucket. Production is a separate variable set only at launch.
+Tags are `catalog-YYYY-MM-DDTHHMMZ`, or `test-YYYY-MM-DDTHHMMZ` for a test run, from
+the build's start time. Every deletion uses `gh release delete --cleanup-tag`.
 
-### 2.6 Staging run
+1. Delete any draft release, and any `test-` prerelease, left by an earlier run.
+2. `gh release create TAG --draft --target <sha>` with `bls_index.parquet` and
+   `latest.json`. For a test run, add `--prerelease`.
+3. Read the uploaded files' digests and sizes with `gh release view --json assets`, and
+   compare them with the local SHA-256 and sizes. On a mismatch, delete the draft and
+   fail.
+4. `gh release edit TAG --draft=false --latest` (without `--latest` for a test run). If
+   this fails, re-read the release. If it is published (and latest, for a real run),
+   continue; otherwise delete the draft and fail.
+5. Delete `catalog-` releases beyond the newest 12. A test release stays until the next
+   run's step 1, so it can be inspected and downloaded first.
 
-1. Attach the custom domain `bls-index-staging.benzipperer.org` to the existing
-   `bls-index-staging` bucket, with `r2.dev` disabled. Confirm no Gate 0 test objects
-   remain.
-2. Run the workflow against staging three times, including one forced failure, such as
-   a bad base URL.
-3. Confirm the following:
-   - the failure leaves `latest.json` unchanged and alerts
-   - the monitor fires when pings stop
-   - read-back time for the 47 MB catalog is recorded (this closes the old Gate 1 item)
-   - `curl` and R download through the staging hostname, and the checksum matches
+**Test.** One offline pytest runs the script with a stub `gh` first on `PATH`. The stub
+records every call and returns canned JSON. Two cases:
+- matching digests: the draft is published
+- a wrong digest: `release edit --draft=false` is never called, and the draft is deleted
+
+This guards the design's one high-severity rule. The test-prerelease runs in 2.5
+exercise the script against real GitHub.
+
+### 2.4 Daily workflow (`.github/workflows/daily.yml`)
+
+- **Triggers.** `schedule` (daily) plus `workflow_dispatch`, with inputs `publish`
+  (`auto`, `force` or `test`). Use concurrency group `bls-index-publish` with
+  `cancel-in-progress: false`.
+- **Build job** (`contents: read`, the User-Agent secret):
+  1. Ping healthchecks.io `/start`, then install and build.
+  2. Download the latest release's `latest.json` if one exists, and run `publish-due`.
+  3. Write `latest.json` with `bls-index manifest`.
+  4. Upload the catalog, manifest and report as a 1-day artifact for the publish job,
+     and the report alone as a 7-day diagnostic artifact, after the User-Agent grep.
+- **Publish job** (`contents: write`). Runs when publishing is due, forced, or a test:
+  download the artifact and run `scripts/publish.sh`.
+- **Monitor.** A final step pings the success URL when every job succeeded, and an
+  `if: failure()` step pings `/fail`.
+- **Secrets.** Two: `BLS_INDEX_USER_AGENT` and the healthchecks.io ping URL.
+- **Replace `build.yml`.** The daily workflow with a manual dispatch covers it.
+
+### 2.5 Test before launch
+
+1. Create the healthchecks.io check: 1-day period, 1-day grace time, email alerts.
+2. Dispatch with `publish: test`. Confirm that a `test-` prerelease appears and never
+   becomes "latest". Before the next run, confirm that the reference client downloads
+   and verifies a catalog from the prerelease's tag-specific URL.
+3. Dispatch with `publish: test` again, on the same day. Confirm that the first test
+   release and its tag are gone, and that a second one appears with a new tag.
+4. Dispatch once with a forced failure, such as a bad base URL. Confirm that no release
+   is created and `/fail` sends an email.
+5. Pause the workflow for more than two days, or point the check at a test URL, and
+   confirm that the missed-run email arrives.
+6. Record the results, including publish duration, in a short evidence note.
 
 ## Phase 3: Launch
 
-1. **Buckets.** Attach the custom domain `bls-index.benzipperer.org` to the existing
-   empty `bls-index` bucket, with `r2.dev` disabled. Add a cache rule for `/v1/catalog/*` and `/v1/manifest-*`, a short TTL for
-   `latest.json`, and a lifecycle rule (90 days on prefixes `v1/catalog/` and `v1/manifest-`, a starting point
-   to shorten later).
-2. **Credentials.** Add scoped production credentials, and switch the workflow variable
-   to production.
-3. **First publication.** Run the first production publish by manual dispatch, then
-   verify from an outside machine.
-4. **Discovery pointer.** Add `pages/endpoint.json` through a reviewed PR and a Pages
-   workflow that deploys only `pages/`, then verify that it resolves.
-5. **Runbook.** Write `docs/runbook.md` covering:
-   - credentials
+1. **Branch protection.** Require pull requests for `main`, and confirm that a workflow
+   token cannot push to it.
+2. **First release.** Dispatch with `publish: force`. From an outside machine, check that
+   `curl -L .../releases/latest/download/latest.json` works without credentials, and
+   that the reference client downloads the catalog and its checksum matches.
+3. **Runbook.** Write `docs/runbook.md` covering:
    - a manual rerun
-   - rollback (copy an archived manifest with `If-Match`)
+   - a forced publish
+   - rollback with `gh release edit <tag> --latest`, and pausing the schedule to hold it
    - adding a program
-   - alerts and the monitor
-   - expected costs
-6. **Watch the schedule** for 7 days. Then announce the catalog.
+   - the monitor and alerts
+   - costs (none expected for a public repository)
+4. **Watch.** Let 7 daily builds and two weekly releases run. Then announce the catalog,
+   and hand the reference client to the `epidatatools` maintainers.
 
-## Decisions (2026-10-13)
+## Decisions
+
+### 2026-10-13
 
 The questions raised with the first draft of this plan were settled as follows.
 
@@ -348,13 +395,25 @@ The questions raised with the first draft of this plan were settled as follows.
 2. **Alerts.** One healthchecks.io check (free tier) with `/start`, success and `/fail`
    pings, a 1-day period and a 1-day grace time, and email to the maintainer. GitHub's
    failed-run emails are not relied on.
-3. **Buckets.** Reuse the two existing buckets: `bls-index` for production, on
-   `bls-index.benzipperer.org`, and `bls-index-staging` for staging, on
-   `bls-index-staging.benzipperer.org`. There is no separate private bucket.
+3. **Buckets.** Reuse the two existing buckets for production and staging. Superseded
+   on 2026-10-20 by GitHub Releases.
 4. **PR `base_year`.** Warn, don't fail (task 1.3).
-5. **Retention.** 90 days as a starting point. Shorten it once real rollback needs are
-   known.
+5. **Retention.** 90 days as a starting point. Superseded on 2026-10-20: keep the newest
+   12 weekly releases.
 6. **Old docs.** Archive to `docs/archive/` in Phase 1, together with the code they
    describe (task 1.6). Keep `research/`.
 7. **Historical `kv` layout.** Accepted. If that variant reappears, the build fails with
    a clear missing-column error.
+
+### 2026-10-20
+
+8. **Survey name.** Add `survey_name` before the first release (task 1.9), and write the
+   catalog at zstd level 19.
+9. **Hosting.** Publish through GitHub Releases instead of R2 (Phase 2).
+10. **Discovery.** Drop the GitHub Pages pointer.
+11. **Cadence.** Build daily, and publish when the latest release is at least 6 days old.
+    Clients check for a new catalog at most weekly.
+12. **Change history.** Dropped: no list of added or removed series.
+13. **Client.** Prototype `examples/find_bls.R` before Phase 2 (task 1.10), querying the
+    Parquet in place with `arrow`.
+14. **Retention.** Keep the newest 12 releases.

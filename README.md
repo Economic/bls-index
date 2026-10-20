@@ -6,7 +6,7 @@ contract and [`plans/2026-10-13-simplification-implementation.md`](plans/2026-10
 is the implementation plan.
 
 **Status:** all 33 programs build locally (plan Phase 1). Publishing is not built yet;
-nothing is published and no code here writes to a public bucket.
+nothing is published. Catalogs will be published weekly as GitHub Releases.
 
 ## Build and test
 
@@ -62,7 +62,7 @@ src/bls_index/
   builders.py            native titles and sm/jt/pr title synthesis
   combined_candidate.py  combined checks and the pinned data-dict validation
   build.py, cli.py       the build run, its report, and the `bls-index` command
-  object_store.py        S3/R2 adapter for the publish step (Phase 2)
+  object_store.py        S3/R2 adapter, unused; removed in Phase 2
 tests/
   harness/               controlled HTTP source, moto server and fault proxy
   fixtures/              real sample rows for every program; two_program/ is served over HTTP

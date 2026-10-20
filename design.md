@@ -1,32 +1,37 @@
 # bls_index design
 
-Rewritten 2026-10-13 to a smaller scope. The previous version (journaled manifest writes,
-per-program fallback, scope releases, rollback records, host-move rehearsals) is in git
-history at `3513fb6`. The reasons for the change are in
-[`plans/2026-10-13-simplification-review.md`](plans/2026-10-13-simplification-review.md).
+Rewritten 2026-10-13 to a smaller scope, and revised 2026-10-20 to publish through GitHub
+Releases. The original version (journaled manifest writes, per-program fallback, scope
+releases, rollback records, host-move rehearsals) is in git history at `3513fb6`; the
+R2-based version is at `428a286`. The reasons are in
+[`plans/2026-10-13-simplification-review.md`](plans/2026-10-13-simplification-review.md)
+and the 2026-10-20 decisions below.
 
 ## Purpose
 
 The BLS Data Finder, the only tool for searching BLS series by name, is down, and
 `epidatatools::find_bls()` depended on it. This project publishes a replacement: a
-downloadable catalog of BLS series IDs and titles, rebuilt daily from the official flat
-files at `https://download.bls.gov/pub/time.series/`. A future `find_bls()` downloads the
-file once, caches it, and searches locally.
+downloadable catalog of BLS series IDs and titles, built daily from the official flat
+files at `https://download.bls.gov/pub/time.series/` and published weekly. A future
+`find_bls()` downloads the catalog at most once a week, caches it, and searches it
+locally.
 
 "Current" means present in the latest successfully ingested `.series` files. Still-listed
 frozen series belong in the catalog. The catalog does not judge whether a series is live.
 
 ## Non-goals
 
-- No hosted search API, browser UI, or remote query (SQLite over HTTP, DuckDB range reads).
+- No hosted search API, browser UI, or remote query service.
 - No series liveness status. `end_year` and `end_period` are source metadata only.
 - No mixed catalogs. A published catalog is always built from one run in which every
   in-scope program succeeded.
 - No runtime scope changes. Scope is code, changed by pull request.
-- No automated rollback or cleanup logic. Recovery is a manual operator step.
-- No historical archive beyond a short retention window.
-- No `epidatatools` changes in this repository. Client behavior is described here only
-  as far as it constrains publication.
+- No change history between catalogs, such as lists of added or removed series
+  (considered and dropped 2026-10-20). Old releases keep old catalogs for a while.
+- No automated rollback. Retention deletes releases beyond the newest 12.
+- No discovery pointer. Clients use the GitHub Releases URL directly.
+- No `epidatatools` changes in this repository. The reference client in `examples/` shows
+  the intended client behavior.
 
 ## Scope
 
@@ -39,21 +44,30 @@ v1 publishes exactly 33 programs, defined in `src/bls_index/scope.py`:
 
 Scope never comes from BLS directory listings or from a failed or missing source. The
 remaining 21 programs (frozen twins, injuries and illnesses, standalone frozen programs)
-and the excluded `nw` and case-characteristics programs are future work. Each addition
-is a pull request that adds a builder, tests, and the code to `scope.py`, adds the code to
-the `program` values in `data-dict.yaml`, and, for a synthesized-title program only, adds
-it to the dictionary's list of synthesized programs in the `title_source` rule. A full build of the
-expanded scope must pass before the PR merges. The next daily run then publishes it.
+and the excluded `nw` and case-characteristics programs are future work.
+
+To add a program, open one pull request that:
+- adds a builder, its tests, and the program code to `scope.py`
+- adds the program's survey name
+- adds the code to the `program` values in `data-dict.yaml`
+- for a synthesized-title program only, adds it to the dictionary's list of synthesized
+  programs in the `title_source` rule
+
+A full build of the expanded scope must pass before the PR merges. The next weekly
+release then includes the program.
 
 ## Catalog
 
-One zstd-compressed Parquet file, one row per series. Column definitions, types and
-normalization rules are in [`docs/schema-v1.md`](docs/schema-v1.md); machine-checkable
-constraints are in the repository-root [`data-dict.yaml`](data-dict.yaml).
+One zstd-compressed Parquet file, `bls_index.parquet`, one row per series, written at
+zstd level 19 (33 MB, against 47 MB at the default level, with the same read speed).
+Column definitions, types and normalization rules are in
+[`docs/schema-v1.md`](docs/schema-v1.md); machine-checkable constraints are in the
+repository-root [`data-dict.yaml`](data-dict.yaml).
 
 | Column | Type | Notes |
 |---|---|---|
 | `program` | string | BLS program code from scope, never inferred from the ID |
+| `survey_name` | string | BLS name of the program's survey, such as "Consumer Price Index - All Urban Consumers"; one fixed value per program |
 | `series_id` | string | Trimmed; unique across the catalog; compared exactly as spelled |
 | `series_title` | string | Native title preserved as published, or synthesized from lookups |
 | `title_source` | string | `native` or `synthesized` |
@@ -62,7 +76,12 @@ constraints are in the repository-root [`data-dict.yaml`](data-dict.yaml).
 | `end_period` | string, nullable | Source period code, such as `M08` |
 
 Titles need not be unique. Schema version 1 is separate from the data-dict `$version`.
-`survey_name` and `begin_period` are deferred.
+`begin_period` is deferred.
+
+`survey_name` makes a series findable by its survey. Many native titles never name the
+survey: CPI titles begin "All items in U.S. city average", so a search for "consumer
+price index" finds nothing without it. Names come from a fixed table in code, one entry
+per program in scope, taken from official BLS sources and checked by tests.
 
 ## Build
 
@@ -72,8 +91,10 @@ Each run builds all 33 programs from fresh downloads into a private run director
 
 - a descriptive, contactable User-Agent from the `BLS_INDEX_USER_AGENT` secret (BLS
   returns 403 for agents containing "github")
-- at most one request start per second
-- timeouts, and bounded retries with backoff for 429, 5xx and transport errors
+- at most one request per second, measured from when the server answers the previous
+  request
+- timeouts, and bounded retries with backoff for 429, 5xx, transport errors and
+  truncated bodies
 - a check that the body length matches `Content-Length`
 
 Never use `HEAD`, `ETag` or `Last-Modified` to skip a download. Record each input's URL,
@@ -91,7 +112,8 @@ the program if:
 - any year is present but not four digits
 
 Map seasonal codes `S` to `SA` and `U` to `NSA`. Map anything else, or a missing column,
-to `unknown`, and log unexpected codes. Extra or reordered columns do not fail a program.
+to `unknown`, and record a warning in the run report. Extra or reordered columns do not
+fail a program.
 
 **Synthesized titles** (`sm`, `jt`, `pr`). Join `.series` to its lookup files and format a
 reviewed title template. Fail the program on:
@@ -102,9 +124,7 @@ reviewed title template. Fail the program on:
 - an output row count that differs from the `.series` row count
 
 Unlike native IDs, synthesized IDs are checked against their dimension codes, because
-those codes choose the title.
-
-The templates and lookup files are documented in
+those codes choose the title. The templates and lookup files are documented in
 [`docs/synthesized-source-contracts.md`](docs/synthesized-source-contracts.md).
 
 **Combined candidate.** Concatenate all 33 programs and check:
@@ -115,53 +135,55 @@ The templates and lookup files are documented in
 
 Then run the pinned `data-dict` `validate-spec`, `validate-meta` and `validate-data` on
 the written Parquet. The dictionary is the single place for row rules that apply to every
-program, including the four-digit year range. Row counts are kept in the run report as diagnostics. A change in
-row count alone is not a failure.
+program, including the four-digit year range. Row counts are kept in the run report as
+diagnostics. A change in row count alone is not a failure.
 
 If any program or any combined check fails, the run fails and publishes nothing.
 
 ## Publication
 
-The storage is Cloudflare R2, accessed through its S3 API. Gate 0 (2026-10-12) verified
-`If-None-Match: *` and `If-Match` conditional writes on R2.
+Catalogs are published as GitHub Releases of the public `Economic/bls-index` repository.
 
-Public objects live under `/v1/` in the public bucket:
+**Cadence.** A workflow builds the catalog every day, as a health check. A successful
+daily build also publishes a release when the latest release's `built_at` is at least 6
+days old, or when there is no release yet. With a daily schedule this publishes about
+once a week. If a publish fails, the next day's run retries it. A manual dispatch can
+force a publish. Only a run that built exactly the 33 programs in scope can publish; a
+subset build is a diagnostic.
 
-- `v1/catalog/bls_index-<sha256>.parquet`: immutable, content-addressed catalog
-- `v1/manifest-<build_id>.json`: immutable copy of each published manifest. It sits
-  beside `latest.json` so its relative catalog path resolves the same way.
-- `v1/latest.json`: the current manifest, the only object that is ever replaced
+**A release** has the tag `catalog-YYYY-MM-DDTHHMMZ` (the UTC build start, to the
+minute), targets the commit that built it, and carries two files:
 
-A run publishes in this order:
+- `bls_index.parquet`: the catalog
+- `latest.json`: the manifest
 
-1. Read `latest.json` and remember its ETag, or confirm that it does not exist.
-2. Upload the catalog. Read it back and verify its SHA-256 and size.
-3. Upload the manifest copy to `v1/manifest-<build_id>.json`.
-4. Write `latest.json` conditionally, with `If-Match: <etag>`. For the first
-   publication, use `If-None-Match: *`.
-5. Handle the response:
-   - **Success:** done.
-   - **412 (another write got there first):** fail the run.
-   - **Timeout or unclear response:** re-read `latest.json`. If it contains this run's
-     `build_id`, the write committed. Otherwise retry once with the same condition, then
-     fail.
+The timestamp makes every tag unique, so a forced publish can follow a scheduled one on
+the same day.
 
-`latest.json` must never be written before the catalog it references has passed
-read-back verification. That is the one ordering rule.
+**Order.** The release stays a draft, invisible to clients, until everything is checked:
 
-Every outcome is safe. A write that lands late still points at a verified catalog, and
-the conditional header stops it from replacing a newer manifest. A failed run leaves
-yesterday's manifest in place.
+1. Delete any leftover draft or test release from an earlier run, together with its tag.
+2. Create a draft release and upload both files.
+3. Read the uploaded files' SHA-256 digests and sizes from the GitHub API. They must
+   match the local files.
+4. Publish the draft and mark it as the latest release.
 
-**Manifest fields:**
+Clients see a new catalog only after step 4. If any step fails, the run deletes the
+draft and fails. If step 4's response is lost, the run re-reads the release. If the
+release is published and latest, the run counts as success. Otherwise it fails, and the
+next run tries again.
+
+**Manifest fields** (`latest.json`):
 
 - `manifest_version`: 1
 - `schema_version`: 1
-- `build_id`: unique per run
-- `built_at`: UTC time the run started downloading
+- `tag`: the release tag
+- `built_at`: UTC time the build started downloading
 - `published_at`
+- `git_revision`: the commit that built the catalog
 - `catalog`:
-  - `path`, relative to the manifest
+  - `url`: the tag-specific download URL,
+    `https://github.com/Economic/bls-index/releases/download/<tag>/bls_index.parquet`
   - `sha256`
   - `bytes`
   - `rows`
@@ -170,68 +192,77 @@ yesterday's manifest in place.
   - `rows`
   - `inputs`, each with `file`, `bytes` and `sha256`
 
-Object paths are relative to the manifest's own URL. A path contains only `/`-separated,
-nonempty segments of `A-Z a-z 0-9 . _ -`, and no segment may be `.` or `..`. Builds and
-clients reject any other form. The manifest names no host.
+The catalog URL names the tag rather than "latest", so a client that read one manifest
+always downloads the matching catalog, even if a new release appears in between.
 
-**Retention.** An R2 lifecycle rule deletes objects with the prefixes `v1/catalog/` and
-`v1/manifest-` 90 days after upload. `latest.json` is not covered by the rule. 90 days
-is a starting point; shorten it once real rollback needs are known. Daily failure alerts
-make an unnoticed outage longer than the window implausible. That remaining risk is
-listed under accepted risks.
+**Retention.** After publishing, the run deletes releases beyond the newest 12, about
+three months. Every deletion also deletes the release's tag.
 
-**Manual recovery.** To roll back, verify an older `v1/manifest-<build_id>.json` and the
-catalog it names, then copy it to `latest.json` with `If-Match`. The runbook documents
-this step.
+**Manual rollback.** Run `gh release edit <tag> --latest` on an older release. A rollback
+lasts until the next publish. To hold it longer, disable the workflow's schedule until
+the problem is fixed. The runbook documents this.
 
 ## Operations
 
-- **Daily workflow.** A GitHub Actions workflow on a standard Linux runner, scheduled
-  daily and dispatchable by hand. It runs build, then publish. It is in concurrency group
-  `bls-index-publish` with `cancel-in-progress: false`. A pending run may be replaced by
-  a newer pending run, which is fine.
-- **Alerts.** One healthchecks.io check (free tier) handles both kinds of alert, by
-  email to the maintainer:
-  - **Failed runs.** The workflow pings `/start` when it begins, the success URL after
-    publishing, and `/fail` from an `if: failure()` step. An explicit failure alerts
-    within minutes.
+- **Workflow.** One GitHub Actions workflow on a standard Linux runner, scheduled daily
+  and dispatchable by hand, in concurrency group `bls-index-publish` with
+  `cancel-in-progress: false`. A pending run may be replaced by a newer pending run,
+  which is fine. It has two jobs:
+  - **Build.** Holds only `contents: read` and the User-Agent secret. It builds the
+    catalog and writes `latest.json`, then hands the run directory to the next job as a
+    short-lived workflow artifact.
+  - **Publish.** Runs only when publishing is due. Holds `contents: write` through the
+    built-in `GITHUB_TOKEN`, and never sees BLS data except the finished files.
+
+  Splitting the jobs keeps the write token away from the job that parses downloaded
+  files.
+- **Branch protection.** `main` requires pull requests, so the workflow's write token
+  cannot change code on `main`.
+- **Alerts.** One healthchecks.io check (free tier) emails the maintainer:
+  - **Failed runs.** The workflow pings `/start` when it begins, the success URL after a
+    successful build (and publish, when due), and `/fail` from an `if: failure()` step.
+    An explicit failure alerts within minutes.
   - **Missed runs.** With a 1-day period and a 1-day grace time, a missing success ping
     alerts within about 48 hours. That covers runs that never start, including GitHub
     disabling the schedule in an inactive repository.
 
   GitHub's own failed-run emails are a bonus, not a dependency.
-- **Artifacts.** GitHub Actions artifacts hold diagnostics only: the run report and logs.
-  R2 holds everything durable.
-- **Credentials.** R2 credentials are scoped to the publication bucket and stored as
-  repository secrets. Workflows never hold `contents: write`.
-- **Staging.** The `bls-index-staging` bucket, on hostname
-  `bls-index-staging.benzipperer.org`, exercises the full workflow before launch.
+- **Artifacts.** Workflow artifacts are temporary: the hand-off between jobs and the
+  diagnostic report. Releases hold everything durable.
+- **Credentials.** None beyond the `BLS_INDEX_USER_AGENT` secret, the healthchecks.io ping
+  URL, and the built-in `GITHUB_TOKEN`.
+- **Testing before launch.** A manual dispatch with a `test` option publishes a
+  prerelease tagged `test-YYYY-MM-DDTHHMMZ`. Prereleases never become "latest", so
+  clients never see it. It stays until the next run's cleanup, so it can be inspected
+  and downloaded first.
 
-## Serving and discovery
+## Clients
 
-- **Storage.** The R2 Standard bucket `bls-index`, behind the Cloudflare custom domain
-  `bls-index.benzipperer.org`, with the public `r2.dev` URL disabled. Reads need no key
-  and no JavaScript challenge, and must work from `curl` and R. The data host can move:
-  clients find it through the discovery pointer.
-- **Caching.** A long TTL for `/v1/catalog/*.parquet` and `/v1/manifest-*`, and a short
-  TTL for `latest.json`. No CAPTCHA or managed challenge. Add a path-scoped rate-limit
-  rule only after measuring real traffic. Configure usage and budget alerts, which are
-  not hard caps.
-- **Discovery pointer.** `https://economic.github.io/bls-index/endpoint.json`, served by
-  GitHub Pages from a dedicated `pages/` folder, contains `{"schema_version": 1,
-  "manifest_url": "https://<data host>/v1/latest.json"}`. It changes only through a
-  reviewed commit. Publish it only after the first public `latest.json` exists. Moving
-  the data host means attaching a new domain to the same bucket and updating the
-  pointer. The relative manifest paths need no rewrite.
+Clients start from two fixed URLs:
 
-**Client expectations,** to be specified fully in the client's own repository:
+- manifest: `https://github.com/Economic/bls-index/releases/latest/download/latest.json`
+- catalog: the `catalog.url` from that manifest
 
-- Start from the pointer.
-- Fetch the manifest at most about once per session, revalidating with ETags.
-- Verify the catalog SHA-256, and cache it by checksum.
-- Accept only `https` URLs.
-- Treat the catalog as stale when `built_at` is more than 48 hours old.
-- Send a User-Agent that names the client.
+A reference client, `examples/find_bls.R`, follows these rules. It keeps the signature of
+today's `epidatatools::find_bls(search_string, max_results = 20, survey = NULL,
+seasonality = NULL)`. Clients should:
+
+- Cache the catalog in `tools::R_user_dir("epidatatools", "cache")`, and verify its
+  SHA-256 against the manifest.
+- Check the manifest at most once every 7 days, measured from the last check. If the
+  checksum is unchanged, only reset the check date. If it changed, download the new
+  catalog, verify it, swap it in, and delete the old one. `refresh = TRUE` checks now.
+- Query the cached Parquet file in place, for example with `arrow::open_dataset`. Loading
+  all 8.3 million rows into an R data frame takes about 2 GB and 14–29 s per search;
+  querying in place takes about 0.3 s
+  ([measurements](docs/evidence/2026-10-20-phase1-runner-build.md)).
+- Search `series_title` and `survey_name`, case-insensitively.
+- Allow enough time for a slow download. R's `download.file()` gives up after 60 s by
+  default.
+- If the network fails, keep using the cached catalog, and say how old it is.
+- Treat a catalog whose `built_at` is more than 10 days old as stale, and say so.
+- Send a User-Agent naming the client, and let users override the manifest URL with an
+  option or environment variable.
 
 ## Accepted risks
 
@@ -245,44 +276,52 @@ These are deliberate. Reviews should not report them as defects.
    source is published, because row-count changes are diagnostics, not failures.
 4. **Native parsers check only the columns the catalog uses.** For native programs,
    BLS's internal consistency between IDs and their dimension columns is not checked.
-5. **Unclear write outcomes can mislead alerts.** A run whose manifest write outcome
-   stays unclear may report failure even though it published. The next run reads
-   whatever is current.
-6. **Retention is a fixed window.** An outage longer than the retention window
-   would expire the catalog that `latest.json` points to.
-7. **Orphaned uploads.** Uploaded catalogs that no manifest references remain publicly
-   fetchable until they expire.
+5. **Weekly freshness.** A published catalog is up to about 8 days behind BLS, and a
+   client that refreshes weekly can be about 15 days behind.
+6. **Everything depends on GitHub.** Code, builds and data all live there. GitHub does
+   not document throttling for anonymous release downloads. Moving the data elsewhere
+   would need a client update.
+7. **Rollback only within retention.** Only the newest 12 releases can be restored.
+8. **Unclear publish outcomes can mislead alerts.** A run whose final publish response
+   is lost may report failure although the release was published. The next run sees the
+   release and does not publish again for 6 days.
 
 ## Decisions
 
 - **Python, uv, polars,** with a pinned `data-dict-yaml` (2026-10-06).
-- **Discovery** through the GitHub Pages pointer, with relative manifest paths
-  (2026-10-07).
-- **R2 conditional writes** verified in Gate 0 (2026-10-12).
 - **Diagnostic row counts only:** no thresholds or warning state (2026-10-13).
-- **Operations** (2026-10-13):
-  - Two buckets: `bls-index` (production) and `bls-index-staging` (staging), both
-    public through their custom domains.
-  - healthchecks.io for alerts.
-  - 90-day retention as a starting point.
 - **Simplification** (2026-10-13), covering:
   - complete-only publication
   - scope in code
   - no journal
   - single download
   - name-based native parsing
-  - lifecycle retention
   - manual recovery
+- **Add `survey_name` before first publication** (2026-10-20), so the published v1
+  schema includes it from the start. Write the catalog at zstd level 19.
+- **Publish through GitHub Releases** (2026-10-20), replacing Cloudflare R2. This removes
+  the Cloudflare dependency, R2 credentials, the staging bucket, cache configuration, and
+  the conditional-write code. It keeps the data in the `Economic` organization.
+  Superseded: R2 storage, the `bls-index` and `bls-index-staging` buckets, and the
+  90-day lifecycle rule (2026-10-13).
+- **Drop the discovery pointer** (2026-10-20). The release URL depends on the same
+  repository the pointer did. Superseded: the GitHub Pages pointer (2026-10-07).
+- **Build daily, publish weekly** (2026-10-20). Clients refresh at most weekly, so daily
+  releases add little.
+- **No change history** (2026-10-20). A weekly list of added and removed series was
+  considered and dropped as not worth its cost.
+- **Reference client queries in place with `arrow`** (2026-10-20).
 
 ## Done when
 
 1. `./scripts/check.sh` passes offline, locally and in CI.
-2. The daily workflow builds all 33 programs, publishes to production, and has run
-   successfully for 7 consecutive days.
-3. A failed run leaves the previous manifest in place and alerts. The dead-man's-switch
-   monitor alerts when no successful publish happens within 48 hours.
-4. The pointer resolves to the production manifest. `curl` and R download the catalog
-   from an outside machine without credentials, and the checksum matches. Cache headers
-   are as configured.
-5. The runbook covers credentials, a manual rerun, rollback, adding a program, alerts,
-   and costs.
+2. The reference client finds expected series in a local build, including by survey
+   name.
+3. The daily workflow has built all 33 programs on 7 consecutive days, and has published
+   at least two weekly releases.
+4. A failed build or publish leaves the latest release unchanged and alerts. The monitor
+   alerts when no successful run happens within 48 hours.
+5. From an outside machine, `curl` and the reference client download the latest catalog
+   without credentials, and its checksum matches the manifest.
+6. The runbook covers a manual rerun, a forced publish, rollback, adding a program,
+   alerts, and costs.

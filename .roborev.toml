@@ -32,10 +32,10 @@ exclude_patterns = [
 
 review_guidelines = """
 Project context: this repository builds a low-stakes public catalog of BLS series IDs
-and titles. Once a day it rebuilds everything from fresh BLS files and publishes one
-Parquet file plus latest.json. If a run fails, yesterday's catalog keeps being served
-and the maintainer is alerted; the next run starts from scratch. Weigh every finding
-against those stakes.
+and titles. Every day it rebuilds everything from fresh BLS files; about once a week it
+publishes one Parquet file plus latest.json as a GitHub Release. If a run fails, the
+latest release keeps being served and the maintainer is alerted; the next run starts
+from scratch. Weigh every finding against those stakes.
 
 Project artifacts:
 - design.md is the source of truth. Its "Decisions", "Non-goals" and "Accepted risks"
@@ -60,8 +60,9 @@ What not to flag:
 - Missing handling for cases listed under "Accepted risks" or "Non-goals".
 - Wording and formatting, unless meaning changes.
 
-The one storage rule that is high severity: never write latest.json before the catalog
-object it references has been uploaded and verified by read-back.
+The one publication rule that is high severity: never make a release visible or mark
+it latest before both of its files are uploaded and their GitHub digests match the
+local files.
 
 Default tests must run offline, without BLS access or credentials.
 
@@ -103,7 +104,7 @@ reasoning = "high"
 
 # ---- Panels (groups of reviewers) ----
 # Runs on every commit (see hook_review_panel below).
-# Once publication code lands (R2 credentials, workflow secrets), add "codex_security_reviewer".
+# Once publication code lands (contents: write token, workflow secrets), add "codex_security_reviewer".
 [review.panels.every_commit_panel]
 members = ["codex_code_reviewer"]
 
