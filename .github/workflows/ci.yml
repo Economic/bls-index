@@ -20,6 +20,3 @@ jobs:
           enable-cache: true
       - name: Build and test (offline harness, no credentials)
         run: ./scripts/check.sh
-      - name: Record runner resources
-        if: always()
-        run: uv run --frozen bls-index runner-info

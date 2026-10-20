@@ -48,11 +48,15 @@ tables:
         description: Canonical seasonal-adjustment status, or unknown when unavailable.
       - name: begin_year
         type: number
-        description: Optional positive four-digit year; descriptive source metadata.
+        constraints:
+          - assert: begin_year >= 1000 AND begin_year <= 9999
+        description: Optional four-digit year; descriptive source metadata.
         examples: [1980, 2026]
       - name: end_year
         type: number
-        description: Optional positive four-digit year; descriptive source metadata.
+        constraints:
+          - assert: end_year >= 1000 AND end_year <= 9999
+        description: Optional four-digit year; descriptive source metadata.
         examples: [1980, 2026]
       - name: end_period
         type: string

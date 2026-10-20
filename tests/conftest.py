@@ -2,38 +2,19 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Iterator
-from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from bls_index.events import EventLog
 from bls_index.http_source import FetchConfig, HttpSource
 from bls_index.object_store import S3ObjectStore, make_s3_client
-from tests.harness.clock import FakeClock
 from tests.harness.http_source import ControlledHttpSource
-from tests.harness.notifier import FakeNotifier
 from tests.harness.s3 import FaultProxy, backdoor_client, start_moto
 
 FIXTURES = Path(__file__).parent / "fixtures"
 TWO_PROGRAM = FIXTURES / "two_program"
 TEST_USER_AGENT = "bls_index test harness (+https://example.invalid/contact)"
 _bucket_ids = itertools.count()
-
-
-@pytest.fixture
-def clock() -> FakeClock:
-    return FakeClock(datetime(2026, 10, 1, 12, 0, tzinfo=UTC))
-
-
-@pytest.fixture
-def events(clock: FakeClock) -> EventLog:
-    return EventLog(clock)
-
-
-@pytest.fixture
-def notifier() -> FakeNotifier:
-    return FakeNotifier()
 
 
 @pytest.fixture
@@ -49,18 +30,17 @@ def sleeps() -> list[float]:
 
 
 @pytest.fixture
-def make_source(http_server, events, clock, sleeps):
+def make_source(http_server, sleeps):
     sources: list[HttpSource] = []
 
     def make(**overrides) -> HttpSource:
         settings = dict(
             user_agent=TEST_USER_AGENT, base_url=http_server.base_url,
-            connect_timeout=2.0, read_timeout=0.5, max_request_attempts=3,
-            backoff_initial=1.0, backoff_max=8.0, max_input_set_attempts=3,
-            max_concurrency=2, min_request_interval=0.0,
+            connect_timeout=2.0, read_timeout=0.5, max_attempts=3,
+            backoff_initial=1.0, backoff_max=8.0, min_request_interval=0.0,
         )  # fmt: skip
         settings.update(overrides)
-        source = HttpSource(FetchConfig(**settings), events, clock, sleep=sleeps.append)
+        source = HttpSource(FetchConfig(**settings), sleep=sleeps.append)
         sources.append(source)
         return source
 
@@ -96,9 +76,9 @@ def bucket(backdoor) -> str:
 
 
 @pytest.fixture
-def store(fault_proxy, bucket, events) -> S3ObjectStore:
+def store(fault_proxy, bucket) -> S3ObjectStore:
     client = make_s3_client(
         fault_proxy.url, "testing", "testing", region="us-east-1",
         connect_timeout=2.0, read_timeout=2.0,
     )  # fmt: skip
-    return S3ObjectStore(client, bucket, "test-ns/", events)
+    return S3ObjectStore(client, bucket, "test-ns/")
