@@ -40,8 +40,6 @@ class ControlledHttpSource:
         self._scripts: dict[str, list[Reply]] = {}
         self._lock = threading.Lock()
         self.requests: list[SeenRequest] = []
-        self.in_flight = 0
-        self.max_in_flight = 0
         harness = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -51,9 +49,6 @@ class ControlledHttpSource:
                 pass
 
             def do_GET(self) -> None:
-                harness._handle(self)
-
-            def do_HEAD(self) -> None:
                 harness._handle(self)
 
         self._server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
@@ -110,8 +105,6 @@ class ControlledHttpSource:
                     handler.command, handler.path, dict(handler.headers.items()), time.monotonic()
                 )
             )
-            self.in_flight += 1
-            self.max_in_flight = max(self.max_in_flight, self.in_flight)
         try:
             reply = self._next_reply(handler.path) or Reply(status=404, body=b"Not Found")
             if reply.delay:
@@ -127,8 +120,6 @@ class ControlledHttpSource:
             else:
                 handler.send_header("Content-Length", str(len(reply.body)))
             handler.end_headers()
-            if handler.command == "HEAD":
-                return
             if reply.chunked:
                 _write_chunked(handler, reply.body, reply.truncate_at)
                 return
@@ -140,9 +131,6 @@ class ControlledHttpSource:
             handler.wfile.write(reply.body)
         except (BrokenPipeError, ConnectionResetError):
             pass  # the client gave up (e.g. on a timeout)
-        finally:
-            with self._lock:
-                self.in_flight -= 1
 
 
 def _write_chunked(

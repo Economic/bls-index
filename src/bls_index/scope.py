@@ -30,19 +30,6 @@ LOOKUP_FILES: dict[str, tuple[str, ...]] = {
     "pr": ("sector", "class", "measure", "duration"),
 }
 
-# Not v1 scope. Listed only so tests can assert they never leak into the initial list.
-FUTURE_CHECKPOINT_PROGRAMS: tuple[str, ...] = (
-    # Checkpoint 3: frozen twins.
-    "ee", "sa", "mu", "mw", "pd", "cc", "ec", "nc", "eb", "jl",
-    # Checkpoint 4: injuries.
-    "ii", "sh", "hs", "si",
-    # Checkpoint 5: standalone frozen.
-    "ml", "gp", "in", "gg", "bp", "li", "bg",
-)  # fmt: skip
-EXCLUDED_PROGRAMS: tuple[str, ...] = (
-    "nw", "ca", "cb", "cd", "cf", "ch", "cs", "fa", "fi", "fw", "hc",
-)  # fmt: skip
-
 
 def input_files(program: str) -> tuple[str, ...]:
     """Source file names (relative to the program directory) for one build unit."""

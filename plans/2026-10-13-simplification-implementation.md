@@ -1,10 +1,10 @@
 # Implementation plan: simplify, then publish (2026-10-13)
 
-This plan implements the rewritten [`design.md`](../design.md). It replaces
-[`docs/archive/plans/implementation-plan-v1.md`](../docs/archive/plans/implementation-plan-v1.md), which
-is kept as a historical record. The reasoning is in
-[`2026-10-13-simplification-review.md`](2026-10-13-simplification-review.md) and
-[`../docs/reviews/2026-10-13-simplification-review.md`](../docs/reviews/2026-10-13-simplification-review.md).
+This plan implements the rewritten [`design.md`](../design.md). It replaces the
+[v1 implementation plan](https://github.com/Economic/bls-index/blob/pre-cleanup/docs/archive/plans/implementation-plan-v1.md). The reasoning
+is in [`2026-10-13-simplification-review.md`](2026-10-13-simplification-review.md) and a
+[second review](https://github.com/Economic/bls-index/blob/pre-cleanup/docs/reviews/2026-10-13-simplification-review.md). Older plans,
+evidence and reviews are at the git tag `pre-cleanup`.
 
 ## Where we start
 
@@ -287,6 +287,8 @@ not a package.
 
 ### 2.1 Remove the R2 code
 
+**Done 2026-10-20** (all but the optional operator step).
+
 - Delete `object_store.py`, `tests/test_object_store.py`, `tests/harness/s3.py`, and
   the moto fixtures in `conftest.py`.
 - Remove `boto3` and `moto[server]` from `pyproject.toml`, and update `uv.lock`.
@@ -401,7 +403,8 @@ The questions raised with the first draft of this plan were settled as follows.
 5. **Retention.** 90 days as a starting point. Superseded on 2026-10-20: keep the newest
    12 weekly releases.
 6. **Old docs.** Archive to `docs/archive/` in Phase 1, together with the code they
-   describe (task 1.6). Keep `research/`.
+   describe (task 1.6). Keep `research/`. Superseded on 2026-10-20: `docs/archive/` and
+   `docs/reviews/` were deleted, and remain at the git tag `pre-cleanup`.
 7. **Historical `kv` layout.** Accepted. If that variant reappears, the build fails with
    a clear missing-column error.
 

@@ -5,7 +5,6 @@ description = "Build and publish a downloadable catalog of BLS time-series IDs a
 readme = "README.md"
 requires-python = "==3.13.*"
 dependencies = [
-    "boto3==1.43.108",
     "data-dict-yaml==0.0.3",
     "httpx==0.28.1",
     "polars==2.0.0",
@@ -16,7 +15,6 @@ bls-index = "bls_index.cli:main"
 
 [dependency-groups]
 dev = [
-    "moto[server]==5.2.3",
     "pytest==9.1.1",
 ]
 
