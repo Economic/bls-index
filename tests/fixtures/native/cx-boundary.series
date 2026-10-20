@@ -1,3 +1,0 @@
-series_id                     	seasonal	category_code	subcategory_code	item_code	demographics_code	characteristics_code	process_code	series_title	footnote_codes	begin_year	begin_period	end_year	end_period
-CXUHAMLB0101M                 	U	EXPEND	FOODTOTL	HAM	LB01	01	M	Ham by Income Quintiles: All Consumer Units		2010	A01	2022	A01
-CXUBEERNALELB0101M            	U	EXPEND	ALCBEVG	BEERNALE	LB01	01	M	Beer and ale by Income Quintiles: All Consumer Units		2010	A01	2021	A01

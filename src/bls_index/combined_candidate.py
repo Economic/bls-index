@@ -1,329 +1,102 @@
-"""Validate combined schema-v1 candidate frames and write local Parquet candidates.
-
-This module accepts already-built program frames. It performs no downloads and
-never updates the repository dictionary or publishes to an external service.
-"""
+"""Combine per-program rows into one catalog candidate and validate it."""
 
 from __future__ import annotations
 
-import os
-import re
+import shutil
 import subprocess
-import tempfile
 import time
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
-from typing import Callable, Mapping, Sequence
 
 import polars as pl
 
-from bls_index.native_builders import (
-    CANONICAL_SCHEMA,
-    SCHEMA_VERSION,
-    SEASONAL_SOURCE_CODES,
-    SERIES_ID_PATTERNS,
-)
-from bls_index.scope import (
-    INITIAL_PROGRAMS,
-    NATIVE_TITLE_PROGRAMS,
-)
+from bls_index.schema import CANONICAL_SCHEMA
+from bls_index.scope import INITIAL_PROGRAMS, NATIVE_TITLE_PROGRAMS
+
+DICTIONARY = Path(__file__).resolve().parents[2] / "data-dict.yaml"
+CATALOG_NAME = "bls_index.parquet"  # the dictionary's relative parquet source
 
 
 class CombinedCandidateError(ValueError):
-    """A set of program frames or a staged candidate violates schema v1."""
-
-
-_YEAR_LIMIT = 9999
-_PERIOD_RE = re.compile(r"^(M(0[1-9]|1[0-3])|Q(0[1-5])|A01)$")
-_MONTHLY_PERIOD_RE = re.compile(r"^M(0[1-9]|1[0-3])$")
-_SEMIANNUAL_PERIOD_RE = re.compile(r"^S0[1-3]$")
-_SEMIANNUAL_PROGRAMS = frozenset({"cu", "cw"})
-_SYNTHESIZED_ID_PATTERNS = {
-    "sm": r"^[Ss][Mm][SsUu][0-9]{17}$",
-    "jt": r"^[Jj][Tt][SsUu][A-Za-z0-9]{18}$",
-    "pr": r"^[Pp][Rr][SsUu][0-9]{8}$",
-}
-_DICTIONARY_NAME = "data-dict.yaml"
-_DICTIONARY_SOURCE = "parquet: bls_index.parquet"
-
-
-def _invalid_rows(frame: pl.DataFrame, predicate: pl.Expr) -> pl.DataFrame:
-    return frame.filter(predicate.fill_null(True))
-
-
-def _validate_frame(frame: pl.DataFrame, program: str) -> None:
-    if frame.schema != CANONICAL_SCHEMA:
-        raise CombinedCandidateError(
-            f"program {program!r} returned schema {frame.schema!r}; "
-            f"expected canonical schema v{SCHEMA_VERSION}: {CANONICAL_SCHEMA!r}"
-        )
-    if frame.is_empty():
-        raise CombinedCandidateError(f"program {program!r} returned no candidate rows")
-
-    wrong_program = _invalid_rows(frame, pl.col("program") != program)
-    if wrong_program.height:
-        values = wrong_program.get_column("program").unique().head(5).to_list()
-        raise CombinedCandidateError(
-            f"frame keyed as {program!r} contains mismatched program value(s): {values!r}"
-        )
-
-    expected_title_source = (
-        "native" if program in NATIVE_TITLE_PROGRAMS else "synthesized"
-    )
-    wrong_title_source = _invalid_rows(
-        frame, pl.col("title_source") != expected_title_source
-    )
-    if wrong_title_source.height:
-        values = wrong_title_source.get_column("title_source").unique().head(5).to_list()
-        raise CombinedCandidateError(
-            f"program {program!r} requires title_source {expected_title_source!r}; "
-            f"got {values!r}"
-        )
-
-    series_id = pl.col("series_id")
-    if program in SERIES_ID_PATTERNS:
-        valid_id = series_id.str.to_uppercase().str.contains(SERIES_ID_PATTERNS[program])
-    else:
-        valid_id = series_id.str.contains(_SYNTHESIZED_ID_PATTERNS[program])
-    bad_id = _invalid_rows(
-        frame,
-        series_id.is_null()
-        | (series_id == "")
-        | (series_id != series_id.str.strip_chars())
-        | ~valid_id,
-    )
-    if bad_id.height:
-        raise CombinedCandidateError(
-            f"program {program!r} has a missing, untrimmed, or invalid BLS series_id"
-        )
-
-    bad_title = _invalid_rows(
-        frame,
-        pl.col("series_title").is_null()
-        | (pl.col("series_title").str.strip_chars() == ""),
-    )
-    if bad_title.height:
-        raise CombinedCandidateError(
-            f"program {program!r} has a missing or whitespace-only series_title"
-        )
-
-    seasonal = pl.col("seasonal")
-    if program in SEASONAL_SOURCE_CODES:
-        allowed_source_codes = SEASONAL_SOURCE_CODES[program]
-        allowed_seasonal = (
-            ["unknown"]
-            if allowed_source_codes is None
-            else ["SA" if code == "S" else "NSA" for code in sorted(allowed_source_codes)]
-        )
-    else:
-        # Synthesized builders expose the observed S/U source convention.
-        allowed_seasonal = ["SA", "NSA"]
-    bad_seasonal = _invalid_rows(frame, ~seasonal.is_in(allowed_seasonal))
-    if bad_seasonal.height:
-        raise CombinedCandidateError(
-            f"program {program!r} has seasonal value outside {allowed_seasonal!r}"
-        )
-
-    seasonal_code = series_id.str.to_uppercase().str.slice(2, 1)
-    seasonal_mismatch = _invalid_rows(
-        frame,
-        ((seasonal == "SA") & (seasonal_code != "S"))
-        | ((seasonal == "NSA") & (seasonal_code != "U")),
-    )
-    if seasonal_mismatch.height:
-        raise CombinedCandidateError(
-            f"program {program!r} has a series_id seasonal code inconsistent with seasonal"
-        )
-
-    for column in ("begin_year", "end_year"):
-        bad_year = _invalid_rows(
-            frame,
-            pl.col(column).is_not_null()
-            & ((pl.col(column) < 1000) | (pl.col(column) > _YEAR_LIMIT)),
-        )
-        if bad_year.height:
-            raise CombinedCandidateError(
-                f"program {program!r} has {column} outside the four-digit year range 1000–9999"
-            )
-
-    inverted_years = _invalid_rows(
-        frame,
-        pl.col("begin_year").is_not_null()
-        & pl.col("end_year").is_not_null()
-        & (pl.col("begin_year") > pl.col("end_year")),
-    )
-    if inverted_years.height:
-        raise CombinedCandidateError(
-            f"program {program!r} has begin_year later than end_year"
-        )
-
-    end_period = pl.col("end_period")
-    if program in _SEMIANNUAL_PROGRAMS:
-        valid_period = end_period.str.contains(_MONTHLY_PERIOD_RE.pattern) | end_period.str.contains(
-            _SEMIANNUAL_PERIOD_RE.pattern
-        )
-    else:
-        valid_period = end_period.str.contains(_PERIOD_RE.pattern)
-    bad_period = _invalid_rows(
-        frame,
-        (end_period.is_not_null() & ~valid_period).fill_null(False),
-    )
-    if bad_period.height:
-        raise CombinedCandidateError(
-            f"program {program!r} has an unsupported BLS end_period code"
-        )
-
-    period_without_year = _invalid_rows(
-        frame,
-        pl.col("end_period").is_not_null() & pl.col("end_year").is_null(),
-    )
-    if period_without_year.height:
-        raise CombinedCandidateError(
-            f"program {program!r} has end_period without end_year"
-        )
+    pass
 
 
 def validate_combined_candidate(
-    frames: Mapping[str, pl.DataFrame],
-    requested_programs: Sequence[str],
+    frames: Mapping[str, pl.DataFrame], requested_programs: Sequence[str]
 ) -> pl.DataFrame:
-    """Validate and combine frames for a unique requested subset of initial scope.
-
-    Frames are supplied explicitly by program; every requested program needs one
-    nonempty canonical frame. No builder-implementation readiness is inferred.
-    """
+    """Check scope, schema, program assignment, and global ID uniqueness; concatenate."""
     programs = tuple(requested_programs)
-    if not programs:
-        raise CombinedCandidateError("requested program scope must not be empty")
-    if len(programs) != len(set(programs)):
-        raise CombinedCandidateError("requested program scope contains duplicates")
-    unknown = sorted(set(programs) - set(INITIAL_PROGRAMS))
-    if unknown:
-        raise CombinedCandidateError(f"requested programs outside initial scope: {unknown!r}")
-    missing = sorted(set(programs) - set(frames))
-    unexpected = sorted(set(frames) - set(programs))
-    if missing or unexpected:
+    if not programs or len(set(programs)) != len(programs):
+        raise CombinedCandidateError("requested scope must be nonempty and unique")
+    if set(programs) - set(INITIAL_PROGRAMS):
+        raise CombinedCandidateError(f"programs outside scope: {sorted(set(programs) - set(INITIAL_PROGRAMS))}")
+    if set(frames) != set(programs):
         raise CombinedCandidateError(
-            f"frame/program scope mismatch; missing frames: {missing!r}; "
-            f"unexpected frames: {unexpected!r}"
+            f"frames {sorted(frames)} do not match requested programs {sorted(programs)}"
         )
-
-    validated: list[pl.DataFrame] = []
     for program in programs:
         frame = frames[program]
-        _validate_frame(frame, program)
-        validated.append(frame)
+        if frame.schema != CANONICAL_SCHEMA:
+            raise CombinedCandidateError(f"{program}: schema {frame.schema} is not canonical")
+        if frame.is_empty():
+            raise CombinedCandidateError(f"{program}: no rows")
+        source = "native" if program in NATIVE_TITLE_PROGRAMS else "synthesized"
+        if not frame.select(
+            (pl.col("program") == program).all() & (pl.col("title_source") == source).all()
+        ).item():
+            raise CombinedCandidateError(f"{program}: wrong program or title_source values")
 
-    combined = pl.concat(validated, how="vertical")
+    combined = pl.concat([frames[program] for program in programs])
     duplicates = combined.filter(pl.col("series_id").is_duplicated())
     if duplicates.height:
-        collisions = (
-            duplicates.group_by("series_id")
-            .agg(pl.col("program").unique().sort().alias("programs"))
-            .sort("series_id")
-        )
-        collision = collisions.row(0, named=True)
-        raise CombinedCandidateError(
-            f"series_id collision across combined candidate: {collision['series_id']!r} "
-            f"in programs {collision['programs']!r}; this candidate is not accepted "
-            "as globally unique"
-        )
-    return combined.cast(CANONICAL_SCHEMA)
-
-
-def _run_data_dict_checks(
-    dictionary: Path,
-    repository_root: Path,
-    timing_callback: Callable[[str, float], None] | None = None,
-) -> None:
-    commands = (
-        ("validate-spec",),
-        ("validate-meta",),
-        ("validate-data",),
-    )
-    for check in commands:
-        started = time.perf_counter()
-        result = subprocess.run(
-            ["uv", "run", "--locked", "data-dict", *check, str(dictionary), "--json"],
-            cwd=repository_root,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        if timing_callback is not None:
-            timing_callback(check[0], time.perf_counter() - started)
-        if result.returncode:
-            details = (result.stdout + "\n" + result.stderr).strip()
-            raise CombinedCandidateError(
-                f"pinned data-dict {check[0]} failed (exit {result.returncode}): {details}"
-            )
+        first = duplicates.row(0, named=True)["series_id"]
+        owners = sorted(duplicates.filter(pl.col("series_id") == first)["program"].unique())
+        raise CombinedCandidateError(f"series_id {first!r} appears in programs {owners}")
+    return combined
 
 
 def write_combined_candidate(
     frames: Mapping[str, pl.DataFrame],
     requested_programs: Sequence[str],
-    output_path: str | Path,
+    directory: Path,
     *,
-    dictionary_path: str | Path | None = None,
+    dictionary_path: Path | None = None,
     timing_callback: Callable[[str, float], None] | None = None,
 ) -> pl.DataFrame:
-    """Validate frames and write one compressed Parquet candidate without replacement.
+    """Validate, write ``directory/bls_index.parquet``, and run the pinned data-dict checks.
 
-    The candidate is fully staged and checked by the pinned data-dict executable
-    before a same-filesystem hard link makes the requested output name visible.
+    The dictionary is copied beside the Parquet because ``validate-data`` resolves its
+    relative ``parquet:`` source from the dictionary's directory. On any failure the
+    Parquet file is removed, so a failed run never leaves a candidate behind.
     """
-    destination = Path(output_path)
-    if destination.exists():
-        raise CombinedCandidateError(f"candidate output already exists: {destination}")
-    if destination.name != "bls_index.parquet":
-        raise CombinedCandidateError(
-            "candidate output filename must be the canonical bls_index.parquet"
-        )
-
     combined = validate_combined_candidate(frames, requested_programs)
-    root = Path(__file__).resolve().parents[2]
-    authoritative_dictionary = (
-        Path(dictionary_path) if dictionary_path is not None else root / _DICTIONARY_NAME
-    )
+    directory.mkdir(parents=True, exist_ok=True)
+    catalog = directory / CATALOG_NAME
+    dictionary = directory / "data-dict.yaml"
+    combined.write_parquet(catalog, compression="zstd")
     try:
-        dictionary_text = authoritative_dictionary.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise CombinedCandidateError(
-            f"cannot read authoritative dictionary {authoritative_dictionary}: {exc}"
-        ) from exc
-    if dictionary_text.count(_DICTIONARY_SOURCE) != 1:
-        raise CombinedCandidateError(
-            f"dictionary must contain exactly one {_DICTIONARY_SOURCE!r} source entry"
-        )
-
-    made_parent = not destination.parent.exists()
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        with tempfile.TemporaryDirectory(
-            prefix=".bls-index-candidate-", dir=destination.parent
-        ) as staging_name:
-            staging = Path(staging_name)
-            staged_parquet = staging / "bls_index.parquet"
-            staged_dictionary = staging / _DICTIONARY_NAME
-            combined.write_parquet(staged_parquet, compression="zstd")
-            staged_dictionary.write_text(
-                dictionary_text.replace(_DICTIONARY_SOURCE, "parquet: bls_index.parquet"),
-                encoding="utf-8",
-            )
-            _run_data_dict_checks(staged_dictionary.resolve(), root, timing_callback)
-            try:
-                os.link(staged_parquet, destination)
-            except FileExistsError as exc:
-                raise CombinedCandidateError(
-                    f"candidate output was created concurrently and was not replaced: {destination}"
-                ) from exc
-    except CombinedCandidateError:
+        shutil.copyfile(dictionary_path or DICTIONARY, dictionary)
+        _run_data_dict(dictionary, timing_callback)
+    except BaseException:
+        catalog.unlink(missing_ok=True)
         raise
-    except Exception as exc:
-        raise CombinedCandidateError(f"cannot stage candidate Parquet: {exc}") from exc
-    finally:
-        if made_parent:
-            try:
-                destination.parent.rmdir()
-            except OSError:
-                pass
     return combined
+
+
+def _run_data_dict(dictionary: Path, timing_callback: Callable[[str, float], None] | None) -> None:
+    executable = shutil.which("data-dict")
+    if executable is None:
+        raise CombinedCandidateError("data-dict executable not found on PATH")
+    for check in ("validate-spec", "validate-meta", "validate-data"):
+        started = time.perf_counter()
+        result = subprocess.run(
+            [executable, check, str(dictionary), "--json"],
+            capture_output=True, text=True, check=False,
+        )  # fmt: skip
+        if timing_callback is not None:
+            timing_callback(check, time.perf_counter() - started)
+        if result.returncode:
+            raise CombinedCandidateError(
+                f"data-dict {check} failed (exit {result.returncode}): "
+                f"{(result.stdout + result.stderr).strip()}"
+            )

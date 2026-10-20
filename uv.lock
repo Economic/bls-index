@@ -70,13 +70,13 @@ version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "boto3" },
+    { name = "data-dict-yaml" },
     { name = "httpx" },
     { name = "polars" },
 ]
 
 [package.dev-dependencies]
 dev = [
-    { name = "data-dict-yaml" },
     { name = "moto", extra = ["server"] },
     { name = "pytest" },
 ]
@@ -84,13 +84,13 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = "==1.43.108" },
+    { name = "data-dict-yaml", specifier = "==0.0.3" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "polars", specifier = "==2.0.0" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "data-dict-yaml", specifier = "==0.0.3" },
     { name = "moto", extras = ["server"], specifier = "==5.2.3" },
     { name = "pytest", specifier = "==9.1.1" },
 ]

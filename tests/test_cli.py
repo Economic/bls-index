@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
-from pathlib import Path
 
 import polars as pl
 import pytest
@@ -183,79 +182,6 @@ def test_full_initial_scope_requires_representative_search_results(
     assert empty_query in report["failure"]["detail"]
     assert report["combined"] is None
     assert not (run_dir / "combined" / "bls_index.parquet").exists()
-
-
-def test_dry_build_rejects_changed_valid_bundle_before_reload(http_server, tmp_path, monkeypatch):
-    from bls_index import dry_build
-
-    http_server.serve_tree(TWO_PROGRAM)
-    monkeypatch.setenv("BLS_INDEX_USER_AGENT", TEST_USER_AGENT)
-    workdir = tmp_path / "runs"
-    original_build = dry_build.build_native_parquet
-    original_read_parquet = dry_build.pl.read_parquet
-    bundle_reads = []
-
-    def alter_bundle_after_build(*args, **kwargs):
-        result = original_build(*args, **kwargs)
-        frame = original_read_parquet(result.parquet_path)
-        frame.with_columns(pl.lit("tampered but valid parquet").alias("series_title")).write_parquet(
-            result.parquet_path
-        )
-        return result
-
-    def count_bundle_reads(path, *args, **kwargs):
-        if "bundles" in Path(path).parts:
-            bundle_reads.append(Path(path))
-        return original_read_parquet(path, *args, **kwargs)
-
-    monkeypatch.setattr(dry_build, "build_native_parquet", alter_bundle_after_build)
-    monkeypatch.setattr(dry_build.pl, "read_parquet", count_bundle_reads)
-    assert main([
-        "dry-build", "--programs", "ap", "--base-url", http_server.base_url,
-        "--workdir", str(workdir), "--min-request-interval", "0",
-    ]) == 1
-
-    run_dir = next(workdir.glob("dry-build-*"))
-    report = json.loads((run_dir / "report.json").read_text())
-    assert report["status"] == "failed"
-    assert report["failure"]["stage"] == "combined_validation"
-    assert "integrity check failed" in report["failure"]["detail"]
-    assert report["combined"] is None
-    assert not (run_dir / "combined" / "bls_index.parquet").exists()
-    assert bundle_reads == []
-
-
-def test_dry_build_reports_corrupt_bundle_reload_as_combined_failure(
-    http_server, tmp_path, monkeypatch,
-):
-    from bls_index import dry_build
-
-    http_server.serve_tree(TWO_PROGRAM)
-    monkeypatch.setenv("BLS_INDEX_USER_AGENT", TEST_USER_AGENT)
-    workdir = tmp_path / "runs"
-    original_build = dry_build.build_native_parquet
-
-    def corrupt_bundle_after_build(*args, **kwargs):
-        result = original_build(*args, **kwargs)
-        result.parquet_path.write_bytes(b"not a valid parquet bundle")
-        return result
-
-    monkeypatch.setattr(dry_build, "build_native_parquet", corrupt_bundle_after_build)
-    assert main([
-        "dry-build", "--programs", "ap", "--base-url", http_server.base_url,
-        "--workdir", str(workdir), "--min-request-interval", "0",
-    ]) == 1
-
-    run_dir = next(workdir.glob("dry-build-*"))
-    report = json.loads((run_dir / "report.json").read_text())
-    assert report["status"] == "failed"
-    assert report["failure"]["stage"] == "combined_validation"
-    assert report["failure"]["reason"] == "ValueError"
-    assert "integrity check failed" in report["failure"]["detail"]
-    assert report["combined"] is None
-    assert not (run_dir / "combined" / "bls_index.parquet").exists()
-    events = [json.loads(line) for line in (run_dir / "events.jsonl").read_text().splitlines()]
-    assert any(event["kind"] == "dry_build.combined_failed" for event in events)
 
 
 def test_dry_build_fails_closed_and_redacts_user_agent(http_server, tmp_path, monkeypatch):

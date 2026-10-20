@@ -1,8 +1,8 @@
 """Sequential, local-only orchestration for measured BLS catalog dry builds.
 
-The runner has no publication or object-store integration. It downloads and verifies
-one program at a time, writes local content-addressed bundles, then reloads every
-bundle only after all programs have succeeded before staging the combined candidate.
+The runner has no publication or object-store integration. It downloads and builds
+one program at a time, keeps each program's rows in memory, and writes and validates
+the combined candidate only after every program has succeeded.
 """
 
 from __future__ import annotations
@@ -27,15 +27,9 @@ import polars as pl
 from bls_index.clock import Clock
 from bls_index.combined_candidate import write_combined_candidate
 from bls_index.events import EventLog
-from bls_index.http_source import HttpSource, InputSet, InputSetError
-from bls_index.native_parquet import NativeParquetBuild, build_native_parquet
-from bls_index.scope import INITIAL_PROGRAMS, NATIVE_TITLE_PROGRAMS, input_files
-from bls_index.synthesized_parquet import (
-    SynthesizedParquetBuild,
-    build_synthesized_parquet,
-)
-
-BuildResult = NativeParquetBuild | SynthesizedParquetBuild
+from bls_index.http_source import HttpSource, InputSetError
+from bls_index.builders import build_program
+from bls_index.scope import INITIAL_PROGRAMS, input_files
 
 
 def _sha256(path: Path) -> str:
@@ -317,15 +311,13 @@ def _run_dry_build_impl(
     run_dir = root / f"dry-build-{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}-{uuid.uuid4().hex}"
     run_dir.mkdir(mode=0o700, exist_ok=False)
     downloads_dir = run_dir / "downloads"
-    bundles_dir = run_dir / "bundles"
     downloads_dir.mkdir()
-    bundles_dir.mkdir()
     sampler.start(run_dir)
     disk_before = shutil.disk_usage(run_dir)
     initial_tree_bytes = _tree_bytes(run_dir)
     run_started = time.perf_counter()
     programs_report: list[dict[str, Any]] = []
-    build_results: dict[str, BuildResult] = {}
+    frames: dict[str, pl.DataFrame] = {}
     failure: dict[str, str] | None = None
 
     events.record("dry_build.started", programs=list(requested), run_directory=str(run_dir))
@@ -385,11 +377,8 @@ def _run_dry_build_impl(
         item["build_seconds"] = None
         build_started = time.perf_counter()
         try:
-            result = (
-                build_native_parquet(input_set, bundles_dir, clock, timing_callback=lambda values: item.update(stage_seconds=values))
-                if program in NATIVE_TITLE_PROGRAMS
-                else build_synthesized_parquet(input_set, bundles_dir, clock, timing_callback=lambda values: item.update(stage_seconds=values))
-            )
+            files = {Path(urlsplit(r.url).path).name: Path(r.path) for r in input_set.files}
+            frame = build_program(program, files)
         except Exception as exc:
             item["build_seconds"] = time.perf_counter() - build_started
             events.record("dry_build.program_failed", program=program, stage="build",
@@ -404,18 +393,10 @@ def _run_dry_build_impl(
             break
         item["build_seconds"] = time.perf_counter() - build_started
         item["status"] = "built"
-        item["row_count"] = result.row_count
-        item["bundle"] = {
-            "parquet_path": str(result.parquet_path.relative_to(run_dir)),
-            "parquet_bytes": result.parquet_bytes,
-            "parquet_sha256": result.parquet_sha256,
-            "provenance_path": str(result.provenance_path.relative_to(run_dir)),
-            "provenance_sha256": result.provenance_sha256,
-        }
+        item["row_count"] = frame.height
         programs_report.append(item)
-        build_results[program] = result
-        events.record("dry_build.program_built", program=program, row_count=result.row_count,
-                      parquet_bytes=result.parquet_bytes, parquet_sha256=result.parquet_sha256)
+        frames[program] = frame
+        events.record("dry_build.program_built", program=program, row_count=frame.height)
         _write_checkpoint(run_dir, requested, programs_report,
                           [entry["program"] for entry in programs_report if entry["status"] == "built"],
                           checkpoint=f"program_completed:{program}")
@@ -424,24 +405,12 @@ def _run_dry_build_impl(
     dictionary_metrics: dict[str, float] = {}
     combined_seconds: float | None = None
     query_metrics: list[dict[str, Any]] = []
-    if failure is None and len(build_results) == len(requested):
+    if failure is None and len(frames) == len(requested):
         combined_started = time.perf_counter()
         combined_path = run_dir / "combined" / "bls_index.parquet"
         try:
-            frames: dict[str, pl.DataFrame] = {}
-            for program in requested:
-                result = build_results[program]
-                actual_bytes = result.parquet_path.stat().st_size
-                actual_sha256 = _sha256(result.parquet_path)
-                if actual_bytes != result.parquet_bytes or actual_sha256 != result.parquet_sha256:
-                    raise ValueError(
-                        f"bundle integrity check failed for {program}: "
-                        f"expected {result.parquet_sha256} ({result.parquet_bytes} bytes), "
-                        f"got {actual_sha256} ({actual_bytes} bytes)"
-                    )
-                frames[program] = pl.read_parquet(result.parquet_path)
             combined = write_combined_candidate(
-                frames, requested, combined_path, dictionary_path=dictionary_path,
+                frames, requested, combined_path.parent, dictionary_path=dictionary_path,
                 timing_callback=lambda check, seconds: dictionary_metrics.__setitem__(check, seconds),
             )
             combined_seconds = time.perf_counter() - combined_started
@@ -489,10 +458,10 @@ def _run_dry_build_impl(
             f"program_failed:{failure['program']}" if "program" in failure else "combined_failed"
         ),
         "requested_programs": list(requested),
-        "scope_complete": failure is None and set(build_results) == set(requested),
+        "scope_complete": failure is None and set(frames) == set(requested),
         "initial_scope_complete": (
             failure is None and set(requested) == set(INITIAL_PROGRAMS)
-            and set(build_results) == set(INITIAL_PROGRAMS)
+            and set(frames) == set(INITIAL_PROGRAMS)
         ),
         "run_directory": str(run_dir),
         "runtime_environment": {
@@ -513,7 +482,7 @@ def _run_dry_build_impl(
         "programs": programs_report,
         "summary": {
             "programs_requested": len(requested),
-            "programs_built": len(build_results),
+            "programs_built": len(frames),
             "source_total_bytes": sum(item.get("source_total_bytes", 0) for item in programs_report),
             "received_body_bytes": source.received_body_bytes,
             "http_request_attempts": source.request_attempts,

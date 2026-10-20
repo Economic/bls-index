@@ -21,14 +21,13 @@ INITIAL_PROGRAMS: tuple[str, ...] = tuple(
     sorted(NATIVE_TITLE_PROGRAMS + SYNTHESIZED_TITLE_PROGRAMS)
 )
 
-# Lookup files needed to synthesize titles. Provisional: taken from the BLS directory
-# listings and .series headers on 2026-10-07 (dimension and seasonal lookups only;
-# footnotes are not part of titles). Phase 1 title templates confirm or trim this list,
-# and the source probe verifies each file is retrievable.
+# Lookup files joined to synthesize titles; must match the dimensions in
+# builders.SYNTHESES. Seasonal codes map directly (S to SA, U to NSA), so the seasonal
+# lookups are not downloaded.
 LOOKUP_FILES: dict[str, tuple[str, ...]] = {
-    "sm": ("state", "area", "supersector", "industry", "data_type", "seasonal"),
-    "jt": ("industry", "state", "area", "sizeclass", "dataelement", "ratelevel", "seasonal"),
-    "pr": ("sector", "class", "measure", "duration", "seasonal"),
+    "sm": ("state", "area", "supersector", "industry", "data_type"),
+    "jt": ("industry", "state", "area", "sizeclass", "dataelement", "ratelevel"),
+    "pr": ("sector", "class", "measure", "duration"),
 }
 
 # Not v1 scope. Listed only so tests can assert they never leak into the initial list.

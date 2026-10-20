@@ -101,11 +101,15 @@ src/bls_index/
   clock.py          injectable UTC clock
   events.py         ordered event log (exported as JSON Lines)
   http_source.py    BLS fetcher: retries, bounded concurrency, input-set recheck
+  schema.py         catalog schema v1, tab-separated reader, shared row checks
+  builders.py       native title parsing and sm/jt/pr title synthesis
+  combined_candidate.py  combined checks and the pinned data-dict validation
+  dry_build.py      local build and report
   object_store.py   S3/R2 adapter: create-if-absent, compare-and-swap, read-back verify
   cli.py            `bls-index` command
 tests/
   harness/          controlled HTTP source, moto + fault proxy, fake clock
-  fixtures/         tiny two-program fixture (ap native, pr synthesized) from real rows
+  fixtures/         real sample rows for every program; two_program/ is served over HTTP
 docs/evidence/      measurements and checks recorded for the plan's gates
 ```
 
