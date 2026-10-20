@@ -17,14 +17,14 @@ from pathlib import Path
 import polars as pl
 
 from bls_index.builders import build_program
-from bls_index.scope import INITIAL_PROGRAMS, input_files
+from bls_index.scope import input_files
 
 
 def main(run_dir: Path, programs: list[str]) -> int:
     report = json.loads((run_dir / "report.json").read_text())
     entries = {item["program"]: item for item in report["programs"]}
     failed = False
-    for program in programs or INITIAL_PROGRAMS:
+    for program in programs or report["requested_programs"]:
         entry = entries[program]
         if "bundle" in entry:  # legacy dry-build run
             inputs = run_dir / "downloads" / program / f"attempt-{entry['input_set_attempts']}" / "read-1"
