@@ -11,8 +11,9 @@ plus a small `latest.json` manifest, published as GitHub Releases of this reposi
 [`plans/2026-10-21-next-steps.md`](plans/2026-10-21-next-steps.md) has the status and
 next steps. Agents start with [`AGENTS.md`](AGENTS.md).
 
-**Status:** building and publishing work, and test releases passed on GitHub. The first
-catalog release is due from the scheduled run on 2026-10-21.
+**Status:** a catalog is published. The first release, `catalog-2026-10-21T0934Z`, came
+from the scheduled run on 2026-10-21. New releases follow about once a week.
+[`docs/runbook.md`](docs/runbook.md) covers operations.
 
 ## Using the catalog
 
@@ -118,7 +119,7 @@ scripts/
 tests/
   harness/               a scripted local HTTP server and a fake `gh`
   fixtures/              real sample rows for every program
-docs/                    schema, survey names, synthesized titles, evidence
+docs/                    runbook, schema, survey names, synthesized titles, evidence
 ```
 
 Raw BLS files and credentials are never committed.

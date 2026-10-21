@@ -22,8 +22,11 @@ code.
 - **Client:** `examples/find_bls.R` is the reference client for
   `epidatatools::find_bls()`. It searches the full catalog in 1.0–1.6 s, and its 32
   offline checks pass ([evidence](../docs/evidence/2026-10-21-find-bls-reference-client.md)).
-- **No real release yet.** The first is expected from the scheduled run at 09:23 UTC on
-  2026-10-21.
+- **First release:** `catalog-2026-10-21T0934Z`, from the scheduled run on 2026-10-21.
+  Checks 1 to 4 and 6 of step 1 passed
+  ([evidence](../docs/evidence/2026-10-21-first-release.md)). Check 5, the monitor, is
+  the maintainer's.
+- **Runbook:** [`docs/runbook.md`](../docs/runbook.md), a first draft.
 
 ## 1. Verify the first real release
 
@@ -54,7 +57,8 @@ maintainer first, since that writes a public release.
 
 ## 2. Finish the launch
 
-1. **Runbook.** Write `docs/runbook.md`, kept short, covering:
+1. **Runbook.** A first draft of `docs/runbook.md` is written. Check it against this
+   list, and against the design's "Done when" item 6:
    - a manual rerun (`gh workflow run daily.yml -f publish=none`)
    - a forced publish (`-f publish=force`)
    - a test release (`-f publish=test`)
