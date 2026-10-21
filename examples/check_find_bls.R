@@ -134,10 +134,22 @@ bad$catalog$sha256 = strrep("0", 64)
 bad_path = file.path(tempdir(), "bad_latest.json")
 jsonlite::write_json(bad, bad_path, auto_unbox = TRUE)
 options(bls_index.manifest_url = paste0("file://", bad_path))
-check("a catalog that fails its checksum is rejected",
-      grepl("failed its checksum", error_of(find_bls("wage", refresh = TRUE))))
+check("a newer catalog that fails its checksum is not used; the cached one is",
+      any(grepl("failed its checksum.*using the cached one", messages_of(find_bls("wage", refresh = TRUE)))))
+
+gone = jsonlite::read_json(manifest_path)
+gone$catalog$sha256 = strrep("1", 64)
+gone$catalog$url = "file:///nonexistent/bls_index.parquet"
+gone_path = file.path(tempdir(), "gone_latest.json")
+jsonlite::write_json(gone, gone_path, auto_unbox = TRUE)
+options(bls_index.manifest_url = paste0("file://", gone_path))
+check("if a newer catalog cannot be downloaded, the cached one is used",
+      any(grepl("could not download.*using the cached one", messages_of(find_bls("wage", refresh = TRUE)))))
 
 unlink(cache, recursive = TRUE)
+options(bls_index.manifest_url = paste0("file://", bad_path))
+check("with no cache, a catalog that fails its checksum is an error",
+      grepl("failed its checksum", error_of(find_bls("wage"))))
 options(bls_index.manifest_url = "file:///nonexistent/latest.json")
 check("with no cache and no manifest, an error", grepl("Could not read", error_of(find_bls("wage"))))
 

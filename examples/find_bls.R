@@ -264,17 +264,42 @@ bls_catalog <- function(refresh = FALSE) {
     file <- paste0("bls_index-", catalog$sha256, ".parquet")
     partial <- file.path(dir, paste0(file, ".part"))
     on.exit(unlink(partial), add = TRUE)
-    download(catalog$url, partial)
-    actual <- sha256_file(partial)
-    if (!identical(actual, catalog$sha256)) {
-      stop(
-        "Downloaded catalog failed its checksum (expected ",
-        catalog$sha256,
-        ", got ",
-        actual,
-        ").",
-        call. = FALSE
+    fetched <- tryCatch(
+      {
+        download(catalog$url, partial)
+        actual <- sha256_file(partial)
+        if (!identical(actual, catalog$sha256)) {
+          stop(
+            "the downloaded catalog failed its checksum (expected ",
+            catalog$sha256,
+            ", got ",
+            actual,
+            ")",
+            call. = FALSE
+          )
+        }
+        TRUE
+      },
+      error = function(e) e
+    )
+    if (inherits(fetched, "error")) {
+      if (!have) {
+        stop(
+          "Could not get the BLS catalog: ",
+          conditionMessage(fetched),
+          ".",
+          call. = FALSE
+        )
+      }
+      # Keep the old check date, so the next call tries again.
+      message(
+        "Could not get the newer BLS catalog (",
+        conditionMessage(fetched),
+        "); using the cached one built ",
+        state$built_at,
+        "."
       )
+      return(warn_if_stale(cached, state))
     }
     file.rename(partial, file.path(dir, file))
     if (have && basename(cached) != file) {
