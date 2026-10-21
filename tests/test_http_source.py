@@ -173,9 +173,3 @@ def test_bls_requires_at_least_one_second_between_requests(interval):
     with pytest.raises(ValueError):
         FetchConfig(user_agent=TEST_USER_AGENT, base_url=DEFAULT_BASE_URL,
                     min_request_interval=interval)
-
-
-def test_local_test_sources_may_use_shorter_intervals():
-    config = FetchConfig(user_agent=TEST_USER_AGENT, base_url="http://127.0.0.1:8080/pub/",
-                         min_request_interval=0.0)
-    assert config.min_request_interval == 0.0

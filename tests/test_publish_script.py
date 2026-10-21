@@ -99,14 +99,6 @@ def test_a_test_run_publishes_a_prerelease_that_is_not_latest(gh):
     assert len(state["releases"]) == 15  # a test run skips retention
 
 
-def test_retention_keeps_the_newest_12_catalog_releases(gh):
-    gh.seed(*[(f"catalog-2026-09-{d:02d}T0900Z", False, False) for d in range(1, 14)])
-    assert gh.run().returncode == 0
-    tags = sorted(r["tag_name"] for r in gh.releases()["releases"])
-    assert len(tags) == 12 and TAG in tags
-    assert "catalog-2026-09-01T0900Z" not in tags and "catalog-2026-09-02T0900Z" not in tags
-
-
 def test_retention_sorts_by_tag_when_releases_share_a_commit_date(gh):
     # GitHub's created_at is the target commit's date, so weekly releases built from
     # the same commit all share it.

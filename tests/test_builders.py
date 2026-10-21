@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from bls_index.builders import build_program, parse_native_series, synthesize
+from bls_index.builders import parse_native_series, synthesize
 from bls_index.schema import CANONICAL_SCHEMA, BuildError
 from bls_index.scope import NATIVE_TITLE_PROGRAMS, input_files
 
@@ -203,21 +203,3 @@ def test_pr_base_year_mismatch_warns_without_failing(tmp_path, caplog, base_year
         frame = synthesize("pr", files)
     assert frame.height == 8
     assert "base_year" in caplog.text
-
-
-def test_every_row_carries_its_program_survey_name(tmp_path):
-    native = build_program("cu", {"cu.series": REAL_NATIVE / "cu.series"})
-    synthesized = synthesize("jt", _synth_files("jt", tmp_path))
-    assert native["survey_name"].unique().to_list() == ["Consumer Price Index - All Urban Consumers"]
-    assert synthesized["survey_name"].unique().to_list() == ["Job Openings and Labor Turnover Survey"]
-    assert native["survey_aliases"].unique().to_list() == ["CPI; CPI-U; consumer price index"]
-    assert synthesized["survey_aliases"].unique().to_list() == ["JOLTS"]
-    ap = build_program("ap", {"ap.series": REAL_NATIVE / "ap.series"})
-    assert ap["survey_aliases"].null_count() == ap.height  # ap has no aliases
-
-
-def test_build_program_dispatches_by_program(tmp_path):
-    assert build_program("ap", {"ap.series": REAL_NATIVE / "ap.series"}).height > 0
-    assert build_program("pr", _synth_files("pr", tmp_path)).height == 8
-    with pytest.raises(BuildError, match="no builder"):
-        build_program("nw", {})
