@@ -9,6 +9,7 @@ from pathlib import Path
 
 from bls_index.build import run_build
 from bls_index.http_source import DEFAULT_BASE_URL, FetchConfig, HttpSource, user_agent_from_env
+from bls_index.manifest import ManifestError, publish_due, write_manifest
 from bls_index.scope import INITIAL_PROGRAMS
 
 
@@ -38,7 +39,28 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--max-attempts", type=int, default=4,
                        help="attempts per file before the program fails")
 
+    manifest = sub.add_parser("manifest", help="write latest.json for a successful full build")
+    manifest.add_argument("run_dir", type=Path, help="a build-* run directory")
+    manifest.add_argument("--repo", required=True, help="GitHub repository, such as Economic/bls-index")
+    manifest.add_argument("--test", action="store_true", help="tag a test prerelease (test-...)")
+
+    due = sub.add_parser("publish-due",
+                         help="print due=true if the previous release is at least 6 days old")
+    due.add_argument("previous", type=Path, nargs="?", help="the latest release's latest.json")
+
     args = parser.parse_args(argv)
+    if args.command == "manifest":
+        try:
+            written = write_manifest(args.run_dir, args.repo, test=args.test)
+        except (ManifestError, OSError, KeyError, ValueError) as exc:
+            print(f"bls-index manifest: {exc}", file=sys.stderr)
+            return 1
+        print(f"tag={written['tag']}")
+        return 0
+    if args.command == "publish-due":
+        print(f"due={'true' if publish_due(args.previous) else 'false'}")
+        return 0
+
     try:
         config = FetchConfig(
             user_agent=user_agent_from_env(), base_url=args.base_url,
