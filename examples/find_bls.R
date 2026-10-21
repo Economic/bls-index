@@ -323,7 +323,11 @@ bls_catalog <- function(refresh = FALSE) {
 # too, so searches do not retry the network every time; `refresh = TRUE` retries now.
 record_check <- function(state, state_file) {
   state$checked_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-  jsonlite::write_json(state, state_file, auto_unbox = TRUE, pretty = TRUE)
+  # Best effort: an unwritable cache must not stop a search that has a cached catalog.
+  try(
+    jsonlite::write_json(state, state_file, auto_unbox = TRUE, pretty = TRUE),
+    silent = TRUE
+  )
 }
 
 read_manifest <- function() {
