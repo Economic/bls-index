@@ -85,7 +85,9 @@ price index" finds nothing without it. Names come from a fixed table in code, on
 per program in scope, taken from official BLS sources and checked by tests.
 
 `survey_aliases` holds the other ways people refer to a survey: initialisms ("CES",
-"JOLTS"), former names ("OES"), and informal names ("household survey"). Aliases are
+"JOLTS"), former names ("OES"), informal names ("household survey"), and official names
+people type as search words ("consumer price index"). Alias matches count toward a
+result's rank; survey-name matches do not (see the client search order). Aliases are
 our choice, not BLS text, so they stay out of the displayed `survey_name`. The same alias
 can belong to several programs: "CPI" covers `cu`, `cw` and `su`. Each alias and its
 reason is listed in [`docs/survey-names.md`](docs/survey-names.md). Because they live in
@@ -256,7 +258,7 @@ Clients start from two fixed URLs:
 
 A reference client, `examples/find_bls.R`, follows these rules. Its signature is
 `find_bls(search_string, survey = NULL, seasonality = NULL, limit = 1000,
-refresh = FALSE)`. This is a deliberate breaking change from today's
+titles_only = FALSE, refresh = FALSE)`. This is a deliberate breaking change from today's
 `epidatatools::find_bls()`: `max_results` and `metadata` are gone. It always returns
 `series_id`, `series_title`, `program`, `survey_name`, `seasonal`, `begin_year`,
 `end_year` and `end_period`. Clients should:
@@ -275,11 +277,17 @@ refresh = FALSE)`. This is a deliberate breaking change from today's
     each word. Every word must match in `series_title`, `survey_name` or
     `survey_aliases`, ignoring case. Escape regular-expression characters in words. A
     search with no words left (empty, spaces or punctuation only) is an error.
-  - **Stemming.** Reduce each word to its English Snowball stem (`SnowballC` in R), and
-    match any word that begins with the stem: "nurses" becomes "nurs" and matches nurse,
-    nurses and nursing. A stem shorter than 4 characters is not used. The original word
-    must then match as a whole word, so short words stay exact: "oes" would stem to "oe",
-    and "CES" must not match "census". Longer initialisms can stem ("JOLTS" becomes
+  - **Titles only.** With `titles_only = TRUE`, every word must match `series_title`;
+    survey names and aliases are ignored. It suits a search already restricted by
+    `survey`, such as `find_bls("all items", survey = "cu", titles_only = TRUE)`.
+  - **Stemming.** Reduce each word to its English Snowball stem (`SnowballC` in R), take
+    the part the word and its stem share, and match any word that begins with it:
+    "nurses" stems to "nurs" and matches nurse, nurses and nursing. The shared part
+    matters because a stem is not always the start of its word: "city" stems to "citi".
+    If the shared part is shorter than 4
+    characters, the original word must match as a whole word instead, so short words
+    stay exact: "oes" would stem to "oe", "city" shares only "cit", and "CES" must not
+    match "census". Longer initialisms can stem ("JOLTS" becomes
     "jolt"). On the 2026-10-20 catalog, matching JOLTS, OEWS, LAUS, SOII and ATUS by
     stem finds exactly the same rows as whole-word matching, so this is accepted.
   - **Word boundaries.** A match must start at the beginning of a word: "CES" matches 2
@@ -289,9 +297,20 @@ refresh = FALSE)`. This is a deliberate breaking change from today's
   - **Filters.** `survey` takes one or more program codes, such as `c("la", "ln")`,
     ignoring case, and filters `program`. `seasonality` takes one or more of `SA`, `NSA`
     and `unknown`. An unknown code is an error that lists the valid codes.
-  - **Order.** Sort by title length (shortest first), then lowercased title, then series
-    ID, comparing strings by bytes so the order is the same on every machine. Short titles
-    tend to be the general series. Any change to this order is made here first.
+  - **Order.** Sort by:
+    1. the number of search words that match the title or the aliases (most first)
+    2. title length (shortest first)
+    3. lowercased title
+    4. series ID
+
+    Strings compare by bytes, so the order is the same on every machine. A word matched
+    only by the survey name lets a row in, but does not count in step 1: generic name
+    words would otherwise rank whole surveys. CES's official name, "National Employment,
+    Hours, and Earnings", made "Average weekly hours" outrank "Average hourly earnings"
+    for "average hourly earnings manufacturing". Short titles tend to be the general
+    series, but not always: "CPI" starts with regional series such as "Food in Pacific",
+    because they are shorter than "U.S. city average". Users narrow with more words or
+    `survey`. Any change to this order is made here first.
   - **Limit.** Count the matches, sort, and keep the first `limit` rows (1,000 by
     default; `Inf` for all) before bringing them into R. A broad search such as "OEWS"
     matches 6 million rows: as a data frame that is 1.7 GB, and sorting it in R took 59 s.
@@ -357,7 +376,9 @@ These are deliberate. Reviews should not report them as defects.
   name; initialisms, former names and informal names go in `survey_aliases`. Client
   search rules:
   - every word must match, stemmed, at the start of a word
-  - sort by title length, then title, then series ID
+  - sort by words matched in the title or aliases, then title length, then title, then
+    series ID (sort revised the same day after the first-20 review)
+  - `titles_only = TRUE` ignores survey names and aliases
   - a 1,000-row default limit, with counts by survey when results are cut
   - `survey` accepts several codes
   - a breaking change to `find_bls()`: no `max_results` or `metadata`, and always the

@@ -48,6 +48,21 @@ loopback address and `--min-request-interval 0` run against a local copy instead
 The manual `build` GitHub Actions workflow runs the same command on a clean runner and
 uploads only the report and resource usage.
 
+## Searching the catalog from R
+
+`examples/find_bls.R` is a reference client for `epidatatools::find_bls()`:
+
+```r
+source("examples/find_bls.R")
+find_bls("unemployment rate", survey = c("ln", "la"), seasonality = "SA")
+```
+
+It needs `arrow`, `dplyr`, `jsonlite`, `openssl`, `rlang`, `SnowballC` and `tibble`.
+Until a catalog is published, point it at a local build's manifest with
+`options(bls_index.manifest_url = "file:///path/to/latest.json")`.
+`examples/check_find_bls.R` checks its search rules offline against a catalog from
+`scripts/fixture_catalog.py`.
+
 `scripts/golden.py RUN_DIR` rebuilds every program from a saved run's downloads and
 compares the rows with that run's output. It checks that a refactor did not change the
 catalog.
@@ -62,6 +77,12 @@ src/bls_index/
   builders.py            native titles and sm/jt/pr title synthesis
   combined_candidate.py  combined checks and the pinned data-dict validation
   build.py, cli.py       the build run, its report, and the `bls-index` command
+examples/
+  find_bls.R             reference R client; check_find_bls.R checks it offline
+scripts/
+  check.sh               the build and test command
+  golden.py              compare a refactor's rows with a saved run
+  fixture_catalog.py     small catalog and manifest from the test fixtures
 tests/
   harness/               controlled HTTP source serving scripted replies
   fixtures/              real sample rows for every program; two_program/ is served over HTTP

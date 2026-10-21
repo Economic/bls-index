@@ -210,7 +210,7 @@ def test_every_row_carries_its_program_survey_name(tmp_path):
     synthesized = synthesize("jt", _synth_files("jt", tmp_path))
     assert native["survey_name"].unique().to_list() == ["Consumer Price Index - All Urban Consumers"]
     assert synthesized["survey_name"].unique().to_list() == ["Job Openings and Labor Turnover Survey"]
-    assert native["survey_aliases"].unique().to_list() == ["CPI; CPI-U"]
+    assert native["survey_aliases"].unique().to_list() == ["CPI; CPI-U; consumer price index"]
     assert synthesized["survey_aliases"].unique().to_list() == ["JOLTS"]
     ap = build_program("ap", {"ap.series": REAL_NATIVE / "ap.series"})
     assert ap["survey_aliases"].null_count() == ap.height  # ap has no aliases

@@ -286,6 +286,22 @@ Write `examples/find_bls.R` before Phase 2, against a local build, to test the s
 and search behavior while they can still change. It is a reference for `epidatatools`,
 not a package.
 
+**Done 2026-10-21.**
+- `examples/find_bls.R` follows the design's client rules. 29 offline checks in
+  `examples/check_find_bls.R` pass against a catalog from `scripts/fixture_catalog.py`.
+- On the full catalog, searches take 1.0–1.6 s, and 0.2 s with `survey`. Peak memory
+  is 1.1 GB for a typical search and 2.1 GB for the broadest ("OEWS", 6 million
+  matches). Details and the first 20 results for each real search are in
+  [`docs/evidence/2026-10-21-find-bls-reference-client.md`](../docs/evidence/2026-10-21-find-bls-reference-client.md).
+- The first-20 review changed the design:
+  - the sort now ranks by words matched in the title or aliases, after
+    shortest-title-first put "Average weekly hours" above "Average hourly earnings"
+  - `titles_only = TRUE` was added
+  - three aliases were added: "consumer price index", "producer price index",
+    "employment cost index"
+  - stemming uses the part a word shares with its stem, because "city" stems to "citi"
+- No row-group change was needed.
+
 - **Signature.** `find_bls(search_string, survey = NULL, seasonality = NULL,
   limit = 1000, refresh = FALSE)`, returning a tibble with `series_id`,
   `series_title`, `program`, `survey_name`, `seasonal`, `begin_year`, `end_year` and
