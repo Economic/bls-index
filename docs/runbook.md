@@ -29,15 +29,19 @@ that tests a new program (see "Adding a program").
 
 ## When a run fails
 
-1. Open the run: `gh run view <run id>`. The failed step's log usually names the
-   problem.
-2. Download the diagnostic report:
+1. Open the run: `gh run view <run id>`. It shows which job failed. The failed step's
+   log usually names the problem.
+2. **If the build job failed,** download the diagnostic report:
    `gh run download <run id> -n report-<run id> -D tmp/report`. Its `report.json` names
    the failing program and stage. The artifact is kept for 7 days.
-3. A failed run leaves the latest release unchanged. Clients keep using it.
-4. A real failure is usually a BLS format change in one program. Fix it in a pull
+3. **If the publish job failed,** the build succeeded, so the report shows no failure.
+   Read the publish job's log instead: `gh run view <run id> --log-failed`.
+   `scripts/publish.sh` deletes its draft when a step fails, and the next publish
+   deletes any draft left over.
+4. A failed run leaves the latest release unchanged. Clients keep using it.
+5. A real failure is usually a BLS format change in one program. Fix it in a pull
    request.
-5. Once the fix is merged, the next daily run publishes if a release is due. To publish
+6. Once the fix is merged, the next daily run publishes if a release is due. To publish
    sooner, ask the maintainer about a forced publish.
 
 A one-off failure, such as a BLS timeout, needs no fix. The next day's run tries again.
