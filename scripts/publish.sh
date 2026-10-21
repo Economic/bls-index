@@ -68,10 +68,12 @@ fi
 echo "Published $tag"
 
 # 5. Keep the newest catalog releases. A failed deletion only warns: the catalog is
-#    already published, and the next publish tries again.
+#    already published, and the next publish tries again. Sort by tag, which holds the
+#    build time: GitHub's created_at is the target commit's date, which weekly releases
+#    from an unchanged commit share.
 $test_run && exit 0
 releases | jq -r '[.[] | select((.tag_name | startswith("catalog-")) and (.draft | not))]
-                  | sort_by(.created_at) | reverse | .['"$keep"':][] | "\(.id) \(.tag_name)"' |
+                  | sort_by(.tag_name) | reverse | .['"$keep"':][] | "\(.id) \(.tag_name)"' |
   while read -r id old; do
     echo "Deleting old release $old"
     delete_release "$id" "$old" || echo "::warning::Could not delete old release $old"

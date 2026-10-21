@@ -107,6 +107,21 @@ def test_retention_keeps_the_newest_12_catalog_releases(gh):
     assert "catalog-2026-09-01T0900Z" not in tags and "catalog-2026-09-02T0900Z" not in tags
 
 
+def test_retention_sorts_by_tag_when_releases_share_a_commit_date(gh):
+    # GitHub's created_at is the target commit's date, so weekly releases built from
+    # the same commit all share it.
+    gh.seed(*[(f"catalog-2026-{m:02d}-01T0900Z", False, False) for m in range(1, 10)]
+            + [(f"catalog-2026-{m:02d}-15T0900Z", False, False) for m in range(1, 5)])
+    state = gh.releases()
+    for release in state["releases"]:
+        release["created_at"] = "2026-01-01"
+    gh.state.write_text(json.dumps(state))
+    assert gh.run().returncode == 0
+    tags = sorted(r["tag_name"] for r in gh.releases()["releases"])
+    assert len(tags) == 12 and TAG in tags
+    assert tags[0] == "catalog-2026-02-01T0900Z"  # the two oldest were deleted
+
+
 def test_a_lost_publish_response_is_success_if_the_release_is_published(gh):
     result = gh.run(lose_publish=True)
     assert result.returncode == 0, result.stderr
