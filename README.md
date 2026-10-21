@@ -61,7 +61,7 @@ It needs `arrow`, `dplyr`, `jsonlite`, `openssl`, `rlang`, `SnowballC` and `tibb
 Until a catalog is published, point it at a local build's manifest with
 `options(bls_index.manifest_url = "file:///path/to/latest.json")`.
 `examples/check_find_bls.R` checks its search rules offline against a catalog from
-`scripts/fixture_catalog.py`.
+`scripts/fixture_catalog.py`. R code here uses `<-` for assignment.
 
 `scripts/golden.py RUN_DIR` rebuilds every program from a saved run's downloads and
 compares the rows with that run's output. It checks that a refactor did not change the
