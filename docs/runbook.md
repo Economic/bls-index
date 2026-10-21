@@ -90,6 +90,12 @@ When no successful run has happened:
 3. Start a run by hand with `gh workflow run daily.yml -f publish=none`. Its success ping
    brings the check back up.
 
+Changing the check's schedule in the web UI never sends an alert, even when the change
+puts the check down. To test the missed-run alert, shorten the schedule, ping the check
+by hand, and let the new deadline pass
+([evidence](evidence/2026-10-21-missed-run-alert.md)). Restore the schedule before the
+final ping.
+
 The ping URL is the `HEALTHCHECKS_URL` repository secret. It is private, so never print
 it.
 

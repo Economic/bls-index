@@ -36,7 +36,8 @@ The row count and size match the test releases.
 `LNS14000000`, "(Seas) Unemployment Rate", first. The first call took 2.4 s in total,
 including the download, on the maintainer's workstation.
 
-## Not checked here
+## The monitor
 
-- **The monitor:** the maintainer confirms the success ping, and that the check's period
-  and grace time are back to 1 day each.
+The maintainer confirmed in healthchecks.io that the check recorded the run's start ping
+(about 09:34 UTC) and success ping (about 09:39 UTC), and that its period and grace time
+are back to 1 day each.

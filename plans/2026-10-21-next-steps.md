@@ -15,45 +15,23 @@ code.
 - **Publishing:** the `daily` workflow builds every day and publishes a GitHub Release
   when the latest is at least 6 days old. Two test publishes and their cleanup passed on
   GitHub ([evidence](../docs/evidence/2026-10-21-phase2-test-releases.md)).
-- **Monitor:** healthchecks.io records each run's start and success pings, and alert
-  emails arrive.
+- **Monitor:** healthchecks.io records each run's start and success pings. Both alerts
+  email: a `/fail` ping, and a missed run
+  ([evidence](../docs/evidence/2026-10-21-missed-run-alert.md)).
 - **Branch protection:** the `protect main` ruleset requires a pull request and the CI
   `check` job.
 - **Client:** `examples/find_bls.R` is the reference client for
   `epidatatools::find_bls()`. It searches the full catalog in 1.0–1.6 s, and its 32
   offline checks pass ([evidence](../docs/evidence/2026-10-21-find-bls-reference-client.md)).
 - **First release:** `catalog-2026-10-21T0934Z`, from the scheduled run on 2026-10-21.
-  Checks 1 to 4 and 6 of step 1 passed
-  ([evidence](../docs/evidence/2026-10-21-first-release.md)). Check 5, the monitor, is
-  the maintainer's.
+  All six checks of step 1 passed
+  ([evidence](../docs/evidence/2026-10-21-first-release.md)).
 - **Runbook:** [`docs/runbook.md`](../docs/runbook.md), a first draft.
 
-## 1. Verify the first real release
+## 1. Verify the first real release: done
 
-After the 09:23 UTC run on 2026-10-21 (or the next scheduled run, if it was missed):
-
-1. **The run:** `gh run list --workflow daily.yml --limit 1` shows success for the
-   build, publish and monitor jobs.
-2. **The releases:** `gh release list` shows exactly one release, a `catalog-...`
-   release marked latest. The test prerelease `test-2026-10-21T0404Z` should be gone,
-   because each publish deletes leftover test releases.
-3. **The manifest:**
-   `curl -L https://github.com/Economic/bls-index/releases/latest/download/latest.json`
-   works without credentials. Its `catalog.url` names the same tag, and its `rows` are
-   close to 8.3 million.
-4. **The client, with its default URL:** run
-   `source("examples/find_bls.R"); find_bls("unemployment rate", survey = "ln")` with a
-   temporary `options(bls_index.cache_dir = tempfile())`. It should download, verify and
-   list `LNS14000000` first.
-5. **The monitor:** the maintainer confirms that the check shows a success ping, and
-   that its period and grace time are back to 1 day each (they were shortened during
-   testing).
-6. **The README:** update its "Status" line to say a catalog is published.
-
-If the run failed, the run's `report-<run id>` artifact has `report.json`, with the
-failing program and stage. A real failure is usually a BLS format change in one
-program. Fix it in a pull request, then dispatch `publish: force`, but ask the
-maintainer first, since that writes a public release.
+All six checks passed on 2026-10-21
+([evidence](../docs/evidence/2026-10-21-first-release.md)).
 
 ## 2. Finish the launch
 
@@ -71,16 +49,9 @@ maintainer first, since that writes a public release.
    - re-enabling the schedule if GitHub disables it after 60 days without repository
      activity
    - costs: none expected for a public repository
-2. **Verify the missed-run alert on the live check.** This is the alert that warns when
-   scheduled runs stop. The live check has already emailed on a `/fail` ping, but its one
-   overdue test sent no email (see Known gaps). The maintainer:
-   1. waits until a daily run has just sent its success ping
-   2. sets the live check's period and grace time to 1 minute each
-   3. confirms that the check goes down and the email arrives
-   4. sets both back to 1 day
-
-   If no email comes, ask healthchecks.io support, or switch to another monitor, before
-   relying on it.
+2. **Verify the missed-run alert on the live check: done.** The alert email arrived
+   when the check's deadline passed on its own
+   ([evidence](../docs/evidence/2026-10-21-missed-run-alert.md)).
 3. **Watch a week.** The design's "Done when" requires 7 consecutive successful daily
    builds and at least two weekly releases. The second release should come from the
    first scheduled run at least 6 days after the first, around 2026-10-27.
@@ -123,8 +94,5 @@ This work belongs in the `Economic/epidatatools` repository, not here.
 
 - **The monitor job's failure branch has not run on GitHub.** The `/fail` ping and its
   email were confirmed by hand instead. The first real failed run will exercise it.
-- **One missing alert.** When the check's period was shortened to 1 minute during
-  testing, its down transition sent no email, although later alerts did. The cause is
-  unknown. Launch step 2 retests it.
 - **GitHub disables the schedule after 60 days without repository activity.** The
   monitor's missed-run alert is the warning; re-enable the workflow or make any commit.
