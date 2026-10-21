@@ -297,8 +297,13 @@ not a package.
   - multi-code `survey` and `seasonality` filters
   - the sort order
   - the limit, with the per-survey counts message
-  - Sort and limit inside `arrow` before collecting, and measure that the broad "OEWS"
-    search (6 million matches) stays fast and small.
+  - Sort and limit inside `arrow` before collecting.
+- **Benchmark first.** Before polishing anything else, time the complete query (count,
+  per-survey counts, sort, limit, collect) for a typical search and for "OEWS" (6 million
+  matches), and record memory. Set the response-time target from these measurements. If
+  broad searches are much slower than a few seconds, revise the query plan (for example,
+  skip the sort when the count is far above `limit`) and record the change in
+  `design.md`.
 - **Check on real queries.** Show the maintainer the first 20 results for "unemployment
   rate", "consumer price index", "CPI", "JOLTS quits", "registered nurses", "average
   hourly earnings manufacturing", and "OEWS". If the sort needs to change, update
@@ -309,8 +314,8 @@ not a package.
 - **Cache and refresh.** Implement the client rules in `design.md` (weekly check, checksum,
   swap, offline fallback, download timeout). Until Phase 2 exists, point it at a local
   manifest and catalog. Phase 2 tests the download path against a test prerelease.
-- **Done when** each example query returns sensible first results in under a second,
-  and any schema change it motivates has been made in the build.
+- **Done when** each example query returns sensible first results within the measured
+  target, and any schema change it motivates has been made in the build.
 
 ## Phase 2: Publish through GitHub Releases
 

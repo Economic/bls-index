@@ -44,7 +44,9 @@ means:
 
 The CPS programs need no alias: their names already contain "CPS".
 
-Clients match aliases as whole words, so short ones like "CES" do not match "services".
+Clients match aliases with the same search rules as titles, described in
+[`design.md`](../design.md): stemmed words matched at the start of a word. Short words
+such as "CES" match only as whole words, so "CES" does not match "services" or "census".
 
 ## Table
 

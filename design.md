@@ -277,8 +277,10 @@ refresh = FALSE)`. This is a deliberate breaking change from today's
   - **Stemming.** Reduce each word to its English Snowball stem (`SnowballC` in R), and
     match any word that begins with the stem: "nurses" becomes "nurs" and matches nurse,
     nurses and nursing. A stem shorter than 4 characters is not used. The original word
-    must then match as a whole word, so initialisms stay exact: "oes" would stem to "oe",
-    and "CES" must not match "census".
+    must then match as a whole word, so short words stay exact: "oes" would stem to "oe",
+    and "CES" must not match "census". Longer initialisms can stem ("JOLTS" becomes
+    "jolt"). On the 2026-10-20 catalog, matching JOLTS, OEWS, LAUS, SOII and ATUS by
+    stem finds exactly the same rows as whole-word matching, so this is accepted.
   - **Word boundaries.** A match must start at the beginning of a word: "CES" matches 2
     titles as a word, but 769,239 inside words like "services". Hyphens separate words,
     so "CPI-U" also matches the chained "C-CPI-U". That is accepted: treating hyphens as
