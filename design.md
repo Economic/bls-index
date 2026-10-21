@@ -1,11 +1,8 @@
 # bls_index design
 
 Rewritten 2026-10-13 to a smaller scope, and revised 2026-10-20 to publish through GitHub
-Releases. The original version (journaled manifest writes, per-program fallback, scope
-releases, rollback records, host-move rehearsals) is in git history at `3513fb6`; the
-R2-based version is at `428a286`. The reasons are in
-[`plans/2026-10-13-simplification-review.md`](plans/2026-10-13-simplification-review.md)
-and the 2026-10-20 decisions below.
+Releases. Earlier versions are in git history: the original at `3513fb6`, and the R2-based
+one at `428a286`. The Decisions section below records why things changed.
 
 ## Purpose
 

@@ -41,8 +41,9 @@ Project artifacts:
 - design.md is the source of truth. Its "Decisions", "Non-goals" and "Accepted risks"
   sections are settled. Challenge them only with a genuinely new argument, and do not
   report an accepted risk as a defect.
-- The current implementation plan is in plans/ (newest dated file). Earlier plans,
-  evidence and reviews are at the git tag pre-cleanup.
+- The current plan is the newest dated file in plans/. Earlier plans and reviews are in
+  git history only. docs/evidence/ holds dated records. AGENTS.md describes how work
+  is done here.
 - src/ and tests/ are implementation code.
 
 What to flag:
