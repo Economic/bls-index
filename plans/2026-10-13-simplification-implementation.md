@@ -433,6 +433,14 @@ exercise the script against real GitHub.
 
 ### 2.5 Test before launch
 
+**Done 2026-10-21**
+([evidence](../docs/evidence/2026-10-21-phase2-test-releases.md)).
+- Two test publishes passed, including cleanup of the first test release and its tag.
+- The reference client downloaded and verified a test release.
+- The monitor recorded both runs, and a hand-sent `/fail` ping produced an alert email.
+- Skipped: the forced-failure workflow run, since the `/fail` path was confirmed by hand.
+- Phase 3 step 1 (branch protection) was also done the same day.
+
 1. Create the healthchecks.io check: 1-day period, 1-day grace time, email alerts.
 2. Dispatch with `publish: test`. Confirm that a `test-` prerelease appears and never
    becomes "latest". Before the next run, confirm that the reference client downloads
