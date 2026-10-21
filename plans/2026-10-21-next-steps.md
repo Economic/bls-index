@@ -67,14 +67,23 @@ maintainer first, since that writes a public release.
    - re-enabling the schedule if GitHub disables it after 60 days without repository
      activity
    - costs: none expected for a public repository
-2. **Watch a week.** The design's "Done when" requires 7 consecutive successful daily
+2. **Verify the missed-run alert.** This is the alert that warns when scheduled runs
+   stop, and the one test of it sent no email (see Known gaps). The maintainer:
+   1. creates a separate test check in healthchecks.io with a 1-minute period and
+      1-minute grace time, using the same email method
+   2. pings it once by hand
+   3. waits for it to go down, and confirms the email arrives
+
+   If no email comes, ask healthchecks.io support, or switch to another monitor, before
+   relying on it. Then delete the test check.
+3. **Watch a week.** The design's "Done when" requires 7 consecutive successful daily
    builds and at least two weekly releases. The second release should come from the
    first scheduled run at least 6 days after the first, around 2026-10-27.
-3. **Final review.** Run a `checkpoint_panel` review of the launch work, for example
+4. **Final review.** Run a `checkpoint_panel` review of the launch work, for example
    `roborev review --since <commit> --panel checkpoint_panel --wait`, and check `main`
    against the design's "Done when" list. The panel includes the security reviewer. Fix
    real findings.
-4. **Announce,** when the maintainer decides: where the catalog lives (the README's
+5. **Announce,** when the maintainer decides: where the catalog lives (the README's
    "Using the catalog" section) and that the client is coming to `epidatatools`.
 
 ## 3. Port the client to epidatatools
@@ -111,6 +120,6 @@ This work belongs in the `Economic/epidatatools` repository, not here.
   email were confirmed by hand instead. The first real failed run will exercise it.
 - **One missing alert.** When the check's period was shortened to 1 minute during
   testing, its down transition sent no email, although later alerts did. The cause is
-  unknown.
+  unknown. Launch step 2 retests it.
 - **GitHub disables the schedule after 60 days without repository activity.** The
   monitor's missed-run alert is the warning; re-enable the workflow or make any commit.
