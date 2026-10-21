@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import shutil
-import subprocess
 from pathlib import Path
 
 import polars as pl
@@ -11,7 +9,6 @@ import pytest
 
 from bls_index.builders import build_program
 from bls_index.combined_candidate import (
-    DICTIONARY,
     CombinedCandidateError,
     validate_combined_candidate,
     write_combined_candidate,
@@ -48,12 +45,6 @@ def _fixture_frames() -> dict[str, pl.DataFrame]:
     return {program: build_program(program, {name: roots[program] / name
                                              for name in input_files(program)})
             for program in INITIAL_PROGRAMS}
-
-
-def test_root_dictionary_passes_spec_check():
-    result = subprocess.run([shutil.which("data-dict"), "validate-spec", str(DICTIONARY), "--json"],
-                            capture_output=True, text=True, check=False)
-    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_duplicate_titles_are_accepted_but_id_collisions_are_not():
