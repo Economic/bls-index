@@ -287,7 +287,7 @@ and search behavior while they can still change. It is a reference for `epidatat
 not a package.
 
 **Done 2026-10-21.**
-- `examples/find_bls.R` follows the design's client rules. 31 offline checks in
+- `examples/find_bls.R` follows the design's client rules. 32 offline checks in
   `examples/check_find_bls.R` pass against a catalog from `scripts/fixture_catalog.py`.
 - On the full catalog, searches take 1.0–1.6 s, and 0.2 s with `survey`. Peak memory
   is 1.1 GB for a typical search and 2.1 GB for the broadest ("OEWS", 6 million

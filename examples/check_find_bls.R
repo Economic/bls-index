@@ -143,8 +143,13 @@ gone$catalog$url = "file:///nonexistent/bls_index.parquet"
 gone_path = file.path(tempdir(), "gone_latest.json")
 jsonlite::write_json(gone, gone_path, auto_unbox = TRUE)
 options(bls_index.manifest_url = paste0("file://", gone_path))
+old_check = jsonlite::read_json(file.path(cache, "bls_index_state.json"))
+old_check$checked_at = "2000-01-01T00:00:00Z"
+jsonlite::write_json(old_check, file.path(cache, "bls_index_state.json"), auto_unbox = TRUE)
 check("if a newer catalog cannot be downloaded, the cached one is used",
-      any(grepl("could not download.*using the cached one", messages_of(find_bls("wage", refresh = TRUE)))))
+      any(grepl("could not download.*using the cached one", messages_of(find_bls("wage")))))
+check("a failed check counts as a check: the next search does not retry",
+      !any(grepl("could not download", messages_of(find_bls("wage")))))
 
 unlink(cache, recursive = TRUE)
 options(bls_index.manifest_url = paste0("file://", bad_path))

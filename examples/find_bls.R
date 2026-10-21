@@ -256,6 +256,7 @@ bls_catalog <- function(refresh = FALSE) {
       state$built_at,
       "."
     )
+    record_check(state, state_file)
     return(warn_if_stale(cached, state))
   }
 
@@ -291,7 +292,6 @@ bls_catalog <- function(refresh = FALSE) {
           call. = FALSE
         )
       }
-      # Keep the old check date, so the next call tries again.
       message(
         "Could not get the newer BLS catalog (",
         conditionMessage(fetched),
@@ -299,6 +299,7 @@ bls_catalog <- function(refresh = FALSE) {
         state$built_at,
         "."
       )
+      record_check(state, state_file)
       return(warn_if_stale(cached, state))
     }
     file.rename(partial, file.path(dir, file))
@@ -316,6 +317,13 @@ bls_catalog <- function(refresh = FALSE) {
   )
   jsonlite::write_json(state, state_file, auto_unbox = TRUE, pretty = TRUE)
   warn_if_stale(cached, state)
+}
+
+# Record a check attempt, keeping the cached catalog's details. A failed check counts
+# too, so searches do not retry the network every time; `refresh = TRUE` retries now.
+record_check <- function(state, state_file) {
+  state$checked_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  jsonlite::write_json(state, state_file, auto_unbox = TRUE, pretty = TRUE)
 }
 
 read_manifest <- function() {
