@@ -301,9 +301,21 @@ not a package.
 - **Benchmark first.** Before polishing anything else, time the complete query (count,
   per-survey counts, sort, limit, collect) for a typical search and for "OEWS" (6 million
   matches), and record memory. Set the response-time target from these measurements. If
-  broad searches are much slower than a few seconds, revise the query plan (for example,
-  skip the sort when the count is far above `limit`) and record the change in
-  `design.md`.
+  broad searches are much slower than a few seconds, revise the query plan without
+  changing which rows come first, for example with a top-`limit` sort inside `arrow`. Any
+  change to the order itself goes into `design.md` first.
+- **Offline checks.** Add `examples/check_find_bls.R`, run by hand against a catalog
+  built from the test fixtures. Check:
+  - stemming ("nurse" finds "nursing")
+  - short words matched exactly ("CES" does not find "services")
+  - aliases ("JOLTS")
+  - the `survey` and `seasonality` filters, including several codes and an unknown code
+  - the sort order
+  - the limit message with per-survey counts
+  - an empty search rejected
+
+  These become `testthat` tests when the code moves to `epidatatools`. R is not added
+  to this repository's CI.
 - **Check on real queries.** Show the maintainer the first 20 results for "unemployment
   rate", "consumer price index", "CPI", "JOLTS quits", "registered nurses", "average
   hourly earnings manufacturing", and "OEWS". If the sort needs to change, update

@@ -273,7 +273,8 @@ refresh = FALSE)`. This is a deliberate breaking change from today's
 - Search like this:
   - **Words.** Split the search string on spaces, and trim punctuation from the ends of
     each word. Every word must match in `series_title`, `survey_name` or
-    `survey_aliases`, ignoring case. Escape regular-expression characters in words.
+    `survey_aliases`, ignoring case. Escape regular-expression characters in words. A
+    search with no words left (empty, spaces or punctuation only) is an error.
   - **Stemming.** Reduce each word to its English Snowball stem (`SnowballC` in R), and
     match any word that begins with the stem: "nurses" becomes "nurs" and matches nurse,
     nurses and nursing. A stem shorter than 4 characters is not used. The original word
