@@ -8,11 +8,11 @@ available.
 The catalog is one Parquet file (about 33 MB, 8.3 million series in 33 BLS programs)
 plus a small `latest.json` manifest, published as GitHub Releases of this repository.
 [`design.md`](design.md) is the contract;
-[`plans/2026-10-13-simplification-implementation.md`](plans/2026-10-13-simplification-implementation.md)
-is the implementation plan.
+[`plans/2026-10-21-next-steps.md`](plans/2026-10-21-next-steps.md) has the status and
+next steps. Agents start with [`AGENTS.md`](AGENTS.md).
 
-**Status:** building and publishing work. Test releases are being run on GitHub before
-launch (plan task 2.5); no catalog release has been published yet.
+**Status:** building and publishing work, and test releases passed on GitHub. The first
+catalog release is due from the scheduled run on 2026-10-21.
 
 ## Using the catalog
 

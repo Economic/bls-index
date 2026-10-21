@@ -1,4 +1,4 @@
-"""Compare this checkout's builders with a saved dry-build run (plan task 1.0).
+"""Compare this checkout's builders with a saved build run.
 
 Usage: uv run python scripts/golden.py RUN_DIR [PROGRAM ...]
 
