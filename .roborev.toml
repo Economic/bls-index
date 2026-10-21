@@ -58,6 +58,9 @@ What not to flag:
 - Failure modes that the daily full rebuild already repairs, unless they can publish
   wrong data.
 - Missing handling for cases listed under "Accepted risks" or "Non-goals".
+- Failures that need two or more unusual conditions at once (for example, an
+  unwritable cache folder during a network outage), unless they can return wrong data
+  or lose data.
 - Wording and formatting, unless meaning changes.
 
 The one publication rule that is high severity: never make a release visible or mark

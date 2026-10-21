@@ -346,6 +346,9 @@ These are deliberate. Reviews should not report them as defects.
 8. **Unclear publish outcomes can mislead alerts.** A run whose final publish response
    is lost may report failure although the release was published. The next run sees the
    release and does not publish again for 6 days.
+9. **Clients assume a writable cache.** If the cache folder cannot be written and the
+   network is also down, a client may retry the network on every search in that
+   session, slowing each one. Searches still return results from the cached catalog.
 
 ## Decisions
 
