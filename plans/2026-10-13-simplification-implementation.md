@@ -264,8 +264,9 @@ Do this before Phase 2, so the first published schema includes the column.
   for each name in a short note in `docs/`. Do not fetch names at build time.
 - **Schema.** Add `survey_name` (string, required) after `program` in
   `CANONICAL_SCHEMA`, in `canonical_rows`, in `docs/schema-v1.md`, and in
-  `data-dict.yaml`. In the dictionary, also assert that every program has exactly one
-  survey name.
+  `data-dict.yaml`. The combined candidate checks that every row's name equals its
+  program's name; the dictionary requires a nonblank name, since its row-level asserts
+  cannot express a per-program rule.
 - **Compression.** Write the combined catalog at zstd level 19. Measured on the
   2026-10-20 catalog: 32.8 MB instead of 47.2 MB, the same read time, and about 70 s
   more to write.
@@ -286,18 +287,22 @@ and search behavior while they can still change. It is a reference for `epidatat
 not a package.
 
 - **Signature.** `find_bls(search_string, survey = NULL, seasonality = NULL,
-  refresh = FALSE)`, returning a tibble with `series_id`, `series_title`, `survey_name`
-  and `seasonal`. This is today's function without the 20-result cap, plus `refresh`.
-- **Search.** Query the cached Parquet in place with `arrow::open_dataset`, following the
-  search rules in `design.md`:
-  - every word as a whole word, ignoring case, in `series_title`, `survey_name` or
-    `survey_aliases`
-  - all matches returned
-  - sorted by title length, then title ignoring case, then series ID, with
-    `method = "radix"`
+  limit = 1000, refresh = FALSE)`, returning a tibble with `series_id`,
+  `series_title`, `program`, `survey_name`, `seasonal`, `begin_year`, `end_year` and
+  `end_period`. A breaking change from today's function: no `max_results` or
+  `metadata`.
+- **Search.** Query the cached Parquet in place with `arrow::open_dataset`, following
+  the search rules in `design.md`:
+  - stemmed words matched at word starts
+  - multi-code `survey` and `seasonality` filters
+  - the sort order
+  - the limit, with the per-survey counts message
+  - Sort and limit inside `arrow` before collecting, and measure that the broad "OEWS"
+    search (6 million matches) stays fast and small.
 - **Check on real queries.** Show the maintainer the first 20 results for "unemployment
-  rate", "consumer price index", "CPI", "JOLTS quits", "registered nurses", and
-  "average hourly earnings manufacturing". Adjust the sort only if they look wrong.
+  rate", "consumer price index", "CPI", "JOLTS quits", "registered nurses", "average
+  hourly earnings manufacturing", and "OEWS". If the sort needs to change, update
+  `design.md` first, then the code.
 - **Row groups.** Check whether writing the Parquet in program order with smaller row
   groups makes `survey = "ln"` skip OE's 6 million rows. Adopt it only if the speedup is
   noticeable.

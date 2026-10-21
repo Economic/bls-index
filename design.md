@@ -255,8 +255,11 @@ Clients start from two fixed URLs:
 - catalog: the `catalog.url` from that manifest
 
 A reference client, `examples/find_bls.R`, follows these rules. Its signature is
-`find_bls(search_string, survey = NULL, seasonality = NULL, refresh = FALSE)`: today's
-`epidatatools::find_bls()` without the 20-result cap, plus `refresh`. Clients should:
+`find_bls(search_string, survey = NULL, seasonality = NULL, limit = 1000,
+refresh = FALSE)`. This is a deliberate breaking change from today's
+`epidatatools::find_bls()`: `max_results` and `metadata` are gone. It always returns
+`series_id`, `series_title`, `program`, `survey_name`, `seasonal`, `begin_year`,
+`end_year` and `end_period`. Clients should:
 
 - Cache the catalog in `tools::R_user_dir("epidatatools", "cache")`, and verify its
   SHA-256 against the manifest.
@@ -268,14 +271,31 @@ A reference client, `examples/find_bls.R`, follows these rules. Its signature is
   querying in place takes about 0.3 s
   ([measurements](docs/evidence/2026-10-20-phase1-runner-build.md)).
 - Search like this:
-  - Split the search string into words. Every word must appear as a whole word, ignoring
-    case, in `series_title`, `survey_name` or `survey_aliases`. Whole words matter: "CES"
-    matches 2 titles as a word, but 769,239 as part of words like "services".
-  - `survey` filters by program code, and `seasonality` by `seasonal`.
-  - Return every match, with no cap.
-  - Sort by title length (shortest first), then title alphabetically ignoring case, then
-    series ID. Short titles tend to be the general series. In R, sort with
-    `method = "radix"` so the order does not depend on the machine's locale.
+  - **Words.** Split the search string on spaces, and trim punctuation from the ends of
+    each word. Every word must match in `series_title`, `survey_name` or
+    `survey_aliases`, ignoring case. Escape regular-expression characters in words.
+  - **Stemming.** Reduce each word to its English Snowball stem (`SnowballC` in R), and
+    match any word that begins with the stem: "nurses" becomes "nurs" and matches nurse,
+    nurses and nursing. A stem shorter than 4 characters is not used. The original word
+    must then match as a whole word, so initialisms stay exact: "oes" would stem to "oe",
+    and "CES" must not match "census".
+  - **Word boundaries.** A match must start at the beginning of a word: "CES" matches 2
+    titles as a word, but 769,239 inside words like "services". Hyphens separate words,
+    so "CPI-U" also matches the chained "C-CPI-U". That is accepted: treating hyphens as
+    part of words would stop "collar" matching "white-collar".
+  - **Filters.** `survey` takes one or more program codes, such as `c("la", "ln")`,
+    ignoring case, and filters `program`. `seasonality` takes one or more of `SA`, `NSA`
+    and `unknown`. An unknown code is an error that lists the valid codes.
+  - **Order.** Sort by title length (shortest first), then lowercased title, then series
+    ID, comparing strings by bytes so the order is the same on every machine. Short titles
+    tend to be the general series. Any change to this order is made here first.
+  - **Limit.** Count the matches, sort, and keep the first `limit` rows (1,000 by
+    default; `Inf` for all) before bringing them into R. A broad search such as "OEWS"
+    matches 6 million rows: as a data frame that is 1.7 GB, and sorting it in R took 59 s.
+    When results are cut, print the total and the matches per survey. For
+    "unemployment rate" on the 2026-10-20 catalog: "13,163 matches; showing the first
+    1,000. By survey: la 8,536, ln 4,197, fm 240, kv 138, jt 52."
+  - **Later.** Quoted phrases, and "did you mean" suggestions when nothing matches.
 - Allow enough time for a slow download. R's `download.file()` gives up after 60 s by
   default.
 - If the network fails, keep using the cached catalog, and say how old it is.
@@ -331,9 +351,14 @@ These are deliberate. Reviews should not report them as defects.
   considered and dropped as not worth its cost.
 - **Reference client queries in place with `arrow`** (2026-10-20).
 - **Survey aliases and search rules** (2026-10-20). `survey_name` stays the official BLS
-  name; initialisms, former names and informal names go in `survey_aliases`. Clients
-  require every word as a whole word, return all matches, and sort by title length, then
-  title, then series ID.
+  name; initialisms, former names and informal names go in `survey_aliases`. Client
+  search rules:
+  - every word must match, stemmed, at the start of a word
+  - sort by title length, then title, then series ID
+  - a 1,000-row default limit, with counts by survey when results are cut
+  - `survey` accepts several codes
+  - a breaking change to `find_bls()`: no `max_results` or `metadata`, and always the
+    extra columns
 
 ## Done when
 
