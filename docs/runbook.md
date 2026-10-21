@@ -31,13 +31,13 @@ that tests a new program (see "Adding a program").
 
 1. Open the run: `gh run view <run id>`. It shows which job failed. The failed step's
    log usually names the problem.
-2. **If the build job failed,** download the diagnostic report:
+2. **If the "Build the catalog" step failed,** download the diagnostic report:
    `gh run download <run id> -n report-<run id> -D tmp/report`. Its `report.json` names
-   the failing program and stage. The artifact is kept for 7 days.
-3. **If the publish job failed,** the build succeeded, so the report shows no failure.
-   Read the publish job's log instead: `gh run view <run id> --log-failed`.
-   `scripts/publish.sh` deletes its draft when a step fails, and the next publish
-   deletes any draft left over.
+   the failing program and stage. The artifact is kept for 7 days. For a failure in any
+   other step, the report may be missing or show no failure, so read that step's log:
+   `gh run view <run id> --log-failed`.
+3. **If the publish job failed,** read its log the same way. Most failures delete the
+   draft release. Any draft left over is deleted by the next publish.
 4. A failed run leaves the latest release unchanged. Clients keep using it.
 5. A real failure is usually a BLS format change in one program. Fix it in a pull
    request.
