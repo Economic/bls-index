@@ -1,0 +1,167 @@
+# Build the catalog every day, and publish it as a GitHub Release about once a week
+# (design.md, "Publication" and "Operations").
+name: daily
+
+on:
+  schedule:
+    - cron: "23 9 * * *" # 09:23 UTC
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "auto: if the latest release is 6+ days old; force: always; test: a test prerelease; none: build only"
+        type: choice
+        options: [auto, force, test, none]
+        default: auto
+      programs:
+        description: "Initial-scope programs, or 'initial' for all 33. A subset build never publishes."
+        default: "initial"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bls-index-publish
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash # bash -eo pipefail, so a failure inside a pipe fails the step
+
+env:
+  # Scheduled runs have no inputs; these defaults apply to them.
+  MODE: ${{ inputs.publish || 'auto' }}
+  PROGRAMS: ${{ inputs.programs || 'initial' }}
+  HC_URL: ${{ secrets.HEALTHCHECKS_URL }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    outputs:
+      publish: ${{ steps.decide.outputs.publish }}
+      tag: ${{ steps.manifest.outputs.tag }}
+    env:
+      # It must not contain "github": BLS returns 403.
+      BLS_INDEX_USER_AGENT: ${{ secrets.BLS_INDEX_USER_AGENT }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Tell the monitor the run started
+        # Only full builds report to the monitor; a subset build is a diagnostic.
+        if: env.PROGRAMS == 'initial' && env.HC_URL != ''
+        run: curl -fsS -m 10 --retry 3 -o /dev/null "$HC_URL/start" || true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.10.3"
+      - name: Install locked toolchain
+        run: uv sync --frozen
+      - name: Build the catalog
+        id: build
+        run: |
+          uv run --frozen bls-index build --programs "$PROGRAMS" --workdir "$RUNNER_TEMP/work"
+          echo "run_dir=$(find "$RUNNER_TEMP/work" -mindepth 1 -maxdepth 1 -type d -name 'build-*' -print -quit)" >> "$GITHUB_OUTPUT"
+      - name: Decide whether to publish
+        id: decide
+        run: |
+          case "$MODE" in
+            force | test) publish=true ;;
+            none) publish=false ;;
+            auto)
+              # No release yet (or none readable) means a publish is due.
+              if gh release download --repo "$GITHUB_REPOSITORY" --pattern latest.json \
+                   --dir "$RUNNER_TEMP/previous" 2>/dev/null; then
+                due=$(uv run --frozen bls-index publish-due "$RUNNER_TEMP/previous/latest.json")
+              else
+                due=$(uv run --frozen bls-index publish-due)
+              fi
+              publish=${due#due=} ;;
+          esac
+          [ "$PROGRAMS" = initial ] || publish=false
+          echo "publish=$publish" | tee -a "$GITHUB_OUTPUT"
+      - name: Write the manifest
+        id: manifest
+        if: steps.decide.outputs.publish == 'true'
+        env:
+          RUN_DIR: ${{ steps.build.outputs.run_dir }}
+        run: |
+          flags=()
+          if [ "$MODE" = test ]; then flags=(--test); fi
+          uv run --frozen bls-index manifest "$RUN_DIR" --repo "$GITHUB_REPOSITORY" "${flags[@]}" \
+            | tee -a "$GITHUB_OUTPUT"
+          mkdir -p "$RUNNER_TEMP/release"
+          cp "$RUN_DIR/bls_index.parquet" "$RUN_DIR/latest.json" "$RUNNER_TEMP/release/"
+      - name: Stage the diagnostic report
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/diagnostics"
+          for report in "$RUNNER_TEMP"/work/build-*/report.json; do
+            if [ -f "$report" ]; then cp "$report" "$RUNNER_TEMP/diagnostics/"; fi
+          done
+      # GitHub masks secrets in logs but not in artifacts. Scan everything before upload.
+      - name: Check artifacts for the User-Agent
+        id: user-agent-check
+        if: always()
+        run: |
+          [ -n "$BLS_INDEX_USER_AGENT" ] || exit 0
+          for dir in "$RUNNER_TEMP/diagnostics" "$RUNNER_TEMP/release"; do
+            if [ -d "$dir" ] && grep -rqF -- "$BLS_INDEX_USER_AGENT" "$dir"; then
+              echo "::error::An artifact contains the User-Agent; not uploading artifacts"
+              exit 1
+            fi
+          done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always() && steps.user-agent-check.outcome == 'success'
+        with:
+          name: report-${{ github.run_id }}
+          path: ${{ runner.temp }}/diagnostics/
+          if-no-files-found: warn
+          retention-days: 7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: steps.decide.outputs.publish == 'true' && steps.user-agent-check.outcome == 'success'
+        with:
+          name: release
+          path: ${{ runner.temp }}/release/
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: build
+    if: needs.build.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # The only job with write access. It never sees BLS data except the finished files.
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.build.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: release
+          path: ${{ runner.temp }}/release
+      - name: Publish the release
+        run: bash scripts/publish.sh "$RUNNER_TEMP/release" "$TAG" "$GITHUB_SHA" "$GITHUB_REPOSITORY"
+
+  monitor:
+    needs: [build, publish]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Report the run to the monitor
+        # Success when the build succeeded and the publish succeeded or was skipped.
+        if: env.PROGRAMS == 'initial' && env.HC_URL != ''
+        env:
+          BUILD: ${{ needs.build.result }}
+          PUBLISH: ${{ needs.publish.result }}
+        run: |
+          if [ "$BUILD" = success ] && { [ "$PUBLISH" = success ] || [ "$PUBLISH" = skipped ]; }; then
+            curl -fsS -m 10 --retry 3 -o /dev/null "$HC_URL"
+          else
+            curl -fsS -m 10 --retry 3 -o /dev/null "$HC_URL/fail"
+          fi

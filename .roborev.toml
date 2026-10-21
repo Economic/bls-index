@@ -101,13 +101,15 @@ reasoning = "high"
 
 # ---- Panels (groups of reviewers) ----
 # Runs on every commit (see hook_review_panel below).
-# Once publication code lands (contents: write token, workflow secrets), add "codex_security_reviewer".
 [review.panels.every_commit_panel]
 members = ["codex_code_reviewer"]
 
 # Manual, at the plan's milestones: roborev review --branch --panel checkpoint_panel
+# The security reviewer covers the code that holds the contents: write token (the
+# publish job in daily.yml and scripts/publish.sh), which changes rarely.
 [review.panels.checkpoint_panel]
-members = ["codex_code_reviewer", "claude_code_reviewer", "codex_design_reviewer"]
+members = ["codex_code_reviewer", "claude_code_reviewer", "codex_design_reviewer",
+           "codex_security_reviewer"]
 synthesis_agent = "codex"
 synthesis_model = "gpt-6-sol"
 

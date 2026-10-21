@@ -5,8 +5,8 @@ compact Parquet file plus a `latest.json` manifest. [`design.md`](design.md) is 
 contract and [`plans/2026-10-13-simplification-implementation.md`](plans/2026-10-13-simplification-implementation.md)
 is the implementation plan.
 
-**Status:** all 33 programs build locally (plan Phase 1). Publishing is not built yet;
-nothing is published. Catalogs will be published weekly as GitHub Releases.
+**Status:** all 33 programs build, and publishing through GitHub Releases is written
+and tested offline (plan Phase 2). Nothing is published yet.
 
 ## Build and test
 
@@ -45,8 +45,16 @@ stops at the first failed program.
 Requests start at most once per second, and BLS blocks faster robots. `--base-url` with a
 loopback address and `--min-request-interval 0` run against a local copy instead.
 
-The manual `build` GitHub Actions workflow runs the same command on a clean runner and
-uploads only the report and resource usage.
+## Publishing
+
+The `daily` GitHub Actions workflow builds the catalog every day. When the latest
+release is at least 6 days old, it also publishes the catalog and its `latest.json`
+manifest as a GitHub Release, through `bls-index manifest`, `bls-index publish-due` and
+`scripts/publish.sh`. The release stays a draft until GitHub's SHA-256 digests of both
+files match the local files. A manual run can choose `publish: force`, `test` (a
+prerelease that never becomes "latest"), or `none` (build only), and can build a subset
+of programs, which never publishes. Runs report to a healthchecks.io monitor through
+the `HEALTHCHECKS_URL` secret.
 
 ## Searching the catalog from R
 
@@ -77,12 +85,14 @@ src/bls_index/
   builders.py            native titles and sm/jt/pr title synthesis
   combined_candidate.py  combined checks and the pinned data-dict validation
   build.py, cli.py       the build run, its report, and the `bls-index` command
+  manifest.py            latest.json and the weekly publish decision
 examples/
   find_bls.R             reference R client; check_find_bls.R checks it offline
 scripts/
   check.sh               the build and test command
   golden.py              compare a refactor's rows with a saved run
   fixture_catalog.py     small catalog and manifest from the test fixtures
+  publish.sh             publish a built catalog as a GitHub Release
 tests/
   harness/               controlled HTTP source serving scripted replies
   fixtures/              real sample rows for every program; two_program/ is served over HTTP

@@ -357,6 +357,17 @@ not a package.
 - Operator, optional: delete the R2 buckets `bls-index` and `bls-index-staging` and their
   API token, or keep them unused.
 
+**Progress (2026-10-21):** tasks 2.2–2.4 are written and tested offline; 2.5 is next.
+- `bls-index manifest` computes the tag from the build's start time instead of taking
+  `--tag`, so the tag and `built_at` cannot disagree. It prints `tag=...` for the
+  workflow, and also refuses a catalog that no longer matches its report.
+- `scripts/publish.sh` works through the releases API by release ID, because a draft
+  has no git tag until it is published. It deletes only drafts tagged `catalog-` or
+  `test-`, so a maintainer's own draft is never touched.
+- The workflow adds `publish: none` (build only) and a `programs` input for diagnostic
+  subset builds, which never publish and do not report to the monitor.
+- `build.yml` is removed.
+
 ### 2.2 Manifest and publish decision (`manifest.py`)
 
 - `bls-index manifest RUNDIR --tag TAG --repo Economic/bls-index` writes
