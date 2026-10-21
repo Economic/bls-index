@@ -16,7 +16,8 @@ code.
   when the latest is at least 6 days old. Two test publishes and their cleanup passed on
   GitHub ([evidence](../docs/evidence/2026-10-21-phase2-test-releases.md)).
 - **Monitor:** healthchecks.io records each run's start and success pings. Both alerts
-  email: a `/fail` ping, and a missed run
+  email: a failed run, through the monitor job's `/fail` branch on GitHub
+  ([evidence](../docs/evidence/2026-10-21-monitor-fail-branch.md)), and a missed run
   ([evidence](../docs/evidence/2026-10-21-missed-run-alert.md)).
 - **Branch protection:** the `protect main` ruleset requires a pull request and the CI
   `check` job.
@@ -92,7 +93,5 @@ This work belongs in the `Economic/epidatatools` repository, not here.
 
 ## Known gaps
 
-- **The monitor job's failure branch has not run on GitHub.** The `/fail` ping and its
-  email were confirmed by hand instead. The first real failed run will exercise it.
 - **GitHub disables the schedule after 60 days without repository activity.** The
   monitor's missed-run alert is the warning; re-enable the workflow or make any commit.

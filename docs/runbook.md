@@ -77,7 +77,7 @@ are a bonus.
 
 | Email | Meaning | What to do |
 |---|---|---|
-| Down, soon after a run | A full run failed: the build failed, or the publish did | See "When a run fails" |
+| Down, soon after a run | A full run failed or was cancelled: the build or the publish | See "When a run fails" |
 | Down, with no run failing | No successful run for about 48 hours | See below |
 | Up | A run succeeded after an alert | Nothing |
 
@@ -95,6 +95,20 @@ puts the check down. To test the missed-run alert, shorten the schedule, ping th
 by hand, and let the new deadline pass
 ([evidence](evidence/2026-10-21-missed-run-alert.md)). Restore the schedule before the
 final ping.
+
+To test the failure alert, cancel a full build-only run:
+
+```sh
+gh workflow run daily.yml -f publish=none
+gh run list --workflow daily.yml --limit 1   # wait until the run appears
+gh run cancel <run id>
+```
+
+Cancel as soon as the run appears. The longer you wait, the more the build downloads
+from BLS, up to 1.66 GB. Don't wait for a step to finish: `gh run view` lists no steps
+while a job runs. The monitor job runs after a cancel and pings `/fail`
+([evidence](evidence/2026-10-21-monitor-fail-branch.md)). If the run page shows it as
+skipped, nothing was tested. Afterwards, ping the check by hand to bring it back up.
 
 The ping URL is the `HEALTHCHECKS_URL` repository secret. It is private, so never print
 it.
