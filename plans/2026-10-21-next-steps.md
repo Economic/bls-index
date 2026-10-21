@@ -67,15 +67,16 @@ maintainer first, since that writes a public release.
    - re-enabling the schedule if GitHub disables it after 60 days without repository
      activity
    - costs: none expected for a public repository
-2. **Verify the missed-run alert.** This is the alert that warns when scheduled runs
-   stop, and the one test of it sent no email (see Known gaps). The maintainer:
-   1. creates a separate test check in healthchecks.io with a 1-minute period and
-      1-minute grace time, using the same email method
-   2. pings it once by hand
-   3. waits for it to go down, and confirms the email arrives
+2. **Verify the missed-run alert on the live check.** This is the alert that warns when
+   scheduled runs stop. The live check has already emailed on a `/fail` ping, but its one
+   overdue test sent no email (see Known gaps). The maintainer:
+   1. waits until a daily run has just sent its success ping
+   2. sets the live check's period and grace time to 1 minute each
+   3. confirms that the check goes down and the email arrives
+   4. sets both back to 1 day
 
    If no email comes, ask healthchecks.io support, or switch to another monitor, before
-   relying on it. Then delete the test check.
+   relying on it.
 3. **Watch a week.** The design's "Done when" requires 7 consecutive successful daily
    builds and at least two weekly releases. The second release should come from the
    first scheduled run at least 6 days after the first, around 2026-10-27.
