@@ -117,7 +117,7 @@
   {
    "program": "ci",
    "survey_name": "Employment Cost Index",
-   "survey_aliases": "ECI",
+   "survey_aliases": "ECI; employment cost index",
    "series_id": "CIS1010000000000I",
    "series_title": "Total compensation for all civilian workers, current dollar index",
    "title_source": "native",
@@ -129,7 +129,7 @@
   {
    "program": "ci",
    "survey_name": "Employment Cost Index",
-   "survey_aliases": "ECI",
+   "survey_aliases": "ECI; employment cost index",
    "series_id": "CIU2016100000000Z",
    "series_title": "Total compensation for private industry workers in the educational services industry, 12-month percent change, constant dollars",
    "title_source": "native",
@@ -141,7 +141,7 @@
   {
    "program": "ci",
    "survey_name": "Employment Cost Index",
-   "survey_aliases": "ECI",
+   "survey_aliases": "ECI; employment cost index",
    "series_id": "CIU3030000000000Z",
    "series_title": "Total benefits for all state and local government workers, 12-month percent change, constant dollars",
    "title_source": "native",
@@ -193,7 +193,7 @@
   {
    "program": "cu",
    "survey_name": "Consumer Price Index - All Urban Consumers",
-   "survey_aliases": "CPI; CPI-U",
+   "survey_aliases": "CPI; CPI-U; consumer price index",
    "series_id": "CUSR0000SA0",
    "series_title": "All items in U.S. city average, all urban consumers, seasonally adjusted",
    "title_source": "native",
@@ -205,7 +205,7 @@
   {
    "program": "cu",
    "survey_name": "Consumer Price Index - All Urban Consumers",
-   "survey_aliases": "CPI; CPI-U",
+   "survey_aliases": "CPI; CPI-U; consumer price index",
    "series_id": "CUURS49ESANL1",
    "series_title": "Nondurables less food in San Diego-Carlsbad, CA, all urban consumers, not seasonally adjusted",
    "title_source": "native",
@@ -217,7 +217,7 @@
   {
    "program": "cu",
    "survey_name": "Consumer Price Index - All Urban Consumers",
-   "survey_aliases": "CPI; CPI-U",
+   "survey_aliases": "CPI; CPI-U; consumer price index",
    "series_id": "CUUSS49GSS47016",
    "series_title": "Gasoline, unleaded premium in Urban Alaska, all urban consumers, not seasonally adjusted",
    "title_source": "native",
@@ -229,7 +229,7 @@
   {
    "program": "cu",
    "survey_name": "Consumer Price Index - All Urban Consumers",
-   "survey_aliases": "CPI; CPI-U",
+   "survey_aliases": "CPI; CPI-U; consumer price index",
    "series_id": "CUUS0000AA0",
    "series_title": "All items - old base in U.S. city average, all urban consumers, not seasonally adjusted",
    "title_source": "native",
@@ -241,7 +241,7 @@
   {
    "program": "cu",
    "survey_name": "Consumer Price Index - All Urban Consumers",
-   "survey_aliases": "CPI; CPI-U",
+   "survey_aliases": "CPI; CPI-U; consumer price index",
    "series_id": "CUUS0100SAF111",
    "series_title": "Cereals and bakery products in Northeast urban, all urban consumers, not seasonally adjusted",
    "title_source": "native",
@@ -253,7 +253,7 @@
   {
    "program": "cu",
    "survey_name": "Consumer Price Index - All Urban Consumers",
-   "survey_aliases": "CPI; CPI-U",
+   "survey_aliases": "CPI; CPI-U; consumer price index",
    "series_id": "CUUS0000SEHP",
    "series_title": "Household operations in U.S. city average, all urban consumers, not seasonally adjusted",
    "title_source": "native",
@@ -267,7 +267,7 @@
   {
    "program": "cw",
    "survey_name": "Consumer Price Index - Urban Wage Earners and Clerical Workers",
-   "survey_aliases": "CPI; CPI-W",
+   "survey_aliases": "CPI; CPI-W; consumer price index",
    "series_id": "CWSR0000SA0",
    "series_title": "All items in U.S. city average, urban wage earners and clerical workers, seasonally adjusted",
    "title_source": "native",
@@ -279,7 +279,7 @@
   {
    "program": "cw",
    "survey_name": "Consumer Price Index - Urban Wage Earners and Clerical Workers",
-   "survey_aliases": "CPI; CPI-W",
+   "survey_aliases": "CPI; CPI-W; consumer price index",
    "series_id": "CWURS49FSA0L1E",
    "series_title": "All items less food and energy in Urban Hawaii, urban wage earners and clerical workers, not seasonally adjusted",
    "title_source": "native",
@@ -291,7 +291,7 @@
   {
    "program": "cw",
    "survey_name": "Consumer Price Index - Urban Wage Earners and Clerical Workers",
-   "survey_aliases": "CPI; CPI-W",
+   "survey_aliases": "CPI; CPI-W; consumer price index",
    "series_id": "CWUSS49GSS47016",
    "series_title": "Gasoline, unleaded premium in Urban Alaska, urban wage earners and clerical workers, not seasonally adjusted",
    "title_source": "native",
@@ -303,7 +303,7 @@
   {
    "program": "cw",
    "survey_name": "Consumer Price Index - Urban Wage Earners and Clerical Workers",
-   "survey_aliases": "CPI; CPI-W",
+   "survey_aliases": "CPI; CPI-W; consumer price index",
    "series_id": "CWUS0000AA0",
    "series_title": "All items - old base in U.S. city average, urban wage earners and clerical workers, not seasonally adjusted",
    "title_source": "native",
@@ -315,7 +315,7 @@
   {
    "program": "cw",
    "survey_name": "Consumer Price Index - Urban Wage Earners and Clerical Workers",
-   "survey_aliases": "CPI; CPI-W",
+   "survey_aliases": "CPI; CPI-W; consumer price index",
    "series_id": "CWUS0100SAF111",
    "series_title": "Cereals and bakery products in Northeast urban, urban wage earners and clerical workers, not seasonally adjusted",
    "title_source": "native",
@@ -327,7 +327,7 @@
   {
    "program": "cw",
    "survey_name": "Consumer Price Index - Urban Wage Earners and Clerical Workers",
-   "survey_aliases": "CPI; CPI-W",
+   "survey_aliases": "CPI; CPI-W; consumer price index",
    "series_id": "CWUS0000SEEC02",
    "series_title": "Delivery services in U.S. city average, urban wage earners and clerical workers, not seasonally adjusted",
    "title_source": "native",
@@ -835,7 +835,7 @@
   {
    "program": "nd",
    "survey_name": "Producer Price Index Revision - Discontinued Series",
-   "survey_aliases": "PPI",
+   "survey_aliases": "PPI; producer price index",
    "series_id": "NDU1133101133100",
    "series_title": "PPI industry data for Logging-Logs, including receipts from contract logging, not seasonally adjusted, discontinued",
    "title_source": "native",
@@ -847,7 +847,7 @@
   {
    "program": "nd",
    "survey_name": "Producer Price Index Revision - Discontinued Series",
-   "survey_aliases": "PPI",
+   "survey_aliases": "PPI; producer price index",
    "series_id": "NDU332710332710S",
    "series_title": "PPI industry data for Machine shops-Secondary products, not seasonally adjusted, discontinued",
    "title_source": "native",
@@ -859,7 +859,7 @@
   {
    "program": "nd",
    "survey_name": "Producer Price Index Revision - Discontinued Series",
-   "survey_aliases": "PPI",
+   "survey_aliases": "PPI; producer price index",
    "series_id": "NDUBRSM--BRSM--",
    "series_title": "PPI industry group data for Material and supply inputs to multi-unit residential construction, not seasonally adjusted, discontinued",
    "title_source": "native",
@@ -949,7 +949,7 @@
   {
    "program": "pc",
    "survey_name": "Producer Price Index Industry Data - Current Series",
-   "survey_aliases": "PPI",
+   "survey_aliases": "PPI; producer price index",
    "series_id": "PCU1133--1133--",
    "series_title": "PPI industry group data for Logging, not seasonally adjusted",
    "title_source": "native",
@@ -961,7 +961,7 @@
   {
    "program": "pc",
    "survey_name": "Producer Price Index Industry Data - Current Series",
-   "survey_aliases": "PPI",
+   "survey_aliases": "PPI; producer price index",
    "series_id": "PCU3329913329917",
    "series_title": "PPI industry data for Ball and roller bearing mfg-Mounted bearings (excluding plain), not seasonally adjusted",
    "title_source": "native",
@@ -973,7 +973,7 @@
   {
    "program": "pc",
    "survey_name": "Producer Price Index Industry Data - Current Series",
-   "survey_aliases": "PPI",
+   "survey_aliases": "PPI; producer price index",
    "series_id": "PCUOMIN--OMIN--",
    "series_title": "PPI industry group data for Total mining industries, not seasonally adjusted",
    "title_source": "native",
@@ -1063,7 +1063,7 @@
   {
    "program": "wd",
    "survey_name": "Producer Price Index - Commodity Data - discontinued",
-   "survey_aliases": "PPI",
+   "survey_aliases": "PPI; producer price index",
    "series_id": "WDS0112",
    "series_title": "PPI Commodity data for Farm products-Dried fruits, bulk, seasonally adjusted, discontinued",
    "title_source": "native",
@@ -1075,7 +1075,7 @@
   {
    "program": "wd",
    "survey_name": "Producer Price Index - Commodity Data - discontinued",
-   "survey_aliases": "PPI",
+   "survey_aliases": "PPI; producer price index",
    "series_id": "WDU10220104",
    "series_title": "PPI Commodity data for Metals and metal products-Aluminum ingot,casting. . . . . . . . . . . . . . . . . . . ., not seasonally adjusted, discontinued",
    "title_source": "native",
@@ -1087,7 +1087,7 @@
   {
    "program": "wd",
    "survey_name": "Producer Price Index - Commodity Data - discontinued",
-   "survey_aliases": "PPI",
+   "survey_aliases": "PPI; producer price index",
    "series_id": "WDUSOPCNMT",
    "series_title": "PPI Commodity data for Stage of processing-Crude nonfood materials, not seasonally adjusted, discontinued",
    "title_source": "native",
@@ -1139,7 +1139,7 @@
   {
    "program": "wp",
    "survey_name": "Producer Price Index Commodity Data - Current Series",
-   "survey_aliases": "PPI",
+   "survey_aliases": "PPI; producer price index",
    "series_id": "WPS00000000",
    "series_title": "PPI Commodity data for All commodities, seasonally adjusted",
    "title_source": "native",
@@ -1151,7 +1151,7 @@
   {
    "program": "wp",
    "survey_name": "Producer Price Index Commodity Data - Current Series",
-   "survey_aliases": "PPI",
+   "survey_aliases": "PPI; producer price index",
    "series_id": "WPU09160101",
    "series_title": "PPI Commodity data for Pulp, paper, and allied products-Pressure-sensitive products, not seasonally adjusted",
    "title_source": "native",
@@ -1163,7 +1163,7 @@
   {
    "program": "wp",
    "survey_name": "Producer Price Index Commodity Data - Current Series",
-   "survey_aliases": "PPI",
+   "survey_aliases": "PPI; producer price index",
    "series_id": "WPUSISTEEL3",
    "series_title": "PPI Commodity data for Special indexes-Finished steel mill products, including fabricated wire products, not seasonally adjusted",
    "title_source": "native",

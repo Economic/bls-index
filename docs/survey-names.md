@@ -36,6 +36,10 @@ Aliases are our choice, not BLS source text. There are three kinds:
   - CEX for `cx`, the common research abbreviation (BLS writes CE)
   - "Current Employment Statistics" for `ce`, the survey's usual name
   - "consumer price index" for `su`, whose official name abbreviates it to CPI
+- **Official names people type as search words:** "consumer price index" (`cu`, `cw`),
+  "producer price index" (`pc`, `wp`, `nd`, `wd`), and "employment cost index" (`ci`).
+  The survey name already contains these words, but survey-name matches do not count
+  toward a result's rank; alias matches do (see `design.md`).
 
 Some aliases are shared by several programs, because that is what a user typing them
 means:
@@ -55,10 +59,10 @@ such as "CES" match only as whole words, so "CES" does not match "services" or "
 | `ap` | Average Price Data | help page |  |
 | `bd` | Business Employment Dynamics | help page | BED |
 | `ce` | National Employment, Hours, and Earnings | help page | CES; Current Employment Statistics; establishment survey |
-| `ci` | Employment Cost Index | help page | ECI |
+| `ci` | Employment Cost Index | help page | ECI; employment cost index |
 | `cm` | Employer Costs for Employee Compensation | help page | ECEC |
-| `cu` | Consumer Price Index - All Urban Consumers | help page | CPI; CPI-U |
-| `cw` | Consumer Price Index - Urban Wage Earners and Clerical Workers | help page | CPI; CPI-W |
+| `cu` | Consumer Price Index - All Urban Consumers | help page | CPI; CPI-U; consumer price index |
+| `cw` | Consumer Price Index - Urban Wage Earners and Clerical Workers | help page | CPI; CPI-W; consumer price index |
 | `cx` | Consumer Expenditure Survey | help page (`cx.txt` returns 404) | CEX |
 | `ei` | Import/Export Price Indexes | help page | MXP |
 | `ep` | Employment Projections | `ep.txt` |  |
@@ -73,17 +77,17 @@ such as "CES" match only as whole words, so "CES" does not match "services" or "
 | `lu` | Union Affiliation Data (Current Population Survey - CPS) | data page |  |
 | `mp` | Major Sector Total Factor Productivity | help page |  |
 | `nb` | National Benefits | help page | NCS |
-| `nd` | Producer Price Index Revision - Discontinued Series | `nd.txt` (definition line) | PPI |
+| `nd` | Producer Price Index Revision - Discontinued Series | `nd.txt` (definition line) | PPI; producer price index |
 | `oe` | Occupational Employment and Wage Statistics | `oe.txt` | OEWS; OES |
 | `or` | Occupational Requirements Survey | help page | ORS |
-| `pc` | Producer Price Index Industry Data - Current Series | help page | PPI |
+| `pc` | Producer Price Index Industry Data - Current Series | help page | PPI; producer price index |
 | `pr` | Major Sector Productivity and Costs | help page |  |
 | `sm` | State and Area Employment, Hours, and Earnings | help page | SAE |
 | `su` | Chained CPI-All Urban Consumers | help page | CPI; C-CPI-U; consumer price index |
 | `tu` | American Time Use Survey | help page | ATUS |
-| `wd` | Producer Price Index - Commodity Data - discontinued | `wd.txt` | PPI |
+| `wd` | Producer Price Index - Commodity Data - discontinued | `wd.txt` | PPI; producer price index |
 | `wm` | Modeled Wage Estimates | help page | MWE |
-| `wp` | Producer Price Index Commodity Data - Current Series | help page | PPI |
+| `wp` | Producer Price Index Commodity Data - Current Series | help page | PPI; producer price index |
 | `ws` | Work Stoppages Program | help page |  |
 
 To add a program, add its name to `SURVEY_NAMES`, any aliases to `SURVEY_ALIASES`, and a
