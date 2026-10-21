@@ -10,7 +10,7 @@ from pathlib import Path
 import polars as pl
 
 from bls_index.schema import CANONICAL_SCHEMA
-from bls_index.scope import INITIAL_PROGRAMS, NATIVE_TITLE_PROGRAMS, SURVEY_NAMES
+from bls_index.scope import INITIAL_PROGRAMS, NATIVE_TITLE_PROGRAMS, SURVEY_ALIASES, SURVEY_NAMES
 
 DICTIONARY = Path(__file__).resolve().parents[2] / "data-dict.yaml"
 CATALOG_NAME = "bls_index.parquet"  # the dictionary's relative parquet source
@@ -43,9 +43,12 @@ def validate_combined_candidate(
         if not frame.select(
             (pl.col("program") == program).all()
             & (pl.col("survey_name") == SURVEY_NAMES[program]).all()
+            & pl.col("survey_aliases").eq_missing(SURVEY_ALIASES.get(program)).all()
             & (pl.col("title_source") == source).all()
         ).item():
-            raise CombinedCandidateError(f"{program}: wrong program, survey_name or title_source values")
+            raise CombinedCandidateError(
+                f"{program}: wrong program, survey_name, survey_aliases or title_source values"
+            )
 
     combined = pl.concat([frames[program] for program in programs])
     duplicates = combined.filter(pl.col("series_id").is_duplicated())

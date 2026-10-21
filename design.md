@@ -68,6 +68,7 @@ repository-root [`data-dict.yaml`](data-dict.yaml).
 |---|---|---|
 | `program` | string | BLS program code from scope, never inferred from the ID |
 | `survey_name` | string | BLS name of the program's survey, such as "Consumer Price Index - All Urban Consumers"; one fixed value per program |
+| `survey_aliases` | string, nullable | Other names people search for, such as "CPI; CPI-U", separated by `; `; one fixed value per program |
 | `series_id` | string | Trimmed; unique across the catalog; compared exactly as spelled |
 | `series_title` | string | Native title preserved as published, or synthesized from lookups |
 | `title_source` | string | `native` or `synthesized` |
@@ -82,6 +83,13 @@ Titles need not be unique. Schema version 1 is separate from the data-dict `$ver
 survey: CPI titles begin "All items in U.S. city average", so a search for "consumer
 price index" finds nothing without it. Names come from a fixed table in code, one entry
 per program in scope, taken from official BLS sources and checked by tests.
+
+`survey_aliases` holds the other ways people refer to a survey: initialisms ("CES",
+"JOLTS"), former names ("OES"), and informal names ("household survey"). Aliases are
+our choice, not BLS text, so they stay out of the displayed `survey_name`. The same alias
+can belong to several programs: "CPI" covers `cu`, `cw` and `su`. Each alias and its
+reason is listed in [`docs/survey-names.md`](docs/survey-names.md). Because they live in
+the catalog, they can improve with any weekly release, without a client update.
 
 ## Build
 
@@ -246,9 +254,9 @@ Clients start from two fixed URLs:
 - manifest: `https://github.com/Economic/bls-index/releases/latest/download/latest.json`
 - catalog: the `catalog.url` from that manifest
 
-A reference client, `examples/find_bls.R`, follows these rules. It keeps the signature of
-today's `epidatatools::find_bls(search_string, max_results = 20, survey = NULL,
-seasonality = NULL)`. Clients should:
+A reference client, `examples/find_bls.R`, follows these rules. Its signature is
+`find_bls(search_string, survey = NULL, seasonality = NULL, refresh = FALSE)`: today's
+`epidatatools::find_bls()` without the 20-result cap, plus `refresh`. Clients should:
 
 - Cache the catalog in `tools::R_user_dir("epidatatools", "cache")`, and verify its
   SHA-256 against the manifest.
@@ -259,7 +267,15 @@ seasonality = NULL)`. Clients should:
   all 8.3 million rows into an R data frame takes about 2 GB and 14–29 s per search;
   querying in place takes about 0.3 s
   ([measurements](docs/evidence/2026-10-20-phase1-runner-build.md)).
-- Search `series_title` and `survey_name`, case-insensitively.
+- Search like this:
+  - Split the search string into words. Every word must appear as a whole word, ignoring
+    case, in `series_title`, `survey_name` or `survey_aliases`. Whole words matter: "CES"
+    matches 2 titles as a word, but 769,239 as part of words like "services".
+  - `survey` filters by program code, and `seasonality` by `seasonal`.
+  - Return every match, with no cap.
+  - Sort by title length (shortest first), then title alphabetically ignoring case, then
+    series ID. Short titles tend to be the general series. In R, sort with
+    `method = "radix"` so the order does not depend on the machine's locale.
 - Allow enough time for a slow download. R's `download.file()` gives up after 60 s by
   default.
 - If the network fails, keep using the cached catalog, and say how old it is.
@@ -314,12 +330,16 @@ These are deliberate. Reviews should not report them as defects.
 - **No change history** (2026-10-20). A weekly list of added and removed series was
   considered and dropped as not worth its cost.
 - **Reference client queries in place with `arrow`** (2026-10-20).
+- **Survey aliases and search rules** (2026-10-20). `survey_name` stays the official BLS
+  name; initialisms, former names and informal names go in `survey_aliases`. Clients
+  require every word as a whole word, return all matches, and sort by title length, then
+  title, then series ID.
 
 ## Done when
 
 1. `./scripts/check.sh` passes offline, locally and in CI.
 2. The reference client finds expected series in a local build, including by survey
-   name.
+   name and alias.
 3. The daily workflow has built all 33 programs on 7 consecutive days, and has published
    at least two weekly releases.
 4. A failed build or publish leaves the latest release unchanged and alerts. The monitor

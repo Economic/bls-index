@@ -11,6 +11,7 @@ specification `$version`.
 |---|---|---:|---|
 | `program` | string | no | BLS program (flat-file directory) code from the fixed scope in `src/bls_index/scope.py`. Never inferred from the series ID. |
 | `survey_name` | string | no | The program's BLS survey name, the same for every row of a program. Sources are listed in [`survey-names.md`](survey-names.md). |
+| `survey_aliases` | string | yes | Other names people search for (initialisms, former and informal names), separated by `; `. The same for every row of a program, or null when a program has none. Listed with reasons in [`survey-names.md`](survey-names.md). |
 | `series_id` | string | no | BLS series identifier with source padding trimmed from both ends. Unique across the catalog. Compared exactly as spelled; no case folding. |
 | `series_title` | string | no | For native-title programs, the source title exactly as published, including surrounding spaces. For `sm`, `jt`, and `pr`, a title synthesized from trimmed lookup labels (see [`synthesized-source-contracts.md`](synthesized-source-contracts.md)). Never blank. Titles need not be unique. |
 | `title_source` | string | no | `native` or `synthesized`. |

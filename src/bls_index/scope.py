@@ -70,6 +70,36 @@ SURVEY_NAMES: dict[str, str] = {
 }
 
 
+# Other names people search for: initialisms, former names, and informal names. These
+# are our choice, not BLS text; docs/survey-names.md gives each one's reason. Programs
+# without an entry have no aliases.
+SURVEY_ALIASES: dict[str, str] = {
+    "bd": "BED",
+    "ce": "CES; Current Employment Statistics; establishment survey",
+    "ci": "ECI",
+    "cm": "ECEC",
+    "cu": "CPI; CPI-U",
+    "cw": "CPI; CPI-W",
+    "cx": "CEX",
+    "ei": "MXP",
+    "is": "SOII",
+    "jt": "JOLTS",
+    "la": "LAUS",
+    "ln": "household survey",
+    "nb": "NCS",
+    "nd": "PPI",
+    "oe": "OEWS; OES",
+    "or": "ORS",
+    "pc": "PPI",
+    "sm": "SAE",
+    "su": "CPI; C-CPI-U; consumer price index",
+    "tu": "ATUS",
+    "wd": "PPI",
+    "wm": "MWE",
+    "wp": "PPI",
+}
+
+
 def input_files(program: str) -> tuple[str, ...]:
     """Source file names (relative to the program directory) for one build unit."""
     lookups = LOOKUP_FILES.get(program, ())
