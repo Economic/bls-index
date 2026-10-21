@@ -205,6 +205,13 @@ def test_pr_base_year_mismatch_warns_without_failing(tmp_path, caplog, base_year
     assert "base_year" in caplog.text
 
 
+def test_every_row_carries_its_program_survey_name(tmp_path):
+    native = build_program("cu", {"cu.series": REAL_NATIVE / "cu.series"})
+    synthesized = synthesize("jt", _synth_files("jt", tmp_path))
+    assert native["survey_name"].unique().to_list() == ["Consumer Price Index - All Urban Consumers"]
+    assert synthesized["survey_name"].unique().to_list() == ["Job Openings and Labor Turnover Survey"]
+
+
 def test_build_program_dispatches_by_program(tmp_path):
     assert build_program("ap", {"ap.series": REAL_NATIVE / "ap.series"}).height > 0
     assert build_program("pr", _synth_files("pr", tmp_path)).height == 8

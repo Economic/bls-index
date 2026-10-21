@@ -2,6 +2,7 @@
  "ap": [
   {
    "program": "ap",
+   "survey_name": "Average Price Data",
    "series_id": "APU0000701111",
    "series_title": "Flour, white, all purpose, per lb. (453.6 gm) in U.S. city average, average price, not seasonally adjusted",
    "title_source": "native",
@@ -12,6 +13,7 @@
   },
   {
    "program": "ap",
+   "survey_name": "Average Price Data",
    "series_id": "APU0400716111",
    "series_title": "Margarine, vegetable oil blends, stick (cost per pound/453.6 grams) in West urban, average price, not seasonally adjusted",
    "title_source": "native",
@@ -22,6 +24,7 @@
   },
   {
    "program": "ap",
+   "survey_name": "Average Price Data",
    "series_id": "APUS49G7471A",
    "series_title": "Gasoline, all types, per gallon/3.785 liters in Urban Alaska, average price, not seasonally adjusted",
    "title_source": "native",
@@ -34,6 +37,7 @@
  "bd": [
   {
    "program": "bd",
+   "survey_name": "Business Employment Dynamics",
    "series_id": "BDS0000000000000000110001LQ5",
    "series_title": "Quarterly gross job gains for the total private sector in the U.S. (rounded to the nearest thousands)",
    "title_source": "native",
@@ -44,6 +48,7 @@
   },
   {
    "program": "bd",
+   "survey_name": "Business Employment Dynamics",
    "series_id": "BDU0000000000200030110003LA5",
    "series_title": "Employment gained from openings for the transportation and warehousing sector in the U.S. (rounded to the nearest thousands)",
    "title_source": "native",
@@ -54,6 +59,7 @@
   },
   {
    "program": "bd",
+   "survey_name": "Business Employment Dynamics",
    "series_id": "BDU0000078000000000120008RQ5",
    "series_title": "Percent of establishment deaths",
    "title_source": "native",
@@ -66,6 +72,7 @@
  "ce": [
   {
    "program": "ce",
+   "survey_name": "National Employment, Hours, and Earnings",
    "series_id": "CES0000000001",
    "series_title": "All employees, thousands, total nonfarm, seasonally adjusted",
    "title_source": "native",
@@ -76,6 +83,7 @@
   },
   {
    "program": "ce",
+   "survey_name": "National Employment, Hours, and Earnings",
    "series_id": "CES9093292010",
    "series_title": "Women employees, thousands, local government general administration, seasonally adjusted",
    "title_source": "native",
@@ -86,6 +94,7 @@
   },
   {
    "program": "ce",
+   "survey_name": "National Employment, Hours, and Earnings",
    "series_id": "CEU9093299910",
    "series_title": "Women employees, thousands, other local government, not seasonally adjusted",
    "title_source": "native",
@@ -98,6 +107,7 @@
  "ci": [
   {
    "program": "ci",
+   "survey_name": "Employment Cost Index",
    "series_id": "CIS1010000000000I",
    "series_title": "Total compensation for all civilian workers, current dollar index",
    "title_source": "native",
@@ -108,6 +118,7 @@
   },
   {
    "program": "ci",
+   "survey_name": "Employment Cost Index",
    "series_id": "CIU2016100000000Z",
    "series_title": "Total compensation for private industry workers in the educational services industry, 12-month percent change, constant dollars",
    "title_source": "native",
@@ -118,6 +129,7 @@
   },
   {
    "program": "ci",
+   "survey_name": "Employment Cost Index",
    "series_id": "CIU3030000000000Z",
    "series_title": "Total benefits for all state and local government workers, 12-month percent change, constant dollars",
    "title_source": "native",
@@ -130,6 +142,7 @@
  "cm": [
   {
    "program": "cm",
+   "survey_name": "Employer Costs for Employee Compensation",
    "series_id": "CMU1010000000000D",
    "series_title": "Total compensation cost per hour worked for civilian workers",
    "title_source": "native",
@@ -140,6 +153,7 @@
   },
   {
    "program": "cm",
+   "survey_name": "Employer Costs for Employee Compensation",
    "series_id": "CMU2096000000610P",
    "series_title": "Supplemental pay as a percent of total compensation for full-time private industry workers in education and health services industries",
    "title_source": "native",
@@ -150,6 +164,7 @@
   },
   {
    "program": "cm",
+   "survey_name": "Employer Costs for Employee Compensation",
    "series_id": "CMU328S000000000P",
    "series_title": "State and local government Other benefits for Service providing industries; Percent of total compensation",
    "title_source": "native",
@@ -162,6 +177,7 @@
  "cu": [
   {
    "program": "cu",
+   "survey_name": "Consumer Price Index - All Urban Consumers",
    "series_id": "CUSR0000SA0",
    "series_title": "All items in U.S. city average, all urban consumers, seasonally adjusted",
    "title_source": "native",
@@ -172,6 +188,7 @@
   },
   {
    "program": "cu",
+   "survey_name": "Consumer Price Index - All Urban Consumers",
    "series_id": "CUURS49ESANL1",
    "series_title": "Nondurables less food in San Diego-Carlsbad, CA, all urban consumers, not seasonally adjusted",
    "title_source": "native",
@@ -182,6 +199,7 @@
   },
   {
    "program": "cu",
+   "survey_name": "Consumer Price Index - All Urban Consumers",
    "series_id": "CUUSS49GSS47016",
    "series_title": "Gasoline, unleaded premium in Urban Alaska, all urban consumers, not seasonally adjusted",
    "title_source": "native",
@@ -192,6 +210,7 @@
   },
   {
    "program": "cu",
+   "survey_name": "Consumer Price Index - All Urban Consumers",
    "series_id": "CUUS0000AA0",
    "series_title": "All items - old base in U.S. city average, all urban consumers, not seasonally adjusted",
    "title_source": "native",
@@ -202,6 +221,7 @@
   },
   {
    "program": "cu",
+   "survey_name": "Consumer Price Index - All Urban Consumers",
    "series_id": "CUUS0100SAF111",
    "series_title": "Cereals and bakery products in Northeast urban, all urban consumers, not seasonally adjusted",
    "title_source": "native",
@@ -212,6 +232,7 @@
   },
   {
    "program": "cu",
+   "survey_name": "Consumer Price Index - All Urban Consumers",
    "series_id": "CUUS0000SEHP",
    "series_title": "Household operations in U.S. city average, all urban consumers, not seasonally adjusted",
    "title_source": "native",
@@ -224,6 +245,7 @@
  "cw": [
   {
    "program": "cw",
+   "survey_name": "Consumer Price Index - Urban Wage Earners and Clerical Workers",
    "series_id": "CWSR0000SA0",
    "series_title": "All items in U.S. city average, urban wage earners and clerical workers, seasonally adjusted",
    "title_source": "native",
@@ -234,6 +256,7 @@
   },
   {
    "program": "cw",
+   "survey_name": "Consumer Price Index - Urban Wage Earners and Clerical Workers",
    "series_id": "CWURS49FSA0L1E",
    "series_title": "All items less food and energy in Urban Hawaii, urban wage earners and clerical workers, not seasonally adjusted",
    "title_source": "native",
@@ -244,6 +267,7 @@
   },
   {
    "program": "cw",
+   "survey_name": "Consumer Price Index - Urban Wage Earners and Clerical Workers",
    "series_id": "CWUSS49GSS47016",
    "series_title": "Gasoline, unleaded premium in Urban Alaska, urban wage earners and clerical workers, not seasonally adjusted",
    "title_source": "native",
@@ -254,6 +278,7 @@
   },
   {
    "program": "cw",
+   "survey_name": "Consumer Price Index - Urban Wage Earners and Clerical Workers",
    "series_id": "CWUS0000AA0",
    "series_title": "All items - old base in U.S. city average, urban wage earners and clerical workers, not seasonally adjusted",
    "title_source": "native",
@@ -264,6 +289,7 @@
   },
   {
    "program": "cw",
+   "survey_name": "Consumer Price Index - Urban Wage Earners and Clerical Workers",
    "series_id": "CWUS0100SAF111",
    "series_title": "Cereals and bakery products in Northeast urban, urban wage earners and clerical workers, not seasonally adjusted",
    "title_source": "native",
@@ -274,6 +300,7 @@
   },
   {
    "program": "cw",
+   "survey_name": "Consumer Price Index - Urban Wage Earners and Clerical Workers",
    "series_id": "CWUS0000SEEC02",
    "series_title": "Delivery services in U.S. city average, urban wage earners and clerical workers, not seasonally adjusted",
    "title_source": "native",
@@ -286,6 +313,7 @@
  "cx": [
   {
    "program": "cx",
+   "survey_name": "Consumer Expenditure Survey",
    "series_id": "CXU001000LB0101M",
    "series_title": "Purchase price of stocks, bonds or mutual funds by Income Quintiles: All Consumer Units",
    "title_source": "native",
@@ -296,6 +324,7 @@
   },
   {
    "program": "cx",
+   "survey_name": "Consumer Expenditure Survey",
    "series_id": "CXU520542LB1604M",
    "series_title": "Tolls on out of town trips by Generation: Birth year from 1946 to 1964",
    "title_source": "native",
@@ -306,6 +335,7 @@
   },
   {
    "program": "cx",
+   "survey_name": "Consumer Expenditure Survey",
    "series_id": "CXUWOMENSLB2109M",
    "series_title": "Women, 16 and over by Selected Age of Reference Person: 65 and older",
    "title_source": "native",
@@ -318,6 +348,7 @@
  "ei": [
   {
    "program": "ei",
+   "survey_name": "Import/Export Price Indexes",
    "series_id": "EIUCDCANMANU",
    "series_title": "Monthly export price index by destination for NAICS, Manufacturing, Canada, not seasonally adjusted",
    "title_source": "native",
@@ -328,6 +359,7 @@
   },
   {
    "program": "ei",
+   "survey_name": "Import/Export Price Indexes",
    "series_id": "EIUIQ22010",
    "series_title": "Monthly export price index for BEA End Use 22010, Parts - civilian aircraft, not seasonally adjusted",
    "title_source": "native",
@@ -338,6 +370,7 @@
   },
   {
    "program": "ei",
+   "survey_name": "Import/Export Price Indexes",
    "series_id": "EIUIZNONMANU",
    "series_title": "Monthly import price index for NAICS, Nonmanufacturing, not seasonally adjusted",
    "title_source": "native",
@@ -350,6 +383,7 @@
  "ep": [
   {
    "program": "ep",
+   "survey_name": "Employment Projections",
    "series_id": "EPU000000110000",
    "series_title": "Total, all occupations in Agriculture, forestry, fishing, and hunting",
    "title_source": "native",
@@ -360,6 +394,7 @@
   },
   {
    "program": "ep",
+   "survey_name": "Employment Projections",
    "series_id": "EPU350000337000",
    "series_title": "Food preparation and serving related occupations in Furniture and related product manufacturing",
    "title_source": "native",
@@ -370,6 +405,7 @@
   },
   {
    "program": "ep",
+   "survey_name": "Employment Projections",
    "series_id": "EPU537199TE1200",
    "series_title": "Material moving workers, all other in Total wage and salary employment",
    "title_source": "native",
@@ -382,6 +418,7 @@
  "fm": [
   {
    "program": "fm",
+   "survey_name": "Marital and family labor force statistics (Current Population Survey - CPS)",
    "series_id": "FMUF011",
    "series_title": "Total families - total",
    "title_source": "native",
@@ -392,6 +429,7 @@
   },
   {
    "program": "fm",
+   "survey_name": "Marital and family labor force statistics (Current Population Survey - CPS)",
    "series_id": "FMUP1394651",
    "series_title": "Labor force participation rate - Women, Married, spouse present, with own children 6 to 17 years, none younger",
    "title_source": "native",
@@ -402,6 +440,7 @@
   },
   {
    "program": "fm",
+   "survey_name": "Marital and family labor force statistics (Current Population Survey - CPS)",
    "series_id": "FMUP4094782",
    "series_title": "Unemployment rate - Hispanic or Latino Ethnicity, Women, Other marital status, youngest child under 1 year old",
    "title_source": "native",
@@ -414,6 +453,7 @@
  "ip": [
   {
    "program": "ip",
+   "survey_name": "Industry Productivity",
    "series_id": "IPUAN1111__L010000000",
    "series_title": "Annual hours worked (index, 2017=100) for NAICS 1111, oilseed and grain farming, U.S. total",
    "title_source": "native",
@@ -424,6 +464,7 @@
   },
   {
    "program": "ip",
+   "survey_name": "Industry Productivity",
    "series_id": "IPUEN3399__T010000000",
    "series_title": "Annual real sectoral output (index, 2017=100) for NAICS 3399, other miscellaneous manufacturing, U.S. total",
    "title_source": "native",
@@ -434,6 +475,7 @@
   },
   {
    "program": "ip",
+   "survey_name": "Industry Productivity",
    "series_id": "IPUZN______W201984000",
    "series_title": "Annual percent change of employment for private nonfarm, West Region",
    "title_source": "native",
@@ -446,6 +488,7 @@
  "is": [
   {
    "program": "is",
+   "survey_name": "Occupational Injuries and Illnesses - industry data",
    "series_id": "ISU00000000000000",
    "series_title": "Industry-level data from the Survey of Occupational Injuries and Illnesses (SOII)",
    "title_source": "native",
@@ -456,6 +499,7 @@
   },
   {
    "program": "is",
+   "survey_name": "Occupational Injuries and Illnesses - industry data",
    "series_id": "ISUMFG331500CW100",
    "series_title": "Industry-level data from the Survey of Occupational Injuries and Illnesses (SOII)",
    "title_source": "native",
@@ -466,6 +510,7 @@
   },
   {
    "program": "is",
+   "survey_name": "Occupational Injuries and Illnesses - industry data",
    "series_id": "ISUTTUSP2WHTW9155",
    "series_title": "Industry-level data from the Survey of Occupational Injuries and Illnesses (SOII)",
    "title_source": "native",
@@ -478,6 +523,7 @@
  "kv": [
   {
    "program": "kv",
+   "survey_name": "CPS Veterans Supplement",
    "series_id": "KVU0100000000000001",
    "series_title": "Civilian noninstitutional population - Veterans, With a service-connected disability",
    "title_source": "native",
@@ -488,6 +534,7 @@
   },
   {
    "program": "kv",
+   "survey_name": "CPS Veterans Supplement",
    "series_id": "KVU0300000000000331",
    "series_title": "Employed - Veterans, Without a service-connected disability, State and local government wage and salary workers, Nonagricultural industries, Percent of the employed",
    "title_source": "native",
@@ -498,6 +545,7 @@
   },
   {
    "program": "kv",
+   "survey_name": "CPS Veterans Supplement",
    "series_id": "KVU0502000000000130",
    "series_title": "Not in the labor force - Gulf War era I veterans, Women",
    "title_source": "native",
@@ -510,6 +558,7 @@
  "la": [
   {
    "program": "la",
+   "survey_name": "Local Area Unemployment Statistics",
    "series_id": "LASBS060000000000003",
    "series_title": "Unemployment Rate: Balance of California, state less Los Angeles-Long Beach-Glendale MD (S)",
    "title_source": "native",
@@ -520,6 +569,7 @@
   },
   {
    "program": "la",
+   "survey_name": "Local Area Unemployment Statistics",
    "series_id": "LAUCS252310500000005",
    "series_title": "Employment: Falmouth town, MA (U)",
    "title_source": "native",
@@ -530,6 +580,7 @@
   },
   {
    "program": "la",
+   "survey_name": "Local Area Unemployment Statistics",
    "series_id": "LAUST720000000000006",
    "series_title": "Labor Force: Puerto Rico (U)",
    "title_source": "native",
@@ -542,6 +593,7 @@
  "le": [
   {
    "program": "le",
+   "survey_name": "Weekly & Hourly Earnings (Current Population Survey - CPS)",
    "series_id": "LES1252881500",
    "series_title": "(Seas)- Median usual weekly earnings (second quartile), Employed full time, Wage and salary workers",
    "title_source": "native",
@@ -552,6 +604,7 @@
   },
   {
    "program": "le",
+   "survey_name": "Weekly & Hourly Earnings (Current Population Survey - CPS)",
    "series_id": "LEU0254722800",
    "series_title": "(unadj)- Employed full time, Wage and salary workers, First-line supervisors/managers of mechanics, installers, and repairers, Women",
    "title_source": "native",
@@ -562,6 +615,7 @@
   },
   {
    "program": "le",
+   "survey_name": "Weekly & Hourly Earnings (Current Population Survey - CPS)",
    "series_id": "LEU0268178200",
    "series_title": "(unadj)- Median weekly earnings, Part-time wage and salary workers, Widowed",
    "title_source": "native",
@@ -574,6 +628,7 @@
  "ln": [
   {
    "program": "ln",
+   "survey_name": "Labor Force Statistics (Current Population Survey - CPS)",
    "series_id": "LNS11000000",
    "series_title": "(Seas) Civilian Labor Force Level",
    "title_source": "native",
@@ -584,6 +639,7 @@
   },
   {
    "program": "ln",
+   "survey_name": "Labor Force Statistics (Current Population Survey - CPS)",
    "series_id": "LNU02070321",
    "series_title": "(unadj) Employed - Roof bolters, mining, Percent of employed by occupation, women",
    "title_source": "native",
@@ -594,6 +650,7 @@
   },
   {
    "program": "ln",
+   "survey_name": "Labor Force Statistics (Current Population Survey - CPS)",
    "series_id": "LNU62035121",
    "series_title": "(unadj) Employment Level - Agriculture and Related Industries, Women (cnstr series)",
    "title_source": "native",
@@ -606,6 +663,7 @@
  "lu": [
   {
    "program": "lu",
+   "survey_name": "Union Affiliation Data (Current Population Survey - CPS)",
    "series_id": "LUU0201CEBE00",
    "series_title": "(unadj)- Percent of employed, Private wage and salary workers, Represented by unions, Broadcasting and content providers",
    "title_source": "native",
@@ -616,6 +674,7 @@
   },
   {
    "program": "lu",
+   "survey_name": "Union Affiliation Data (Current Population Survey - CPS)",
    "series_id": "LUU0204905200",
    "series_title": "(unadj)- Percent of employed, Members of unions, Black or African American, Men",
    "title_source": "native",
@@ -626,6 +685,7 @@
   },
   {
    "program": "lu",
+   "survey_name": "Union Affiliation Data (Current Population Survey - CPS)",
    "series_id": "LUU0264899700",
    "series_title": "(unadj)- Percent of employed, Employed part time, Wage and salary workers, Represented by unions",
    "title_source": "native",
@@ -638,6 +698,7 @@
  "mp": [
   {
    "program": "mp",
+   "survey_name": "Major Sector Total Factor Productivity",
    "series_id": "MPU0011012",
    "series_title": "Total factor productivity for Agriculture, forestry, fishing, and hunting (NAICS 11), Indexes = 100.000",
    "title_source": "native",
@@ -648,6 +709,7 @@
   },
   {
    "program": "mp",
+   "survey_name": "Major Sector Total Factor Productivity",
    "series_id": "MPU0561082",
    "series_title": "Capital intensity for Administrative and support services (NAICS 561), Indexes = 100.000",
    "title_source": "native",
@@ -658,6 +720,7 @@
   },
   {
    "program": "mp",
+   "survey_name": "Major Sector Total Factor Productivity",
    "series_id": "MPU9920783",
    "series_title": "Contribution of intermediate inputs intensity to labor productivity for Durable Manufacturing Sector (NAICS 321 327 331-337 339), % Change Year Ago",
    "title_source": "native",
@@ -670,6 +733,7 @@
  "nb": [
   {
    "program": "nb",
+   "survey_name": "National Benefits",
    "series_id": "NBU10000000000000028007",
    "series_title": "Percent of civilian workers with access to both medical care and retirement benefits",
    "title_source": "native",
@@ -680,6 +744,7 @@
   },
   {
    "program": "nb",
+   "survey_name": "National Benefits",
    "series_id": "NBU21600000000000422275",
    "series_title": "Weekly maximum benefit dollar amount for fixed percent of annual earnings short-term disability plans (25th percentile) for private industry workers in establishments with 50-99 workers",
    "title_source": "native",
@@ -690,6 +755,7 @@
   },
   {
    "program": "nb",
+   "survey_name": "National Benefits",
    "series_id": "NBU59800000000000033968",
    "series_title": "Percent of local government workers with access to flexible work schedule",
    "title_source": "native",
@@ -702,6 +768,7 @@
  "nd": [
   {
    "program": "nd",
+   "survey_name": "Producer Price Index Revision - Discontinued Series",
    "series_id": "NDU1133101133100",
    "series_title": "PPI industry data for Logging-Logs, including receipts from contract logging, not seasonally adjusted, discontinued",
    "title_source": "native",
@@ -712,6 +779,7 @@
   },
   {
    "program": "nd",
+   "survey_name": "Producer Price Index Revision - Discontinued Series",
    "series_id": "NDU332710332710S",
    "series_title": "PPI industry data for Machine shops-Secondary products, not seasonally adjusted, discontinued",
    "title_source": "native",
@@ -722,6 +790,7 @@
   },
   {
    "program": "nd",
+   "survey_name": "Producer Price Index Revision - Discontinued Series",
    "series_id": "NDUBRSM--BRSM--",
    "series_title": "PPI industry group data for Material and supply inputs to multi-unit residential construction, not seasonally adjusted, discontinued",
    "title_source": "native",
@@ -734,6 +803,7 @@
  "oe": [
   {
    "program": "oe",
+   "survey_name": "Occupational Employment and Wage Statistics",
    "series_id": "OEUM001018000000000000001",
    "series_title": "Employment for All Occupations in All Industries in Abilene, TX",
    "title_source": "native",
@@ -744,6 +814,7 @@
   },
   {
    "program": "oe",
+   "survey_name": "Occupational Employment and Wage Statistics",
    "series_id": "OEUM350000700000029207211",
    "series_title": "Annual 10th percentile wage for Medical Records Specialists in All Industries in Eastern New Mexico nonmetropolitan area",
    "title_source": "native",
@@ -754,6 +825,7 @@
   },
   {
    "program": "oe",
+   "survey_name": "Occupational Employment and Wage Statistics",
    "series_id": "OEUS780000000000053706517",
    "series_title": "Location Quotient for Stockers and Order Fillers in All Industries in Virgin Islands",
    "title_source": "native",
@@ -766,6 +838,7 @@
  "or": [
   {
    "program": "or",
+   "survey_name": "Occupational Requirements Survey",
    "series_id": "ORUC1000000000001149",
    "series_title": "Percent of civilian workers that were not required to perform supervisory duties",
    "title_source": "native",
@@ -776,6 +849,7 @@
   },
   {
    "program": "or",
+   "survey_name": "Occupational Requirements Survey",
    "series_id": "ORUP1000014F00000157",
    "series_title": "Percent of civilian graphic designers that required reaching overhead with both hands",
    "title_source": "native",
@@ -786,6 +860,7 @@
   },
   {
    "program": "or",
+   "survey_name": "Occupational Requirements Survey",
    "series_id": "ORUV1000059X00001300",
    "series_title": "Percent of civilian refuse and recyclable material collectors that did not require an educational certificate",
    "title_source": "native",
@@ -798,6 +873,7 @@
  "pc": [
   {
    "program": "pc",
+   "survey_name": "Producer Price Index Industry Data - Current Series",
    "series_id": "PCU1133--1133--",
    "series_title": "PPI industry group data for Logging, not seasonally adjusted",
    "title_source": "native",
@@ -808,6 +884,7 @@
   },
   {
    "program": "pc",
+   "survey_name": "Producer Price Index Industry Data - Current Series",
    "series_id": "PCU3329913329917",
    "series_title": "PPI industry data for Ball and roller bearing mfg-Mounted bearings (excluding plain), not seasonally adjusted",
    "title_source": "native",
@@ -818,6 +895,7 @@
   },
   {
    "program": "pc",
+   "survey_name": "Producer Price Index Industry Data - Current Series",
    "series_id": "PCUOMIN--OMIN--",
    "series_title": "PPI industry group data for Total mining industries, not seasonally adjusted",
    "title_source": "native",
@@ -830,6 +908,7 @@
  "su": [
   {
    "program": "su",
+   "survey_name": "Chained CPI-All Urban Consumers",
    "series_id": "SUUR0000SA0",
    "series_title": "All items in U.S. city average, all urban consumers, chained, not seasonally adjusted",
    "title_source": "native",
@@ -840,6 +919,7 @@
   },
   {
    "program": "su",
+   "survey_name": "Chained CPI-All Urban Consumers",
    "series_id": "SUUR0000SAH",
    "series_title": "Housing in U.S. city average, all urban consumers, chained, not seasonally adjusted",
    "title_source": "native",
@@ -850,6 +930,7 @@
   },
   {
    "program": "su",
+   "survey_name": "Chained CPI-All Urban Consumers",
    "series_id": "SUUR0000SETG",
    "series_title": "Public transportation in U.S. city average, all urban consumers, chained, not seasonally adjusted",
    "title_source": "native",
@@ -862,6 +943,7 @@
  "tu": [
   {
    "program": "tu",
+   "survey_name": "American Time Use Survey",
    "series_id": "TUU10100AA01000007",
    "series_title": "Number of persons - Employed",
    "title_source": "native",
@@ -872,6 +954,7 @@
   },
   {
    "program": "tu",
+   "survey_name": "American Time Use Survey",
    "series_id": "TUU20101AA01047466",
    "series_title": "Avg hrs per day for participants - Interior cleaning, 65 yrs and over, Men",
    "title_source": "native",
@@ -882,6 +965,7 @@
   },
   {
    "program": "tu",
+   "survey_name": "American Time Use Survey",
    "series_id": "TUU50213QA01000000",
    "series_title": "ATUS (Household Survey) postprocessing quarterly response rate",
    "title_source": "native",
@@ -894,6 +978,7 @@
  "wd": [
   {
    "program": "wd",
+   "survey_name": "Producer Price Index - Commodity Data - discontinued",
    "series_id": "WDS0112",
    "series_title": "PPI Commodity data for Farm products-Dried fruits, bulk, seasonally adjusted, discontinued",
    "title_source": "native",
@@ -904,6 +989,7 @@
   },
   {
    "program": "wd",
+   "survey_name": "Producer Price Index - Commodity Data - discontinued",
    "series_id": "WDU10220104",
    "series_title": "PPI Commodity data for Metals and metal products-Aluminum ingot,casting. . . . . . . . . . . . . . . . . . . ., not seasonally adjusted, discontinued",
    "title_source": "native",
@@ -914,6 +1000,7 @@
   },
   {
    "program": "wd",
+   "survey_name": "Producer Price Index - Commodity Data - discontinued",
    "series_id": "WDUSOPCNMT",
    "series_title": "PPI Commodity data for Stage of processing-Crude nonfood materials, not seasonally adjusted, discontinued",
    "title_source": "native",
@@ -926,6 +1013,7 @@
  "wm": [
   {
    "program": "wm",
+   "survey_name": "Modeled Wage Estimates",
    "series_id": "WMU00000001020000001100000006",
    "series_title": "Average hourly wage for level 06 management occupations in the U.S.",
    "title_source": "native",
@@ -936,6 +1024,7 @@
   },
   {
    "program": "wm",
+   "survey_name": "Modeled Wage Estimates",
    "series_id": "WMU00417001020000002110932500",
    "series_title": "Average hourly wage for full-time social and human service assistants in San Antonio-New Braunfels, TX",
    "title_source": "native",
@@ -946,6 +1035,7 @@
   },
   {
    "program": "wm",
+   "survey_name": "Modeled Wage Estimates",
    "series_id": "WMU56000071020000005370652700",
    "series_title": "Average hourly wage for time-based stockers and order fillers in Eastern Wyoming nonmetropolitan area",
    "title_source": "native",
@@ -958,6 +1048,7 @@
  "wp": [
   {
    "program": "wp",
+   "survey_name": "Producer Price Index Commodity Data - Current Series",
    "series_id": "WPS00000000",
    "series_title": "PPI Commodity data for All commodities, seasonally adjusted",
    "title_source": "native",
@@ -968,6 +1059,7 @@
   },
   {
    "program": "wp",
+   "survey_name": "Producer Price Index Commodity Data - Current Series",
    "series_id": "WPU09160101",
    "series_title": "PPI Commodity data for Pulp, paper, and allied products-Pressure-sensitive products, not seasonally adjusted",
    "title_source": "native",
@@ -978,6 +1070,7 @@
   },
   {
    "program": "wp",
+   "survey_name": "Producer Price Index Commodity Data - Current Series",
    "series_id": "WPUSISTEEL3",
    "series_title": "PPI Commodity data for Special indexes-Finished steel mill products, including fabricated wire products, not seasonally adjusted",
    "title_source": "native",
@@ -990,6 +1083,7 @@
  "ws": [
   {
    "program": "ws",
+   "survey_name": "Work Stoppages Program",
    "series_id": "WSU001",
    "series_title": "Days of idleness (in 1,000s) from all work stoppages in effect in the period",
    "title_source": "native",
@@ -1000,6 +1094,7 @@
   },
   {
    "program": "ws",
+   "survey_name": "Work Stoppages Program",
    "series_id": "WSU020",
    "series_title": "Number of workers (in 1,000s) involved in all work stoppages in effect in the period",
    "title_source": "native",
@@ -1010,6 +1105,7 @@
   },
   {
    "program": "ws",
+   "survey_name": "Work Stoppages Program",
    "series_id": "WSU200",
    "series_title": "Number of work stoppages involving 1,000 workers or more in effect in the period",
    "title_source": "native",

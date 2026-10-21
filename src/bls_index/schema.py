@@ -8,10 +8,13 @@ from pathlib import Path
 
 import polars as pl
 
+from bls_index.scope import SURVEY_NAMES
+
 SCHEMA_VERSION = 1
 
 CANONICAL_SCHEMA: dict[str, pl.DataType] = {
     "program": pl.String,
+    "survey_name": pl.String,
     "series_id": pl.String,
     "series_title": pl.String,
     "title_source": pl.String,
@@ -124,6 +127,7 @@ def canonical_rows(frame: pl.DataFrame, program: str, title_source: str, where: 
 
     return frame.select(
         pl.lit(program).alias("program"),
+        pl.lit(SURVEY_NAMES[program]).alias("survey_name"),
         "series_id",
         "series_title",
         pl.lit(title_source).alias("title_source"),

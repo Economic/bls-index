@@ -31,6 +31,45 @@ LOOKUP_FILES: dict[str, tuple[str, ...]] = {
 }
 
 
+# Each program's survey name, taken from official BLS pages; docs/survey-names.md
+# records the source of each. Adding a program to scope adds its name here.
+SURVEY_NAMES: dict[str, str] = {
+    "ap": "Average Price Data",
+    "bd": "Business Employment Dynamics",
+    "ce": "National Employment, Hours, and Earnings",
+    "ci": "Employment Cost Index",
+    "cm": "Employer Costs for Employee Compensation",
+    "cu": "Consumer Price Index - All Urban Consumers",
+    "cw": "Consumer Price Index - Urban Wage Earners and Clerical Workers",
+    "cx": "Consumer Expenditure Survey",
+    "ei": "Import/Export Price Indexes",
+    "ep": "Employment Projections",
+    "fm": "Marital and family labor force statistics (Current Population Survey - CPS)",
+    "ip": "Industry Productivity",
+    "is": "Occupational Injuries and Illnesses - industry data",
+    "jt": "Job Openings and Labor Turnover Survey",
+    "kv": "CPS Veterans Supplement",
+    "la": "Local Area Unemployment Statistics",
+    "le": "Weekly & Hourly Earnings (Current Population Survey - CPS)",
+    "ln": "Labor Force Statistics (Current Population Survey - CPS)",
+    "lu": "Union Affiliation Data (Current Population Survey - CPS)",
+    "mp": "Major Sector Total Factor Productivity",
+    "nb": "National Benefits",
+    "nd": "Producer Price Index Revision - Discontinued Series",
+    "oe": "Occupational Employment and Wage Statistics",
+    "or": "Occupational Requirements Survey",
+    "pc": "Producer Price Index Industry Data - Current Series",
+    "pr": "Major Sector Productivity and Costs",
+    "sm": "State and Area Employment, Hours, and Earnings",
+    "su": "Chained CPI-All Urban Consumers",
+    "tu": "American Time Use Survey",
+    "wd": "Producer Price Index - Commodity Data - discontinued",
+    "wm": "Modeled Wage Estimates",
+    "wp": "Producer Price Index Commodity Data - Current Series",
+    "ws": "Work Stoppages Program",
+}
+
+
 def input_files(program: str) -> tuple[str, ...]:
     """Source file names (relative to the program directory) for one build unit."""
     lookups = LOOKUP_FILES.get(program, ())

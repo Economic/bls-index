@@ -239,6 +239,18 @@ proof that the refactor preserved output.
 
 Do this before Phase 2, so the first published schema includes the column.
 
+**Done 2026-10-20.**
+- Names for all 33 programs, with their sources, are in
+  [`docs/survey-names.md`](../docs/survey-names.md).
+- On the saved full download, every other column is identical to the golden catalog
+  (8,315,248 rows), and each program has exactly one survey name.
+- "consumer price index" now matches all 8,104 `cu` series.
+- The catalog is 32.9 MB, down from 47.2 MB. The combine step takes 95 s instead of
+  15 s, mostly for compression. Peak RSS is 3.8 GB.
+- The "every program has exactly one survey name" check lives in the combined
+  candidate (`survey_name` must equal the program's name). `data-dict.yaml` requires a
+  nonblank name; its row-level asserts cannot express the per-program rule.
+
 - **Names.** Add `SURVEY_NAMES: dict[program, str]` to `scope.py`, one entry for each
   of the 33 programs. Take each name from an official BLS source, preferably the
   survey list on BLS's series ID format help page or the program's `<program>.txt` file

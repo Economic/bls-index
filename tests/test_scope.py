@@ -2,6 +2,7 @@ from bls_index.scope import (
     INITIAL_PROGRAMS,
     LOOKUP_FILES,
     NATIVE_TITLE_PROGRAMS,
+    SURVEY_NAMES,
     SYNTHESIZED_TITLE_PROGRAMS,
     input_files,
 )
@@ -19,6 +20,11 @@ def test_initial_scope_is_exactly_the_fixed_33():
     assert set(INITIAL_PROGRAMS) == EXPECTED_INITIAL
     assert len(INITIAL_PROGRAMS) == 33
     assert list(INITIAL_PROGRAMS) == sorted(INITIAL_PROGRAMS)
+
+
+def test_every_program_in_scope_has_exactly_one_survey_name():
+    assert set(SURVEY_NAMES) == set(INITIAL_PROGRAMS)
+    assert all(name.strip() == name and name for name in SURVEY_NAMES.values())
 
 
 def test_lookups_only_for_synthesized_programs():
