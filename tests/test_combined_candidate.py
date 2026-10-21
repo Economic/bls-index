@@ -17,7 +17,13 @@ from bls_index.combined_candidate import (
     write_combined_candidate,
 )
 from bls_index.schema import CANONICAL_SCHEMA
-from bls_index.scope import INITIAL_PROGRAMS, NATIVE_TITLE_PROGRAMS, input_files
+from bls_index.scope import (
+    INITIAL_PROGRAMS,
+    NATIVE_TITLE_PROGRAMS,
+    SURVEY_ALIASES,
+    SURVEY_NAMES,
+    input_files,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -25,7 +31,9 @@ FIXTURES = Path(__file__).parent / "fixtures"
 def _frame(program="ap", series_id="APU0000701111", *, title="A title", begin_year=1980,
            end_year=2026, end_period="M08", **overrides) -> pl.DataFrame:
     row = {
-        "program": program, "series_id": series_id, "series_title": title,
+        "program": program, "survey_name": SURVEY_NAMES.get(program, "Survey"),
+        "survey_aliases": SURVEY_ALIASES.get(program),
+        "series_id": series_id, "series_title": title,
         "title_source": "synthesized" if program in {"sm", "jt", "pr"} else "native",
         "seasonal": "unknown", "begin_year": begin_year, "end_year": end_year,
         "end_period": end_period, **overrides,
@@ -65,6 +73,9 @@ def test_duplicate_titles_are_accepted_but_id_collisions_are_not():
     ({"ap": _frame().clear()}, ["ap"], "no rows"),
     ({"ap": _frame(title_source="synthesized")}, ["ap"], "title_source"),
     ({"ap": _frame("ce")}, ["ap"], "program"),
+    ({"ap": _frame(survey_name="Some other survey")}, ["ap"], "survey_name"),
+    ({"ap": _frame(survey_aliases="CPI")}, ["ap"], "survey_aliases"),
+    ({"cu": _frame("cu", "CUUR0000SA0", survey_aliases=None)}, ["cu"], "survey_aliases"),
     ({"ap": _frame().with_columns(pl.col("begin_year").cast(pl.Int64))}, ["ap"], "schema"),
 ])  # fmt: skip
 def test_candidate_rejects(frames, requested, message):

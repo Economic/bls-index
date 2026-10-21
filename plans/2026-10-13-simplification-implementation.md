@@ -239,6 +239,24 @@ proof that the refactor preserved output.
 
 Do this before Phase 2, so the first published schema includes the column.
 
+**Done 2026-10-20.**
+- Names for all 33 programs, with their sources, are in
+  [`docs/survey-names.md`](../docs/survey-names.md).
+- On the saved full download, every other column is identical to the golden catalog
+  (8,315,248 rows), and each program has exactly one survey name.
+- "consumer price index" now matches all 8,104 `cu` series.
+- The catalog is 32.9 MB, down from 47.2 MB. The combine step takes 95 s instead of
+  15 s, mostly for compression. Peak RSS is 3.8 GB.
+- `survey_aliases` added the same day. The catalog grew by 30 KB, to 32.94 MB. A
+  simulation of the search rules on the full catalog works for matching: "JOLTS quits"
+  finds only JOLTS rows, and "unemployment rate" puts the national headline series
+  first. Shortest-title-first is weaker elsewhere: "CPI" starts with regional food
+  series, and "JOLTS quits" lists federal government before total nonfarm. Task 1.10
+  should review these with the maintainer.
+- The "every program has exactly one survey name" check lives in the combined
+  candidate (`survey_name` must equal the program's name). `data-dict.yaml` requires a
+  nonblank name; its row-level asserts cannot express the per-program rule.
+
 - **Names.** Add `SURVEY_NAMES: dict[program, str]` to `scope.py`, one entry for each
   of the 33 programs. Take each name from an official BLS source, preferably the
   survey list on BLS's series ID format help page or the program's `<program>.txt` file
@@ -246,13 +264,18 @@ Do this before Phase 2, so the first published schema includes the column.
   for each name in a short note in `docs/`. Do not fetch names at build time.
 - **Schema.** Add `survey_name` (string, required) after `program` in
   `CANONICAL_SCHEMA`, in `canonical_rows`, in `docs/schema-v1.md`, and in
-  `data-dict.yaml`. In the dictionary, also assert that every program has exactly one
-  survey name.
+  `data-dict.yaml`. The combined candidate checks that every row's name equals its
+  program's name; the dictionary requires a nonblank name, since its row-level asserts
+  cannot express a per-program rule.
 - **Compression.** Write the combined catalog at zstd level 19. Measured on the
   2026-10-20 catalog: 32.8 MB instead of 47.2 MB, the same read time, and about 70 s
   more to write.
 - **Tests.** Check that every program in scope has a name, and none outside it. Check that
   a build gives every row its program's name.
+- **Aliases (added 2026-10-20).** Add `SURVEY_ALIASES` to `scope.py` and a nullable
+  `survey_aliases` column after `survey_name`, listed with reasons in
+  `docs/survey-names.md`. The combined check requires each row's value to match its
+  program's.
 - **Verify.** The golden comparison now differs by one column. Compare all other columns
   with `scripts/golden.py`; it may need a column filter. Then confirm the new column has
   one value per program, and record the catalog's size.
@@ -263,25 +286,48 @@ Write `examples/find_bls.R` before Phase 2, against a local build, to test the s
 and search behavior while they can still change. It is a reference for `epidatatools`,
 not a package.
 
-- **Signature.** `find_bls(search_string, max_results = 20, survey = NULL,
-  seasonality = NULL, refresh = FALSE)`, returning a tibble with `series_id`,
-  `series_title`, `survey_name` and `seasonal`. This matches today's function plus
-  `refresh`.
-- **Search.** Query the cached Parquet in place with `arrow::open_dataset`. Every word of
-  `search_string` must appear, case-insensitively, in `series_title` or `survey_name`.
-  `survey` filters `program`, and `seasonality` filters `seasonal`.
-- **Ranking.** Try a few orderings on realistic queries and pick one: shortest title
-  first; seasonally adjusted first; by program then ID. Examples: "unemployment rate",
-  "consumer price index", "registered nurses", "average hourly earnings manufacturing",
-  "quits". Show the maintainer the top 20 for each before choosing.
+- **Signature.** `find_bls(search_string, survey = NULL, seasonality = NULL,
+  limit = 1000, refresh = FALSE)`, returning a tibble with `series_id`,
+  `series_title`, `program`, `survey_name`, `seasonal`, `begin_year`, `end_year` and
+  `end_period`. A breaking change from today's function: no `max_results` or
+  `metadata`.
+- **Search.** Query the cached Parquet in place with `arrow::open_dataset`, following
+  the search rules in `design.md`:
+  - stemmed words matched at word starts
+  - multi-code `survey` and `seasonality` filters
+  - the sort order
+  - the limit, with the per-survey counts message
+  - Sort and limit inside `arrow` before collecting.
+- **Benchmark first.** Before polishing anything else, time the complete query (count,
+  per-survey counts, sort, limit, collect) for a typical search and for "OEWS" (6 million
+  matches), and record memory. Set the response-time target from these measurements. If
+  broad searches are much slower than a few seconds, revise the query plan without
+  changing which rows come first, for example with a top-`limit` sort inside `arrow`. Any
+  change to the order itself goes into `design.md` first.
+- **Offline checks.** Add `examples/check_find_bls.R`, run by hand against a catalog
+  built from the test fixtures. Check:
+  - stemming ("nurse" finds "nursing")
+  - short words matched exactly ("CES" does not find "services")
+  - aliases ("JOLTS")
+  - the `survey` and `seasonality` filters, including several codes and an unknown code
+  - the sort order
+  - the limit message with per-survey counts
+  - an empty search rejected
+
+  These become `testthat` tests when the code moves to `epidatatools`. R is not added
+  to this repository's CI.
+- **Check on real queries.** Show the maintainer the first 20 results for "unemployment
+  rate", "consumer price index", "CPI", "JOLTS quits", "registered nurses", "average
+  hourly earnings manufacturing", and "OEWS". If the sort needs to change, update
+  `design.md` first, then the code.
 - **Row groups.** Check whether writing the Parquet in program order with smaller row
   groups makes `survey = "ln"` skip OE's 6 million rows. Adopt it only if the speedup is
   noticeable.
 - **Cache and refresh.** Implement the client rules in `design.md` (weekly check, checksum,
   swap, offline fallback, download timeout). Until Phase 2 exists, point it at a local
   manifest and catalog. Phase 2 tests the download path against a test prerelease.
-- **Done when** each example query returns sensible top results in under a second, and
-  any schema change it motivates has been made in the build.
+- **Done when** each example query returns sensible first results within the measured
+  target, and any schema change it motivates has been made in the build.
 
 ## Phase 2: Publish through GitHub Releases
 

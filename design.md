@@ -68,6 +68,7 @@ repository-root [`data-dict.yaml`](data-dict.yaml).
 |---|---|---|
 | `program` | string | BLS program code from scope, never inferred from the ID |
 | `survey_name` | string | BLS name of the program's survey, such as "Consumer Price Index - All Urban Consumers"; one fixed value per program |
+| `survey_aliases` | string, nullable | Other names people search for, such as "CPI; CPI-U", separated by `; `; one fixed value per program |
 | `series_id` | string | Trimmed; unique across the catalog; compared exactly as spelled |
 | `series_title` | string | Native title preserved as published, or synthesized from lookups |
 | `title_source` | string | `native` or `synthesized` |
@@ -82,6 +83,13 @@ Titles need not be unique. Schema version 1 is separate from the data-dict `$ver
 survey: CPI titles begin "All items in U.S. city average", so a search for "consumer
 price index" finds nothing without it. Names come from a fixed table in code, one entry
 per program in scope, taken from official BLS sources and checked by tests.
+
+`survey_aliases` holds the other ways people refer to a survey: initialisms ("CES",
+"JOLTS"), former names ("OES"), and informal names ("household survey"). Aliases are
+our choice, not BLS text, so they stay out of the displayed `survey_name`. The same alias
+can belong to several programs: "CPI" covers `cu`, `cw` and `su`. Each alias and its
+reason is listed in [`docs/survey-names.md`](docs/survey-names.md). Because they live in
+the catalog, they can improve with any weekly release, without a client update.
 
 ## Build
 
@@ -246,9 +254,12 @@ Clients start from two fixed URLs:
 - manifest: `https://github.com/Economic/bls-index/releases/latest/download/latest.json`
 - catalog: the `catalog.url` from that manifest
 
-A reference client, `examples/find_bls.R`, follows these rules. It keeps the signature of
-today's `epidatatools::find_bls(search_string, max_results = 20, survey = NULL,
-seasonality = NULL)`. Clients should:
+A reference client, `examples/find_bls.R`, follows these rules. Its signature is
+`find_bls(search_string, survey = NULL, seasonality = NULL, limit = 1000,
+refresh = FALSE)`. This is a deliberate breaking change from today's
+`epidatatools::find_bls()`: `max_results` and `metadata` are gone. It always returns
+`series_id`, `series_title`, `program`, `survey_name`, `seasonal`, `begin_year`,
+`end_year` and `end_period`. Clients should:
 
 - Cache the catalog in `tools::R_user_dir("epidatatools", "cache")`, and verify its
   SHA-256 against the manifest.
@@ -259,7 +270,35 @@ seasonality = NULL)`. Clients should:
   all 8.3 million rows into an R data frame takes about 2 GB and 14–29 s per search;
   querying in place takes about 0.3 s
   ([measurements](docs/evidence/2026-10-20-phase1-runner-build.md)).
-- Search `series_title` and `survey_name`, case-insensitively.
+- Search like this:
+  - **Words.** Split the search string on spaces, and trim punctuation from the ends of
+    each word. Every word must match in `series_title`, `survey_name` or
+    `survey_aliases`, ignoring case. Escape regular-expression characters in words. A
+    search with no words left (empty, spaces or punctuation only) is an error.
+  - **Stemming.** Reduce each word to its English Snowball stem (`SnowballC` in R), and
+    match any word that begins with the stem: "nurses" becomes "nurs" and matches nurse,
+    nurses and nursing. A stem shorter than 4 characters is not used. The original word
+    must then match as a whole word, so short words stay exact: "oes" would stem to "oe",
+    and "CES" must not match "census". Longer initialisms can stem ("JOLTS" becomes
+    "jolt"). On the 2026-10-20 catalog, matching JOLTS, OEWS, LAUS, SOII and ATUS by
+    stem finds exactly the same rows as whole-word matching, so this is accepted.
+  - **Word boundaries.** A match must start at the beginning of a word: "CES" matches 2
+    titles as a word, but 769,239 inside words like "services". Hyphens separate words,
+    so "CPI-U" also matches the chained "C-CPI-U". That is accepted: treating hyphens as
+    part of words would stop "collar" matching "white-collar".
+  - **Filters.** `survey` takes one or more program codes, such as `c("la", "ln")`,
+    ignoring case, and filters `program`. `seasonality` takes one or more of `SA`, `NSA`
+    and `unknown`. An unknown code is an error that lists the valid codes.
+  - **Order.** Sort by title length (shortest first), then lowercased title, then series
+    ID, comparing strings by bytes so the order is the same on every machine. Short titles
+    tend to be the general series. Any change to this order is made here first.
+  - **Limit.** Count the matches, sort, and keep the first `limit` rows (1,000 by
+    default; `Inf` for all) before bringing them into R. A broad search such as "OEWS"
+    matches 6 million rows: as a data frame that is 1.7 GB, and sorting it in R took 59 s.
+    When results are cut, print the total and the matches per survey. For
+    "unemployment rate" on the 2026-10-20 catalog: "13,163 matches; showing the first
+    1,000. By survey: la 8,536, ln 4,197, fm 240, kv 138, jt 52."
+  - **Later.** Quoted phrases, and "did you mean" suggestions when nothing matches.
 - Allow enough time for a slow download. R's `download.file()` gives up after 60 s by
   default.
 - If the network fails, keep using the cached catalog, and say how old it is.
@@ -314,12 +353,21 @@ These are deliberate. Reviews should not report them as defects.
 - **No change history** (2026-10-20). A weekly list of added and removed series was
   considered and dropped as not worth its cost.
 - **Reference client queries in place with `arrow`** (2026-10-20).
+- **Survey aliases and search rules** (2026-10-20). `survey_name` stays the official BLS
+  name; initialisms, former names and informal names go in `survey_aliases`. Client
+  search rules:
+  - every word must match, stemmed, at the start of a word
+  - sort by title length, then title, then series ID
+  - a 1,000-row default limit, with counts by survey when results are cut
+  - `survey` accepts several codes
+  - a breaking change to `find_bls()`: no `max_results` or `metadata`, and always the
+    extra columns
 
 ## Done when
 
 1. `./scripts/check.sh` passes offline, locally and in CI.
 2. The reference client finds expected series in a local build, including by survey
-   name.
+   name and alias.
 3. The daily workflow has built all 33 programs on 7 consecutive days, and has published
    at least two weekly releases.
 4. A failed build or publish leaves the latest release unchanged and alerts. The monitor

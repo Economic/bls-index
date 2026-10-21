@@ -41,6 +41,8 @@ def main(run_dir: Path, programs: list[str]) -> int:
             failed = True
             continue
         seconds = time.perf_counter() - started
+        # Catalogs from before a column was added lack it; compare the shared columns.
+        actual = actual.select(expected.columns)
         if actual.equals(expected):
             print(f"{program}: ok {actual.height} rows {seconds:.1f}s")
             continue

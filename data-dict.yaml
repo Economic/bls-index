@@ -21,6 +21,19 @@ tables:
         constraints: [required]
         values: [ap, bd, ce, ci, cm, cu, cw, cx, ei, ep, fm, ip, is, jt, kv, la, le, ln, lu, mp, nb, nd, oe, or, pc, pr, sm, su, tu, wd, wm, wp, ws]
         description: Explicit BLS program code assigned by the source builder.
+      - name: survey_name
+        type: string
+        constraints:
+          - required
+          - assert: LENGTH(TRIM(survey_name)) > 0
+        description: BLS name of the program's survey; one fixed value per program, from official BLS pages.
+        examples: ['Consumer Price Index - All Urban Consumers']
+      - name: survey_aliases
+        type: string
+        constraints:
+          - assert: survey_aliases IS NULL OR LENGTH(TRIM(survey_aliases)) > 0
+        description: Other names people search for, separated by "; "; one fixed value per program, or null when a program has none.
+        examples: ['CPI; CPI-U']
       - name: series_id
         type: string
         constraints:
