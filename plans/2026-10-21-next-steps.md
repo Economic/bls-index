@@ -27,7 +27,8 @@ code.
 - **First release:** `catalog-2026-10-21T0934Z`, from the scheduled run on 2026-10-21.
   All six checks of step 1 passed
   ([evidence](../docs/evidence/2026-10-21-first-release.md)).
-- **Runbook:** [`docs/runbook.md`](../docs/runbook.md), a first draft.
+- **Runbook:** [`docs/runbook.md`](../docs/runbook.md), signed off by the maintainer on
+  2026-10-24.
 
 ## 1. Verify the first real release: done
 
@@ -36,20 +37,8 @@ All six checks passed on 2026-10-21
 
 ## 2. Finish the launch
 
-1. **Runbook.** A first draft of `docs/runbook.md` is written. Check it against this
-   list, and against the design's "Done when" item 6:
-   - a manual rerun (`gh workflow run daily.yml -f publish=none`)
-   - a forced publish (`-f publish=force`)
-   - a test release (`-f publish=test`)
-   - rollback: `gh release edit <tag> --latest` on an older release, and disabling the
-     schedule to hold it until the next fix
-   - adding a program: builder, tests, `scope.py`, `SURVEY_NAMES` and `SURVEY_ALIASES`,
-     the `data-dict.yaml` program values and, for synthesized titles, the `title_source`
-     rule; then a full build before merging
-   - what the monitor emails mean
-   - re-enabling the schedule if GitHub disables it after 60 days without repository
-     activity
-   - costs: none expected for a public repository
+1. **Runbook: done.** The maintainer signed off on `docs/runbook.md` on 2026-10-24. It
+   covers the design's "Done when" item 6.
 2. **Verify the missed-run alert on the live check: done.** The alert email arrived
    when the check's deadline passed on its own
    ([evidence](../docs/evidence/2026-10-21-missed-run-alert.md)).
