@@ -26,7 +26,7 @@ code.
   `epidatatools::find_bls()`. The original full-catalog measurement was 1.0–1.6 s
   ([evidence](../docs/evidence/2026-10-21-find-bls-reference-client.md)). The reference
   client now follows the stemming and cache fixes merged in
-  [epidatatools#29](https://github.com/Economic/epidatatools/pull/29). Its 53 offline
+  [epidatatools#29](https://github.com/Economic/epidatatools/pull/29). Its 56 offline
   checks pass on the 111-row fixture catalog.
 - **First release:** `catalog-2026-10-21T0934Z`, from the scheduled run on 2026-10-21.
   All six checks of step 1 passed
@@ -56,7 +56,7 @@ All six checks passed on 2026-10-21
 5. **Announce,** when the maintainer decides: where the catalog lives (the README's
    "Using the catalog" section) and that the client has merged in `epidatatools`.
 
-## 3. Client port and reference parity: done
+## 3. Client port: merged; parity follow-ups pending
 
 [Economic/epidatatools#29](https://github.com/Economic/epidatatools/pull/29) merged on
 2026-10-26. It replaces the retired Data Finder client with the catalog client,
@@ -80,10 +80,17 @@ introduced during that port. The reference client and `design.md` now adopt them
 The offline R checks cover these regressions. Future search behavior changes still
 start in `design.md`, then update both clients.
 
-The review here found two follow-ups for the epidatatools client: keep the old catalog
-until the new state is saved, and drop the stem's final "i" only for "y" and "ies"
-words so "taxis" still finds "taxi". This reference client includes both corrections;
-the epidatatools port still needs them.
+The reference changes are implemented here. Cross-client parity is pending these
+tasks in `Economic/epidatatools`:
+
+- Keep the old catalog until the new state is saved, so later offline calls work
+  after a failed state write.
+- Adopt the revised "y"/"ies" patterns. Drop the stem's final "i" only for these
+  words, retain an ending after long roots, and allow "ie" after short roots.
+  This keeps "taxis" matching "taxi", prevents "cookies" matching "cooks", and
+  lets "movies" find "movie".
+- Run the offline fixture checks against both clients before marking parity complete
+  or announcing it.
 
 ## 4. Backlog (only when wanted)
 

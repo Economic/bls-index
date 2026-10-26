@@ -59,6 +59,15 @@ for (word in c("city", "cities")) {
 }
 check("words with other endings keep their stem: taxis still finds taxi",
       all(grepl(word_pattern("taxis"), c("Taxi", "Taxis"), ignore.case = TRUE, perl = TRUE)))
+check("cookies finds cookie and cookies without finding cooks",
+      identical(grepl(word_pattern("cookies"), c("cookie", "cookies", "cooks"), perl = TRUE),
+                c(TRUE, TRUE, FALSE)))
+check("supplies finds supply and supplies without finding supplemental",
+      identical(grepl(word_pattern("supplies"), c("supply", "supplies", "supplemental"), perl = TRUE),
+                c(TRUE, TRUE, FALSE)))
+check("movies finds movie and movies without finding movement",
+      identical(grepl(word_pattern("movies"), c("movie", "movies", "movement"), perl = TRUE),
+                c(TRUE, TRUE, FALSE)))
 
 ces <- quiet(find_bls("CES"))
 check("short words match whole words only: 'CES' finds ce, not 'services'",

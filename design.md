@@ -280,14 +280,17 @@ titles_only = FALSE, refresh = FALSE)`. This is a deliberate breaking change fro
   - **Stemming.** Reduce each word to its English Snowball stem (`SnowballC` in R),
     drop a final "i" from the stem if the word ends in "y" or "ies", and take the part
     the word and that stem share.
-    Match any word that begins with this root: "nurses" gives "nurs" and matches
-    nurse, nurses and nursing. Dropping the "i" joins "industry" and "industries",
+    For roots of at least 4 characters, match any word that begins with this root:
+    "nurses" gives "nurs" and matches nurse, nurses and nursing. Dropping the "i"
+    joins "industry" and "industries",
     which both stem to "industri" and give the root "industr". Other endings keep
     the stem intact, so "taxis" keeps "taxi" and still matches "taxi".
+    When a final "i" was dropped, require "y" or "i" after a long root, so "cookies"
+    matches "cookie" but not "cooks", and "supplies" does not match "supplemental".
     If the root is shorter than 4 characters, match the original word as a whole
-    word. For a word ending in "y" or "ies" whose original stem ends in "i", match
-    both endings as whole words instead: "city" and "cities" match each other, but
-    neither matches "citizen". Other short words stay exact: "oes" would stem to
+    word. When a final "i" was dropped, match "y", "ie" or "ies" after the short root
+    as whole words instead: "city" and "cities" match each other without matching
+    "citizen", and "movies" matches "movie". Other short words stay exact: "oes" would stem to
     "oe", and "CES" must not match "census". Longer initialisms can stem ("JOLTS" becomes
     "jolt"). On the 2026-10-20 catalog, matching JOLTS, OEWS, LAUS, SOII and ATUS by
     stem finds exactly the same rows as whole-word matching, so this is accepted.
@@ -401,8 +404,10 @@ These are deliberate. Reviews should not report them as defects.
   [Issue #24](https://github.com/Economic/bls-index/issues/24) showed that the original
   shared-prefix rule missed singulars such as "industry" when searching "industries".
   Adopt the rule merged in Economic/epidatatools#29, including whole-word matches for
-  "city" and "cities", but drop the stem's final "i" only for "y" and "ies" words to
-  preserve matches such as "taxis" and "taxi". This supersedes keeping "city" exact.
+  "city" and "cities". Limit dropping the stem's final "i" to "y" and "ies" words,
+  and retain an ending after their roots to avoid new matches such as "cookies"
+  finding "cooks". Short roots also accept "ie" so "movies" finds "movie". These
+  corrections extend the port's rule. This supersedes keeping "city" exact.
 
 ## Done when
 

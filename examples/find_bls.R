@@ -161,16 +161,18 @@ search_words <- function(search_string) {
 
 # For "-y" and "-ies" words, drop a final "i" from the stem before taking the shared
 # root, so "industry" and "industries" both give "industr". Other endings keep the
-# stem intact ("taxis" -> "taxi"). Roots under 4 characters match whole words only;
-# short "-y" and "-ies" forms match each other, without matching "citizen" for "city".
+# stem intact ("taxis" -> "taxi"). Keep a "y" or "i" after long roots so "cookies"
+# does not match "cooks". Roots under 4 characters match whole words only, including
+# "y", "ie" and "ies" endings for these forms ("city"/"cities", "movie"/"movies").
 word_pattern <- function(word) {
   stem <- SnowballC::wordStem(word, language = "english")
-  root_stem <- if (grepl("(y|ies)$", word)) sub("i$", "", stem) else stem
+  y_ies <- grepl("i$", stem) && grepl("(y|ies)$", word)
+  root_stem <- if (y_ies) sub("i$", "", stem) else stem
   root <- shared_prefix(word, root_stem)
   if (nchar(root) >= 4) {
-    paste0("\\b", escape_regex(root))
-  } else if (grepl("i$", stem) && grepl("(y|ies)$", word)) {
-    paste0("\\b", escape_regex(root), "(y|ies)\\b")
+    paste0("\\b", escape_regex(root), if (y_ies) "(y|i)" else "")
+  } else if (y_ies) {
+    paste0("\\b", escape_regex(root), "(y|ie|ies)\\b")
   } else {
     paste0("\\b", escape_regex(word), "\\b")
   }
@@ -357,6 +359,7 @@ write_state <- function(state, state_file) {
   isTRUE(try(
     {
       suppressWarnings(jsonlite::write_json(state, temp, auto_unbox = TRUE, pretty = TRUE))
+      # R also replaces existing destinations on Windows (Rwin_wrename).
       suppressWarnings(file.rename(temp, state_file))
     },
     silent = TRUE
