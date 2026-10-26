@@ -64,6 +64,18 @@ What not to flag:
   or lose data.
 - Wording and formatting, unless meaning changes.
 
+Accepted resolutions:
+- When the maintainer accepts a risk and design.md records it, documenting the risk
+  and closing the finding is a complete resolution. Do not require defensive code or
+  additional tests for the same accepted case.
+- Accepted risk 10 covers semantically damaged local cache state, including empty,
+  path-like or checksum-mismatched filenames in otherwise valid JSON. The client
+  never generates these filenames. Deleting the state file is the accepted recovery.
+  Do not recommend filename/checksum validation, path restrictions or regression
+  tests for these cases again. Reopen only with concrete new evidence that normal
+  client operation generates invalid state. Bugs in state the client generates,
+  such as deleting the old catalog before the new state is saved, remain in scope.
+
 The one publication rule that is high severity: never make a release visible or mark
 it latest before both of its files are uploaded and their GitHub digests match the
 local files.
