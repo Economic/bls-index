@@ -1,5 +1,5 @@
 # Reference client for the bls_index catalog. It follows the "Clients" section of
-# design.md and is meant to be ported into epidatatools, not used as a package.
+# design.md and is also implemented in epidatatools::find_bls().
 #
 #   source("examples/find_bls.R")
 #   find_bls("unemployment rate", survey = c("ln", "la"), seasonality = "SA")
@@ -7,7 +7,7 @@
 # Requires arrow, dplyr, jsonlite, openssl, rlang, SnowballC and tibble.
 #
 # Settings, for testing or mirrors:
-#   BLS_INDEX_MANIFEST_URL or options(bls_index.manifest_url = ...): the manifest to read
+#   options(bls_index.manifest_url = ...) or BLS_INDEX_MANIFEST_URL: the manifest to read
 #   options(bls_index.cache_dir = ...): where the catalog is cached
 
 bls_index_default_manifest <-
@@ -32,8 +32,15 @@ find_bls <- function(
   refresh = FALSE
 ) {
   words <- search_words(search_string)
-  stopifnot(is.numeric(limit), length(limit) == 1, limit >= 1)
-  stopifnot(is.logical(titles_only), length(titles_only) == 1, !is.na(titles_only))
+  stopifnot(
+    is.numeric(limit), length(limit) == 1, !is.na(limit), limit >= 1,
+    is.infinite(limit) || limit == round(limit),
+    rlang::is_bool(titles_only), rlang::is_bool(refresh),
+    is.null(survey) || is.character(survey)
+  )
+  if (!is.null(seasonality)) {
+    seasonality <- check_values(seasonality, c("SA", "NSA", "unknown"), "seasonality")
+  }
   ds <- arrow::open_dataset(bls_catalog(refresh))
 
   # Survey names and aliases are fixed per program, so match them against the small
@@ -65,12 +72,7 @@ find_bls <- function(
     query <- query |> dplyr::filter(program %in% !!codes)
   }
   if (!is.null(seasonality)) {
-    values <- check_values(
-      seasonality,
-      c("SA", "NSA", "unknown"),
-      "seasonality"
-    )
-    query <- query |> dplyr::filter(seasonal %in% !!values)
+    query <- query |> dplyr::filter(seasonal %in% !!seasonality)
   }
   hit_count <- Reduce(
     function(a, b) rlang::expr(!!a + !!b),
@@ -157,16 +159,16 @@ search_words <- function(search_string) {
   words
 }
 
-# A word matches the start of any word beginning with the part it shares with its stem
-# ("nurses" -> "nurs"). A stem is not always the start of its word ("city" -> "citi"),
-# hence the shared part. If that part is
-# under 4 characters, the word must match as a whole word, so short words such as
-# "ces", "oes" or "city" stay exact.
+# Drop a final "i" from the stem before taking the shared root, so "industry" and
+# "industries" both give "industr". Roots under 4 characters match whole words only;
+# short "-y" and "-ies" forms match each other, without matching "citizen" for "city".
 word_pattern <- function(word) {
   stem <- SnowballC::wordStem(word, language = "english")
-  shared <- shared_prefix(word, stem)
-  if (nchar(shared) >= 4) {
-    paste0("\\b", escape_regex(shared))
+  root <- shared_prefix(word, sub("i$", "", stem))
+  if (nchar(root) >= 4) {
+    paste0("\\b", escape_regex(root))
+  } else if (grepl("i$", stem) && grepl("(y|ies)$", word)) {
+    paste0("\\b", escape_regex(root), "(y|ies)\\b")
   } else {
     paste0("\\b", escape_regex(word), "\\b")
   }
@@ -227,15 +229,11 @@ bls_catalog <- function(refresh = FALSE) {
   )
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   state_file <- file.path(dir, "bls_index_state.json")
-  state <- if (file.exists(state_file)) {
-    jsonlite::read_json(state_file)
-  } else {
-    NULL
-  }
+  state <- read_state(state_file)
   cached <- if (is.null(state)) NA_character_ else file.path(dir, state$file)
   have <- !is.na(cached) && file.exists(cached)
 
-  if (have && !refresh && days_since(state$checked_at) < 7) {
+  if (have && !refresh && isTRUE(days_since(state$checked_at) < 7)) {
     return(warn_if_stale(cached, state))
   }
   manifest <- tryCatch(read_manifest(), error = function(e) e)
@@ -302,7 +300,17 @@ bls_catalog <- function(refresh = FALSE) {
       record_check(state, state_file)
       return(warn_if_stale(cached, state))
     }
-    file.rename(partial, file.path(dir, file))
+    if (!rename_catalog(partial, file.path(dir, file))) {
+      if (!have) {
+        stop("Could not save the BLS catalog to ", dir, ".", call. = FALSE)
+      }
+      message(
+        "Could not save the newer BLS catalog to ", dir,
+        "; using the cached one built ", state$built_at, "."
+      )
+      record_check(state, state_file)
+      return(warn_if_stale(cached, state))
+    }
     if (have && basename(cached) != file) {
       unlink(cached)
     }
@@ -315,26 +323,65 @@ bls_catalog <- function(refresh = FALSE) {
     built_at = manifest$built_at,
     checked_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   )
-  jsonlite::write_json(state, state_file, auto_unbox = TRUE, pretty = TRUE)
+  write_state(state, state_file)
   warn_if_stale(cached, state)
+}
+
+# Separate so offline checks can simulate a failed rename.
+rename_catalog <- function(from, to) suppressWarnings(file.rename(from, to))
+
+# Unreadable or incomplete state is treated as missing, so a refresh can recover.
+read_state <- function(state_file) {
+  if (!file.exists(state_file)) {
+    return(NULL)
+  }
+  state <- tryCatch(
+    suppressWarnings(jsonlite::read_json(state_file)),
+    error = function(e) NULL
+  )
+  is_string <- function(x) is.character(x) && length(x) == 1 && !is.na(x)
+  fields <- c("file", "sha256", "built_at", "checked_at")
+  if (!is.list(state) || !all(vapply(state[fields], is_string, logical(1)))) {
+    return(NULL)
+  }
+  state
+}
+
+# Best effort: state writes must not stop a search of a cached catalog. A temporary
+# file and rename keep readers from seeing an interrupted write.
+write_state <- function(state, state_file) {
+  temp <- tempfile("bls_index_state-", tmpdir = dirname(state_file), fileext = ".json")
+  on.exit(unlink(temp))
+  try(
+    {
+      suppressWarnings(jsonlite::write_json(state, temp, auto_unbox = TRUE, pretty = TRUE))
+      suppressWarnings(file.rename(temp, state_file))
+    },
+    silent = TRUE
+  )
+  invisible(NULL)
 }
 
 # Record a check attempt, keeping the cached catalog's details. A failed check counts
 # too, so searches do not retry the network every time; `refresh = TRUE` retries now.
 record_check <- function(state, state_file) {
   state$checked_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-  # Best effort: an unwritable cache must not stop a search that has a cached catalog.
-  try(
-    jsonlite::write_json(state, state_file, auto_unbox = TRUE, pretty = TRUE),
-    silent = TRUE
-  )
+  write_state(state, state_file)
+}
+
+manifest_url <- function() {
+  url <- getOption("bls_index.manifest_url")
+  if (is.null(url)) {
+    url <- Sys.getenv("BLS_INDEX_MANIFEST_URL")
+  }
+  if (!nzchar(url)) {
+    url <- bls_index_default_manifest
+  }
+  url
 }
 
 read_manifest <- function() {
-  url <- Sys.getenv(
-    "BLS_INDEX_MANIFEST_URL",
-    getOption("bls_index.manifest_url", bls_index_default_manifest)
-  )
+  url <- manifest_url()
   path <- tempfile(fileext = ".json")
   on.exit(unlink(path))
   download(url, path)

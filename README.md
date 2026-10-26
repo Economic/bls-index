@@ -8,7 +8,7 @@ available.
 The catalog is one Parquet file (about 33 MB, 8.3 million series in 33 BLS programs)
 plus a small `latest.json` manifest, published as GitHub Releases of this repository.
 [`design.md`](design.md) is the contract;
-[`plans/2026-10-21-next-steps.md`](plans/2026-10-21-next-steps.md) has the status and
+[`plans/2026-10-26-client-parity.md`](plans/2026-10-26-client-parity.md) has the status and
 next steps. Agents start with [`AGENTS.md`](AGENTS.md).
 
 **Status:** a catalog is published. The first release, `catalog-2026-10-21T0934Z`, came
@@ -39,15 +39,17 @@ find_bls("all items", survey = "cu", titles_only = TRUE)
 
 It downloads the catalog at most once a week into `tools::R_user_dir("epidatatools",
 "cache")`, verifies its checksum, and searches the cached file in place, in about a
-second. Every search word must match (stemmed, so "nurses" finds "nursing"). Results
-are sorted with the most matched words first, then shortest title, and cut at
+second. Every search word must match (stemmed, so "nurses" finds "nursing" and
+"industries" finds "industry"; "city" and "cities" match each other as whole words).
+Results are sorted with the most matched words first, then shortest title, and cut at
 `limit = 1000` with a count of matches by survey. The design's "Clients" section has
 the full rules.
 
 It needs `arrow`, `dplyr`, `jsonlite`, `openssl`, `rlang`, `SnowballC` and `tibble`.
-Until a catalog is published, point it at a manifest with
-`options(bls_index.manifest_url = ...)`, either a test release's `latest.json` or a
-local file. `examples/check_find_bls.R` checks its search rules offline against a
+To use a mirror or local fixture, point it at a manifest with
+`options(bls_index.manifest_url = ...)`. This option takes precedence over
+`BLS_INDEX_MANIFEST_URL`; an empty environment variable is treated as unset.
+`examples/check_find_bls.R` checks its search rules offline against a
 catalog from `scripts/fixture_catalog.py`. R code here uses `<-` for assignment.
 
 ## Building the catalog
