@@ -53,8 +53,9 @@ All six checks passed on 2026-10-21
    `roborev review --since <commit> --panel checkpoint_panel --wait`, and check `main`
    against the design's "Done when" list. The panel includes the security reviewer. Fix
    real findings.
-5. **Announce,** when the maintainer decides: where the catalog lives (the README's
-   "Using the catalog" section) and that the client has merged in `epidatatools`.
+5. **Announce the catalog,** when the maintainer decides: where it lives (the README's
+   "Using the catalog" section). Before announcing the client, finish the parity tasks
+   and cross-client fixture checks in section 3.
 
 ## 3. Client port: merged; parity follow-ups pending
 
