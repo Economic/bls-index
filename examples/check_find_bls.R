@@ -4,7 +4,7 @@
 #   Rscript examples/check_find_bls.R /tmp/bls-fixture
 #
 # Uses a temporary cache, so it never touches the real one. Exits nonzero on failure.
-# These become testthat tests when the client moves to epidatatools.
+# The epidatatools port also checks these rules with testthat.
 
 fixture <- normalizePath(commandArgs(TRUE)[1])
 manifest_path <- file.path(fixture, "latest.json")
@@ -45,6 +45,29 @@ check("every word is required",
       all(grepl("unemployment", quiet(find_bls("unemployment rate"))$series_title, ignore.case = TRUE)))
 check("a stem that is not the start of its word still matches: 'city' finds 'city'",
       "CUSR0000SA0" %in% quiet(find_bls("CPI all items U.S. city average"))$series_id)
+
+for (pair in list(c("industry", "industries"), c("salary", "salaries"), c("city", "cities"))) {
+  singular <- quiet(find_bls(pair[1], titles_only = TRUE, limit = Inf))
+  plural <- quiet(find_bls(pair[2], titles_only = TRUE, limit = Inf))
+  check(paste("singular and plural find the same titles:", paste(pair, collapse = "/")),
+        nrow(singular) > 0 && identical(singular$series_id, plural$series_id))
+}
+for (word in c("city", "cities")) {
+  check(paste(word, "matches city and cities, without matching citizen or electricity"),
+        identical(grepl(word_pattern(word), c("city", "cities", "citizen", "electricity"), perl = TRUE),
+                  c(TRUE, TRUE, FALSE, FALSE)))
+}
+check("words with other endings keep their stem: taxis still finds taxi",
+      all(grepl(word_pattern("taxis"), c("Taxi", "Taxis"), ignore.case = TRUE, perl = TRUE)))
+check("cookies finds cookie and cookies without finding cooks",
+      identical(grepl(word_pattern("cookies"), c("cookie", "cookies", "cooks"), perl = TRUE),
+                c(TRUE, TRUE, FALSE)))
+check("supplies finds supply and supplies without finding supplemental",
+      identical(grepl(word_pattern("supplies"), c("supply", "supplies", "supplemental"), perl = TRUE),
+                c(TRUE, TRUE, FALSE)))
+check("movies finds movie and movies without finding movement",
+      identical(grepl(word_pattern("movies"), c("movie", "movies", "movement"), perl = TRUE),
+                c(TRUE, TRUE, FALSE)))
 
 ces <- quiet(find_bls("CES"))
 check("short words match whole words only: 'CES' finds ce, not 'services'",
@@ -112,12 +135,109 @@ check("a cut result reports the total and counts by survey",
         grepl("By survey: ", msgs))
 check("no message when nothing is cut", length(messages_of(find_bls("wage", limit = Inf))) == 0)
 
+# Isolate stubs from the client used by the other checks.
+client <- new.env()
+sys.source("examples/find_bls.R", envir = client)
+catalog_reads <- 0
+client$bls_catalog <- function(...) {
+  catalog_reads <<- catalog_reads + 1
+  stop("catalog requested")
+}
+invalid <- list(
+  list(limit = 1.5), list(limit = NA_real_), list(limit = -Inf),
+  list(refresh = NA), list(titles_only = 1), list(survey = 1), list(seasonality = "X")
+)
+errors <- vapply(invalid, function(args) {
+  nzchar(error_of(do.call(client$find_bls, c(list(search_string = "wage"), args))))
+}, logical(1))
+check("invalid arguments fail before reading the catalog", all(errors) && catalog_reads == 0)
+
+# -- manifest URL -------------------------------------------------------------------
+
+saved_url <- Sys.getenv("BLS_INDEX_MANIFEST_URL", unset = NA_character_)
+Sys.setenv(BLS_INDEX_MANIFEST_URL = "file:///environment/latest.json")
+check("the manifest option takes precedence over the environment variable",
+      identical(manifest_url(), paste0("file://", manifest_path)))
+options(bls_index.manifest_url = NULL)
+check("the environment variable is used when the manifest option is unset",
+      identical(manifest_url(), "file:///environment/latest.json"))
+Sys.setenv(BLS_INDEX_MANIFEST_URL = "")
+check("an empty manifest environment variable uses the default URL",
+      identical(manifest_url(), bls_index_default_manifest))
+if (is.na(saved_url)) Sys.unsetenv("BLS_INDEX_MANIFEST_URL") else Sys.setenv(BLS_INDEX_MANIFEST_URL = saved_url)
+options(bls_index.manifest_url = paste0("file://", manifest_path))
+
 # -- cache --------------------------------------------------------------------------
 
 cache <- getOption("bls_index.cache_dir")
 state <- jsonlite::read_json(file.path(cache, "bls_index_state.json"))
 check("the catalog is cached under its checksum",
       file.exists(file.path(cache, paste0("bls_index-", state$sha256, ".parquet"))))
+
+state_file <- file.path(cache, "bls_index_state.json")
+for (damaged in c("{", "{}", '{"file": ["one", "two"]}', '"not an object"')) {
+  writeLines(damaged, state_file)
+  check(paste("refresh recovers damaged or incomplete cache state:", damaged),
+        nrow(quiet(find_bls("wage", refresh = TRUE))) > 0 &&
+          identical(read_state(state_file)$sha256, state$sha256))
+}
+
+# A valid new download with a different checksum, to exercise the rename failure.
+updated <- arrow::read_parquet(file.path(fixture, "bls_index.parquet"))
+updated$series_title[1] <- paste(updated$series_title[1], "updated")
+updated_path <- file.path(tempdir(), "updated.parquet")
+arrow::write_parquet(updated, updated_path)
+new_manifest <- jsonlite::read_json(manifest_path)
+new_manifest$catalog$sha256 <- sha256_file(updated_path)
+new_manifest$catalog$url <- paste0("file://", updated_path)
+new_manifest$catalog$bytes <- unname(file.info(updated_path)$size)
+new_manifest_path <- file.path(tempdir(), "updated_latest.json")
+jsonlite::write_json(new_manifest, new_manifest_path, auto_unbox = TRUE)
+options(bls_index.manifest_url = paste0("file://", new_manifest_path))
+sys.source("examples/find_bls.R", envir = client)
+client$rename_catalog <- function(from, to) FALSE
+msgs <- messages_of(kept <- client$find_bls("wage", refresh = TRUE))
+check("a failed catalog rename preserves the old file and state and returns cached results",
+      identical(kept$series_id, all_rows$series_id) &&
+        file.exists(file.path(cache, state$file)) &&
+        identical(read_state(state_file)$sha256, state$sha256) &&
+        any(grepl("Could not save.*using the cached one", msgs)) &&
+        length(list.files(cache, pattern = "\\.part$")) == 0)
+options(bls_index.cache_dir = file.path(tempdir(), "rename_failure_empty_cache"))
+check("a failed catalog rename with no cache reports an error",
+      nzchar(error_of(client$find_bls("wage"))))
+options(bls_index.cache_dir = cache, bls_index.manifest_url = paste0("file://", manifest_path))
+
+# Use a missing destination directory to simulate an unwritable state file even
+# when the checks run with filesystem privileges that ignore permission bits.
+client$write_state <- function(state, state_file) {
+  write_state(state, file.path(cache, "missing", "state.json"))
+}
+check("a failed state write after a successful check still returns cached results",
+      identical(quiet(client$find_bls("wage", refresh = TRUE))$series_id, all_rows$series_id))
+options(bls_index.manifest_url = "file:///nonexistent/latest.json")
+check("a failed state write after a failed check still returns cached results",
+      identical(quiet(client$find_bls("wage", refresh = TRUE))$series_id, all_rows$series_id))
+
+client$rename_catalog <- rename_catalog
+options(bls_index.manifest_url = paste0("file://", new_manifest_path))
+new_cached <- quiet(client$bls_catalog(refresh = TRUE))
+check("a failed state write after replacing a catalog preserves the old file and state",
+      identical(sha256_file(new_cached), new_manifest$catalog$sha256) &&
+        file.exists(file.path(cache, state$file)) &&
+        identical(read_state(state_file)$sha256, state$sha256))
+options(bls_index.manifest_url = "file:///nonexistent/latest.json")
+check("a later offline call still uses the old catalog after a failed state write",
+      identical(quiet(client$bls_catalog(refresh = TRUE)), file.path(cache, state$file)) &&
+        identical(quiet(client$find_bls("wage"))$series_id, all_rows$series_id))
+sys.source("examples/find_bls.R", envir = client)
+options(bls_index.manifest_url = paste0("file://", new_manifest_path))
+invisible(quiet(client$bls_catalog(refresh = TRUE)))
+check("a successful state write switches catalogs and removes the old file",
+      identical(read_state(state_file)$sha256, new_manifest$catalog$sha256) &&
+        file.exists(new_cached) && !file.exists(file.path(cache, state$file)))
+options(bls_index.manifest_url = paste0("file://", manifest_path))
+invisible(quiet(find_bls("wage", refresh = TRUE)))
 
 options(bls_index.manifest_url = "file:///nonexistent/latest.json")
 check("within 7 days the manifest is not read", length(messages_of(find_bls("wage"))) == 0)

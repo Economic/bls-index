@@ -277,14 +277,21 @@ titles_only = FALSE, refresh = FALSE)`. This is a deliberate breaking change fro
   - **Titles only.** With `titles_only = TRUE`, every word must match `series_title`;
     survey names and aliases are ignored. It suits a search already restricted by
     `survey`, such as `find_bls("all items", survey = "cu", titles_only = TRUE)`.
-  - **Stemming.** Reduce each word to its English Snowball stem (`SnowballC` in R), take
-    the part the word and its stem share, and match any word that begins with it:
-    "nurses" stems to "nurs" and matches nurse, nurses and nursing. The shared part
-    matters because a stem is not always the start of its word: "city" stems to "citi".
-    If the shared part is shorter than 4
-    characters, the original word must match as a whole word instead, so short words
-    stay exact: "oes" would stem to "oe", "city" shares only "cit", and "CES" must not
-    match "census". Longer initialisms can stem ("JOLTS" becomes
+  - **Stemming.** Reduce each word to its English Snowball stem (`SnowballC` in R),
+    drop a final "i" from the stem if the word ends in "y" or "ies", and take the part
+    the word and that stem share.
+    For roots of at least 4 characters, match any word that begins with this root:
+    "nurses" gives "nurs" and matches nurse, nurses and nursing. Dropping the "i"
+    joins "industry" and "industries",
+    which both stem to "industri" and give the root "industr". Other endings keep
+    the stem intact, so "taxis" keeps "taxi" and still matches "taxi".
+    When a final "i" was dropped, require "y" or "i" after a long root, so "cookies"
+    matches "cookie" but not "cooks", and "supplies" does not match "supplemental".
+    If the root is shorter than 4 characters, match the original word as a whole
+    word. When a final "i" was dropped, match "y", "ie" or "ies" after the short root
+    as whole words instead: "city" and "cities" match each other without matching
+    "citizen", and "movies" matches "movie". Other short words stay exact: "oes" would stem to
+    "oe", and "CES" must not match "census". Longer initialisms can stem ("JOLTS" becomes
     "jolt"). On the 2026-10-20 catalog, matching JOLTS, OEWS, LAUS, SOII and ATUS by
     stem finds exactly the same rows as whole-word matching, so this is accepted.
   - **Word boundaries.** A match must start at the beginning of a word: "CES" matches 2
@@ -309,7 +316,9 @@ titles_only = FALSE, refresh = FALSE)`. This is a deliberate breaking change fro
     because they are shorter than "U.S. city average". Users narrow with more words or
     `survey`. Any change to this order is made here first.
   - **Limit.** Count the matches, sort, and keep the first `limit` rows (1,000 by
-    default; `Inf` for all) before bringing them into R. A broad search such as "OEWS"
+    default; a whole number of at least 1, or `Inf` for all) before bringing them into R.
+    Check scalar arguments and seasonality values before downloading the catalog.
+    Validate survey codes against the catalog's program table. A broad search such as "OEWS"
     matches 6 million rows: as a data frame that is 1.7 GB, and sorting it in R took 59 s.
     When results are cut, print the total and the matches per survey. For
     "unemployment rate" on the 2026-10-20 catalog: "13,163 matches; showing the first
@@ -318,9 +327,17 @@ titles_only = FALSE, refresh = FALSE)`. This is a deliberate breaking change fro
 - Allow enough time for a slow download. R's `download.file()` gives up after 60 s by
   default.
 - If the network fails, keep using the cached catalog, and say how old it is.
+- Treat an unreadable or incomplete cache state file as missing, so a refresh can
+  recover. Write state through a temporary file and rename. State writes are best
+  effort, so an unwritable state file does not stop a search of a cached catalog.
+- Keep the old cached catalog until the new download has been renamed into place.
+  Delete the old catalog only after the new state has also been saved, so a failed
+  state write leaves the old cache usable on later calls. If the catalog rename
+  fails, use the old catalog when available.
 - Treat a catalog whose `built_at` is more than 10 days old as stale, and say so.
 - Send a User-Agent naming the client, and let users override the manifest URL with an
-  option or environment variable.
+  option or environment variable. The `bls_index.manifest_url` option takes precedence
+  over `BLS_INDEX_MANIFEST_URL`; an empty environment variable is unset.
 
 ## Accepted risks
 
@@ -346,6 +363,12 @@ These are deliberate. Reviews should not report them as defects.
 9. **Clients assume a writable cache.** If the cache folder cannot be written and the
    network is also down, a client may retry the network on every search in that
    session, slowing each one. Searches still return results from the cached catalog.
+10. **Semantically damaged local cache state.** Required fields and types are checked,
+    but generated filenames are not validated against the checksum. An altered
+    filename in otherwise valid JSON can make Arrow read another file or the cache
+    directory. The client never writes such a filename. Delete the state file to
+    recover through a fresh manifest check and download. This local corruption risk
+    does not justify more cache validation.
 
 ## Decisions
 
@@ -383,6 +406,14 @@ These are deliberate. Reviews should not report them as defects.
   - `survey` accepts several codes
   - a breaking change to `find_bls()`: no `max_results` or `metadata`, and always the
     extra columns
+- **Join singular and plural forms ending in "y" and "ies"** (2026-10-26).
+  [Issue #24](https://github.com/Economic/bls-index/issues/24) showed that the original
+  shared-prefix rule missed singulars such as "industry" when searching "industries".
+  Adopt the rule merged in Economic/epidatatools#29, including whole-word matches for
+  "city" and "cities". Limit dropping the stem's final "i" to "y" and "ies" words,
+  and retain an ending after their roots to avoid new matches such as "cookies"
+  finding "cooks". Short roots also accept "ie" so "movies" finds "movie". These
+  corrections extend the port's rule. This supersedes keeping "city" exact.
 
 ## Done when
 
