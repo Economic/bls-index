@@ -57,6 +57,8 @@ for (word in c("city", "cities")) {
         identical(grepl(word_pattern(word), c("city", "cities", "citizen", "electricity"), perl = TRUE),
                   c(TRUE, TRUE, FALSE, FALSE)))
 }
+check("words with other endings keep their stem: taxis still finds taxi",
+      all(grepl(word_pattern("taxis"), c("Taxi", "Taxis"), ignore.case = TRUE, perl = TRUE)))
 
 ces <- quiet(find_bls("CES"))
 check("short words match whole words only: 'CES' finds ce, not 'services'",
@@ -207,6 +209,26 @@ check("a failed state write after a successful check still returns cached result
 options(bls_index.manifest_url = "file:///nonexistent/latest.json")
 check("a failed state write after a failed check still returns cached results",
       identical(quiet(client$find_bls("wage", refresh = TRUE))$series_id, all_rows$series_id))
+
+client$rename_catalog <- rename_catalog
+options(bls_index.manifest_url = paste0("file://", new_manifest_path))
+new_cached <- quiet(client$bls_catalog(refresh = TRUE))
+check("a failed state write after replacing a catalog preserves the old file and state",
+      identical(sha256_file(new_cached), new_manifest$catalog$sha256) &&
+        file.exists(file.path(cache, state$file)) &&
+        identical(read_state(state_file)$sha256, state$sha256))
+options(bls_index.manifest_url = "file:///nonexistent/latest.json")
+check("a later offline call still uses the old catalog after a failed state write",
+      identical(quiet(client$bls_catalog(refresh = TRUE)), file.path(cache, state$file)) &&
+        identical(quiet(client$find_bls("wage"))$series_id, all_rows$series_id))
+sys.source("examples/find_bls.R", envir = client)
+options(bls_index.manifest_url = paste0("file://", new_manifest_path))
+invisible(quiet(client$bls_catalog(refresh = TRUE)))
+check("a successful state write switches catalogs and removes the old file",
+      identical(read_state(state_file)$sha256, new_manifest$catalog$sha256) &&
+        file.exists(new_cached) && !file.exists(file.path(cache, state$file)))
+options(bls_index.manifest_url = paste0("file://", manifest_path))
+invisible(quiet(find_bls("wage", refresh = TRUE)))
 
 options(bls_index.manifest_url = "file:///nonexistent/latest.json")
 check("within 7 days the manifest is not read", length(messages_of(find_bls("wage"))) == 0)

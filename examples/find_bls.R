@@ -159,12 +159,14 @@ search_words <- function(search_string) {
   words
 }
 
-# Drop a final "i" from the stem before taking the shared root, so "industry" and
-# "industries" both give "industr". Roots under 4 characters match whole words only;
+# For "-y" and "-ies" words, drop a final "i" from the stem before taking the shared
+# root, so "industry" and "industries" both give "industr". Other endings keep the
+# stem intact ("taxis" -> "taxi"). Roots under 4 characters match whole words only;
 # short "-y" and "-ies" forms match each other, without matching "citizen" for "city".
 word_pattern <- function(word) {
   stem <- SnowballC::wordStem(word, language = "english")
-  root <- shared_prefix(word, sub("i$", "", stem))
+  root_stem <- if (grepl("(y|ies)$", word)) sub("i$", "", stem) else stem
+  root <- shared_prefix(word, root_stem)
   if (nchar(root) >= 4) {
     paste0("\\b", escape_regex(root))
   } else if (grepl("i$", stem) && grepl("(y|ies)$", word)) {
@@ -231,6 +233,7 @@ bls_catalog <- function(refresh = FALSE) {
   state_file <- file.path(dir, "bls_index_state.json")
   state <- read_state(state_file)
   cached <- if (is.null(state)) NA_character_ else file.path(dir, state$file)
+  old_cached <- cached
   have <- !is.na(cached) && file.exists(cached)
 
   if (have && !refresh && isTRUE(days_since(state$checked_at) < 7)) {
@@ -311,9 +314,6 @@ bls_catalog <- function(refresh = FALSE) {
       record_check(state, state_file)
       return(warn_if_stale(cached, state))
     }
-    if (have && basename(cached) != file) {
-      unlink(cached)
-    }
     cached <- file.path(dir, file)
   }
   state <- list(
@@ -323,7 +323,9 @@ bls_catalog <- function(refresh = FALSE) {
     built_at = manifest$built_at,
     checked_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   )
-  write_state(state, state_file)
+  if (write_state(state, state_file) && have && cached != old_cached) {
+    unlink(old_cached)
+  }
   warn_if_stale(cached, state)
 }
 
@@ -352,14 +354,13 @@ read_state <- function(state_file) {
 write_state <- function(state, state_file) {
   temp <- tempfile("bls_index_state-", tmpdir = dirname(state_file), fileext = ".json")
   on.exit(unlink(temp))
-  try(
+  isTRUE(try(
     {
       suppressWarnings(jsonlite::write_json(state, temp, auto_unbox = TRUE, pretty = TRUE))
       suppressWarnings(file.rename(temp, state_file))
     },
     silent = TRUE
-  )
-  invisible(NULL)
+  ))
 }
 
 # Record a check attempt, keeping the cached catalog's details. A failed check counts

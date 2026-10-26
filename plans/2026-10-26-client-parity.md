@@ -26,7 +26,7 @@ code.
   `epidatatools::find_bls()`. The original full-catalog measurement was 1.0–1.6 s
   ([evidence](../docs/evidence/2026-10-21-find-bls-reference-client.md)). The reference
   client now follows the stemming and cache fixes merged in
-  [epidatatools#29](https://github.com/Economic/epidatatools/pull/29). Its 49 offline
+  [epidatatools#29](https://github.com/Economic/epidatatools/pull/29). Its 53 offline
   checks pass on the 111-row fixture catalog.
 - **First release:** `catalog-2026-10-21T0934Z`, from the scheduled run on 2026-10-21.
   All six checks of step 1 passed
@@ -70,7 +70,8 @@ introduced during that port. The reference client and `design.md` now adopt them
   without matching "citizen".
 - Recover from damaged state files, write state through a temporary file and rename,
   and keep searches working when state cannot be written.
-- Keep the old catalog if the new catalog cannot be renamed into place.
+- Keep the old catalog if the new catalog cannot be renamed into place or the new
+  state cannot be saved. Later offline searches can still use the old catalog.
 - Prefer the manifest URL option over the environment variable, and treat an empty
   environment variable as unset.
 - Check scalar arguments and seasonality before reading the catalog. Require a whole
@@ -78,6 +79,11 @@ introduced during that port. The reference client and `design.md` now adopt them
 
 The offline R checks cover these regressions. Future search behavior changes still
 start in `design.md`, then update both clients.
+
+The review here found two follow-ups for the epidatatools client: keep the old catalog
+until the new state is saved, and drop the stem's final "i" only for "y" and "ies"
+words so "taxis" still finds "taxi". This reference client includes both corrections;
+the epidatatools port still needs them.
 
 ## 4. Backlog (only when wanted)
 

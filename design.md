@@ -278,10 +278,12 @@ titles_only = FALSE, refresh = FALSE)`. This is a deliberate breaking change fro
     survey names and aliases are ignored. It suits a search already restricted by
     `survey`, such as `find_bls("all items", survey = "cu", titles_only = TRUE)`.
   - **Stemming.** Reduce each word to its English Snowball stem (`SnowballC` in R),
-    drop a final "i" from the stem, and take the part the word and that stem share.
+    drop a final "i" from the stem if the word ends in "y" or "ies", and take the part
+    the word and that stem share.
     Match any word that begins with this root: "nurses" gives "nurs" and matches
     nurse, nurses and nursing. Dropping the "i" joins "industry" and "industries",
-    which both stem to "industri" and give the root "industr".
+    which both stem to "industri" and give the root "industr". Other endings keep
+    the stem intact, so "taxis" keeps "taxi" and still matches "taxi".
     If the root is shorter than 4 characters, match the original word as a whole
     word. For a word ending in "y" or "ies" whose original stem ends in "i", match
     both endings as whole words instead: "city" and "cities" match each other, but
@@ -326,7 +328,9 @@ titles_only = FALSE, refresh = FALSE)`. This is a deliberate breaking change fro
   recover. Write state through a temporary file and rename. State writes are best
   effort, so an unwritable state file does not stop a search of a cached catalog.
 - Keep the old cached catalog until the new download has been renamed into place.
-  If the rename fails, use the old catalog when available.
+  Delete the old catalog only after the new state has also been saved, so a failed
+  state write leaves the old cache usable on later calls. If the catalog rename
+  fails, use the old catalog when available.
 - Treat a catalog whose `built_at` is more than 10 days old as stale, and say so.
 - Send a User-Agent naming the client, and let users override the manifest URL with an
   option or environment variable. The `bls_index.manifest_url` option takes precedence
@@ -397,7 +401,8 @@ These are deliberate. Reviews should not report them as defects.
   [Issue #24](https://github.com/Economic/bls-index/issues/24) showed that the original
   shared-prefix rule missed singulars such as "industry" when searching "industries".
   Adopt the rule merged in Economic/epidatatools#29, including whole-word matches for
-  "city" and "cities". This supersedes keeping "city" exact.
+  "city" and "cities", but drop the stem's final "i" only for "y" and "ies" words to
+  preserve matches such as "taxis" and "taxi". This supersedes keeping "city" exact.
 
 ## Done when
 
