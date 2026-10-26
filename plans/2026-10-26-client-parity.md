@@ -90,8 +90,9 @@ tasks in `Economic/epidatatools`:
   words, retain an ending after long roots, and allow "ie" after short roots.
   This keeps "taxis" matching "taxi", prevents "cookies" matching "cooks", and
   lets "movies" find "movie".
-- Run the offline fixture checks against both clients before marking parity complete
-  or announcing it.
+- Run both clients with the same offline fixture and inputs, and compare their
+  returned IDs, ordering and columns. Require those results to agree before marking
+  parity complete or announcing it.
 
 ## 4. Backlog (only when wanted)
 

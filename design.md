@@ -363,6 +363,12 @@ These are deliberate. Reviews should not report them as defects.
 9. **Clients assume a writable cache.** If the cache folder cannot be written and the
    network is also down, a client may retry the network on every search in that
    session, slowing each one. Searches still return results from the cached catalog.
+10. **Semantically damaged local cache state.** Required fields and types are checked,
+    but generated filenames are not validated against the checksum. An altered
+    filename in otherwise valid JSON can make Arrow read another file or the cache
+    directory. The client never writes such a filename. Delete the state file to
+    recover through a fresh manifest check and download. This local corruption risk
+    does not justify more cache validation.
 
 ## Decisions
 
